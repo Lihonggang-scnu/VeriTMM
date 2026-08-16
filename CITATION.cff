@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+message: "If you use VeriTMM, please cite this software and the optical-constants datasets used by your simulation."
+title: "VeriTMM: A verifier-first workbench for multilayer optics"
+type: software
+version: 0.1.0
+date-released: 2026-08-16
+authors:
+  - name: "VeriTMM contributors"
+repository-code: "https://github.com/Lihonggang-scnu/VeriTMM"
+url: "https://github.com/Lihonggang-scnu/VeriTMM"
+license: MIT
+keywords:
+  - multilayer optics
+  - transfer matrix method
+  - thin films
+  - inverse design
+  - differentiable physics

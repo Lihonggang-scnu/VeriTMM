@@ -1,0 +1,4 @@
+recursive-include tmm_engine/materials *.csv
+include tmm_engine/rii_cache.db
+include README.md README.zh-CN.md LICENSE THIRD_PARTY_NOTICES.md
+
