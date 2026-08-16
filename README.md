@@ -2,7 +2,7 @@
 
 # VeriTMM
 
-### Verifier-first multilayer optics and inverse design
+### An AI-ready transfer-matrix tool for autonomous multilayer-optics research
 
 [![CI](https://github.com/Lihonggang-scnu/VeriTMM/actions/workflows/ci.yml/badge.svg)](https://github.com/Lihonggang-scnu/VeriTMM/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
@@ -13,27 +13,34 @@
 
 </div>
 
-VeriTMM is a research-grade Python workbench for planar, isotropic,
-one-dimensional multilayer optics. It joins stable forward simulation,
-mixed-coherence physics, governed material data, differentiable inverse design,
-convergence checks, independent cross-validation, and machine-readable physics
-certificates in one reproducible task protocol.
+VeriTMM is first and foremost a **transfer-matrix-method (TMM) tool** for
+planar, isotropic, one-dimensional multilayer optics. Its distinctive purpose
+is to make established TMM physics safer and easier for AI agents to use in
+autonomous scientific work. Stable forward simulation, mixed-coherence
+physics, governed material data, differentiable inverse design, convergence
+checks, independent cross-validation, and machine-readable physics certificates
+are exposed through one reproducible task protocol.
 
-The central idea is simple: **an optimizer may propose a design, but it may not
-certify itself**. Every result—forward or optimized—passes through the same
-deterministic physics checks before it is accepted.
+The central idea is simple: **AI proposes, TMM computes, and deterministic
+verification certifies**. Neither an AI agent nor an optimizer may certify its
+own proposal. Every result—forward or optimized—passes through the same physics
+checks before it is accepted.
 
 ![A six-period DBR computed by VeriTMM](docs/assets/dbr_spectrum.png)
 
 ## Why this project exists
 
-Most TMM examples stop after producing an `R/T` curve. A scientific workflow
-also needs to answer: Which material dataset was used? Was it extrapolated? Did
-the spectrum converge? Does a second implementation agree? Is the requested
-problem even inside scalar TMM's validity domain? Can the result be replayed?
+Most TMM libraries assume that a human expert will choose valid inputs, inspect
+warnings, and interpret the result. An autonomous AI agent needs a stricter
+interface. It must be able to ask: Which material dataset was used? Was it
+extrapolated? Did the spectrum converge? Does a second implementation agree?
+Is the requested problem inside scalar TMM's validity domain? Can the result be
+replayed without relying on conversational memory?
 
 VeriTMM makes those questions part of the executable contract rather than
-leaving them to manual interpretation.
+leaving them to implicit human judgment. The numerical core remains TMM; the
+additional engineering makes that core machine-operable, auditable, and harder
+for an AI system to misuse.
 
 ## Highlights
 
@@ -53,21 +60,44 @@ leaving them to manual interpretation.
 ## What we contribute
 
 The transfer-matrix method is established physics. VeriTMM's contribution
-is not a claim to have invented TMM; it is the **verifier-first integration** of
-the following components:
+is not a new TMM equation, nor a generic scientific-research workflow. It is an
+**AI-ready TMM tool interface** that integrates the following components:
 
-1. A single, immutable task language shared by simulation and inverse design.
+1. A machine-readable, immutable task language shared by forward simulation
+   and inverse design, so an AI agent can submit a complete task without hidden
+   conversational assumptions.
 2. Explicit capability boundaries that reject gratings, metasurfaces,
-   anisotropy, nonlinear optics and other unsupported physics with typed reasons.
+   anisotropy, nonlinear optics and other unsupported physics with typed,
+   machine-readable reasons.
 3. Material selection as a reproducible scientific decision: provider, dataset
    ID, wavelength coverage, interpolation policy and source metadata travel with
    the result.
-4. Independent recomputation of differentiable proposals before acceptance.
-5. A physics certificate that records convergence, cross-solver agreement,
-   energy balance, limitations and input identity.
+4. Independent recomputation of AI- or optimizer-proposed designs before
+   acceptance.
+5. A physics certificate that lets an AI system inspect convergence,
+   cross-solver agreement, energy balance, limitations and input identity
+   through structured fields rather than prose.
 6. A deliberate separation between target score and physical validity: an
    ambitious target may be missed without turning a correct calculation into a
    false failure—or a high score into false proof.
+
+VeriTMM has no dependency on a particular language model or agent framework.
+Any AI system that can produce the JSON task contract and read the structured
+outputs can use it as a deterministic optical-physics tool.
+
+## AI-facing contract
+
+| AI action | VeriTMM responsibility |
+|---|---|
+| Propose a stack, material choice, target or thickness update | Validate and normalize the task before calculation |
+| Request forward simulation or differentiable optimization | Execute the appropriate TMM path within declared capability limits |
+| Iterate after observing a result | Preserve reproducible inputs, outputs and failure reasons |
+| Select a promising candidate | Recompute it independently and issue a physics acceptance certificate |
+| Ask for unsupported physics | Reject it explicitly instead of returning a plausible-looking spectrum |
+
+This division is intentional: AI supplies scientific strategy and candidate
+designs; VeriTMM supplies deterministic TMM computation, bounded execution and
+physical verification.
 
 ## Installation
 
