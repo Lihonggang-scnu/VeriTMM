@@ -1,0 +1,57 @@
+{
+  "mode": "optimize",
+  "optimization": {
+    "simulation": {
+      "stack": {
+        "name": "robust-single-layer-ar",
+        "incident": {"constant_n": 1.0},
+        "exit": {"constant_n": 1.52},
+        "layers": [
+          {
+            "constant_n": 1.38,
+            "thickness_nm": 100.0,
+            "optimizable": true,
+            "min_thickness_nm": 50.0,
+            "max_thickness_nm": 180.0
+          }
+        ]
+      },
+      "spectrum": {"start_nm": 500.0, "stop_nm": 650.0, "points": 61},
+      "illumination": {"angles_deg": [0.0], "polarizations": ["unpolarized"]},
+      "solver": "smatrix",
+      "requested_outputs": ["R", "T", "A"]
+    },
+    "targets": [
+      {
+        "name": "broadband_transmission",
+        "observable": "T",
+        "target": 0.99,
+        "constraint": "at_least",
+        "aggregation": "mean",
+        "wavelength_min_nm": 520.0,
+        "wavelength_max_nm": 620.0,
+        "angle_deg": 0.0,
+        "polarization": "unpolarized",
+        "weight": 1.0
+      }
+    ],
+    "optimizer": {
+      "method": "adam",
+      "max_steps": 20,
+      "learning_rate": 0.08,
+      "starts": 2,
+      "seed": 7,
+      "early_stop_patience": 8,
+      "quantization_nm": 1.0
+    },
+    "robustness": {
+      "enabled": true,
+      "objective": "mean_plus_k_sigma",
+      "samples_per_step": 6,
+      "final_samples": 24,
+      "seed": 7,
+      "thickness_sigma_nm": 3.0,
+      "k_sigma": 2.0
+    }
+  }
+}

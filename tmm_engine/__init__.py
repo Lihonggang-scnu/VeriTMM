@@ -31,16 +31,16 @@ nk lookup:
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field, replace
 import hashlib
+from dataclasses import dataclass, field, replace
 from pathlib import Path
-from typing import Any, Literal
+from typing import Literal
 
 import numpy as np
 
 from .tmm_solver import TMM, TMMConfig
 
-__version__ = "0.1.0"
+__version__ = "0.5.0"
 
 PACKAGE_ROOT = Path(__file__).resolve().parent
 DEFAULT_MATERIALS_DIR = PACKAGE_ROOT / "materials"
@@ -370,6 +370,20 @@ class TMMEngine:
 
 # Stable v2 workbench API. Differentiable modules remain explicit imports so
 # importing tmm_engine never requires PyTorch.
+from .acceptance import AcceptanceSettings, CertifiedSimulation, certify_simulation  # noqa: E402
+from .agent_bench import (  # noqa: E402
+    BenchmarkAssertion,
+    BenchmarkCase,
+    load_benchmark_cases,
+    run_offline_benchmark,
+)
+from .agent_harness import (  # noqa: E402
+    AgentTrajectory,
+    TrajectoryStep,
+    build_exposure,
+    run_agent_ab,
+    score_trajectories,
+)
 from .analysis import (  # noqa: E402
     SpectralBand,
     bloch_trace_bilayer_normal_incidence,
@@ -379,13 +393,44 @@ from .analysis import (  # noqa: E402
     spectrum_similarity,
     thickness_tolerance_monte_carlo,
 )
-from .designs import chirped_stack, defect_cavity_stack, periodic_stack, with_finite_substrate  # noqa: E402
+from .capabilities import (  # noqa: E402
+    CapabilityAssessment,
+    FailureAction,
+    FailureCode,
+    FailureRecord,
+    PhysicsEngineError,
+    assess_tmm_capability,
+    enrich_failure_actions,
+    failure_from_exception,
+)
+from .convergence import (  # noqa: E402
+    SpectralConvergenceOutcome,
+    SpectralConvergenceSettings,
+    audit_spectral_convergence,
+)
+from .designs import (  # noqa: E402
+    chirped_stack,
+    defect_cavity_stack,
+    periodic_stack,
+    with_finite_substrate,
+)
+from .execution import ExecutionSettings, execute_task  # noqa: E402
 from .material_registry import (  # noqa: E402
     MaterialAmbiguityError,
     MaterialNotFoundError,
     MaterialRangeError,
     MaterialRef,
     MaterialRegistry,
+)
+from .preflight import preflight_path, preflight_task  # noqa: E402
+from .protocol import (  # noqa: E402
+    CapabilityManifest,
+    OptimizationTaskContract,
+    PreflightReport,
+    RunResultEnvelope,
+    SimulationTaskContract,
+    describe_capabilities,
+    export_schema,
 )
 from .schemas import (  # noqa: E402
     IlluminationSpec,
@@ -400,26 +445,18 @@ from .schemas import (  # noqa: E402
     StackSpec,
 )
 from .workbench import ForwardSimulationResult, TMMWorkbench  # noqa: E402
-from .acceptance import AcceptanceSettings, CertifiedSimulation, certify_simulation  # noqa: E402
-from .capabilities import (  # noqa: E402
-    CapabilityAssessment,
-    FailureCode,
-    FailureRecord,
-    PhysicsEngineError,
-    assess_tmm_capability,
-)
-from .convergence import (  # noqa: E402
-    SpectralConvergenceOutcome,
-    SpectralConvergenceSettings,
-    audit_spectral_convergence,
-)
-
 
 __all__ = [
     "ForwardSimulationResult",
     "AcceptanceSettings",
+    "AgentTrajectory",
+    "BenchmarkAssertion",
+    "BenchmarkCase",
     "CertifiedSimulation",
     "CapabilityAssessment",
+    "CapabilityManifest",
+    "ExecutionSettings",
+    "FailureAction",
     "FailureCode",
     "FailureRecord",
     "IlluminationSpec",
@@ -431,31 +468,48 @@ __all__ = [
     "MaterialRegistry",
     "MediumSpec",
     "OptimizationTask",
+    "OptimizationTaskContract",
     "OptimizerSpec",
     "PhysicsEngineError",
     "PhysicsRequirements",
+    "PreflightReport",
     "SimulationConfig",
     "SimulationResult",
     "SimulationTask",
+    "SimulationTaskContract",
     "SpectralBand",
     "SpectralGrid",
     "SpectralTarget",
     "StackSpec",
     "TMMEngine",
     "TMMWorkbench",
+    "TrajectoryStep",
+    "RunResultEnvelope",
     "SpectralConvergenceOutcome",
     "SpectralConvergenceSettings",
     "assess_tmm_capability",
     "audit_spectral_convergence",
     "bloch_trace_bilayer_normal_incidence",
+    "build_exposure",
     "chirped_stack",
     "defect_cavity_stack",
     "find_threshold_bands",
     "hemispherical_average",
     "phase_dispersion_from_amplitude",
     "periodic_stack",
+    "load_benchmark_cases",
+    "run_agent_ab",
+    "run_offline_benchmark",
+    "score_trajectories",
     "spectrum_similarity",
     "thickness_tolerance_monte_carlo",
     "with_finite_substrate",
     "certify_simulation",
+    "describe_capabilities",
+    "enrich_failure_actions",
+    "execute_task",
+    "export_schema",
+    "failure_from_exception",
+    "preflight_path",
+    "preflight_task",
 ]

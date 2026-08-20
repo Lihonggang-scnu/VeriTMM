@@ -8,10 +8,9 @@ same validated representation.
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
-from typing import Any, Dict, Iterable, List, Literal, Mapping, Optional, Sequence, Tuple
+from typing import Any, Dict, Literal, Optional, Sequence, Tuple
 
 import numpy as np
-
 
 Polarization = Literal["s", "p", "unpolarized"]
 Coherence = Literal["coherent", "incoherent"]
@@ -285,14 +284,44 @@ class OptimizerSpec:
 
 
 @dataclass(frozen=True)
+class RobustnessSpec:
+    enabled: bool = True
+    objective: Literal["expected_loss", "worst_case_loss", "mean_plus_k_sigma"] = (
+        "expected_loss"
+    )
+    samples_per_step: int = 8
+    final_samples: int = 128
+    seed: int = 42
+    thickness_sigma_nm: float = 2.0
+    k_sigma: float = 2.0
+
+    def validate(self) -> None:
+        if self.objective not in (
+            "expected_loss",
+            "worst_case_loss",
+            "mean_plus_k_sigma",
+        ):
+            raise ValueError("unsupported robustness objective")
+        if int(self.samples_per_step) < 2 or int(self.final_samples) < 8:
+            raise ValueError("robustness sample counts are too small")
+        if _finite_float(self.thickness_sigma_nm, "thickness_sigma_nm") <= 0:
+            raise ValueError("thickness_sigma_nm must be positive")
+        if _finite_float(self.k_sigma, "k_sigma") < 0:
+            raise ValueError("k_sigma must be non-negative")
+
+
+@dataclass(frozen=True)
 class OptimizationTask:
     simulation: SimulationTask
     targets: Tuple[SpectralTarget, ...]
     optimizer: OptimizerSpec = field(default_factory=OptimizerSpec)
+    robustness: Optional[RobustnessSpec] = None
 
     def validate(self) -> None:
         self.simulation.validate()
         self.optimizer.validate()
+        if self.robustness is not None:
+            self.robustness.validate()
         if not self.targets:
             raise ValueError("optimization task requires at least one target")
         for target in self.targets:
@@ -344,6 +373,7 @@ __all__ = [
     "Observable",
     "OptimizationTask",
     "OptimizerSpec",
+    "RobustnessSpec",
     "Polarization",
     "PhysicsRequirements",
     "SimulationTask",

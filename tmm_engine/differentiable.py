@@ -164,7 +164,6 @@ class DifferentiableTMM(nn.Module):
         device = nk.device
         n_incident = nk[:, 0, :]
         n_films = nk[:, 1:-1, :]
-        n_exit = nk[:, -1, :]
         conserved_kx = n_incident * torch.sin(theta_bw).to(self.dtype_complex)
 
         all_n = nk

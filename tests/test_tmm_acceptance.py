@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from dataclasses import replace
 
+import pytest
+
 from tmm_engine import (
     AcceptanceSettings,
     FailureCode,
@@ -41,6 +43,31 @@ def test_capability_routes_lateral_periodicity_to_rcwa() -> None:
     assert assessment.failures[0].suggested_solver_family == "rcwa"
 
 
+@pytest.mark.parametrize(
+    ("physics", "expected_code"),
+    [
+        (PhysicsRequirements(geometry_class="lateral_periodic"), FailureCode.UNSUPPORTED_GEOMETRY),
+        (PhysicsRequirements(geometry_class="arbitrary_2d"), FailureCode.UNSUPPORTED_GEOMETRY),
+        (PhysicsRequirements(geometry_class="arbitrary_3d"), FailureCode.UNSUPPORTED_GEOMETRY),
+        (PhysicsRequirements(material_class="anisotropic"), FailureCode.UNSUPPORTED_MATERIAL_MODEL),
+        (PhysicsRequirements(material_class="magneto_optic"), FailureCode.UNSUPPORTED_MATERIAL_MODEL),
+        (PhysicsRequirements(material_class="nonlinear"), FailureCode.UNSUPPORTED_MATERIAL_MODEL),
+        (PhysicsRequirements(excitation_class="finite_beam"), FailureCode.UNSUPPORTED_EXCITATION),
+        (PhysicsRequirements(excitation_class="dipole"), FailureCode.UNSUPPORTED_EXCITATION),
+        (PhysicsRequirements(excitation_class="mode_source"), FailureCode.UNSUPPORTED_EXCITATION),
+        (PhysicsRequirements(time_domain_required=True), FailureCode.TIME_DOMAIN_REQUIRED),
+    ],
+)
+def test_every_declared_out_of_domain_profile_is_rejected_before_solver(
+    physics: PhysicsRequirements,
+    expected_code: FailureCode,
+) -> None:
+    assessment = assess_tmm_capability(replace(_task(), physics=physics))
+    assert assessment.supported is False
+    assert expected_code in {failure.code for failure in assessment.failures}
+    assert assessment.resolved_solver is None
+
+
 def test_capability_rejects_incoherent_complex_amplitude() -> None:
     task = _task()
     layer = replace(task.stack.layers[0], coherence="incoherent")
@@ -48,6 +75,21 @@ def test_capability_rejects_incoherent_complex_amplitude() -> None:
     assessment = assess_tmm_capability(task)
     assert not assessment.supported
     assert assessment.failures[0].code == FailureCode.UNSUPPORTED_OUTPUT_COMBINATION
+
+
+def test_capability_rejects_byrnes_amplitudes_instead_of_silently_omitting() -> None:
+    task = replace(
+        _task(),
+        solver="byrnes",
+        requested_outputs=("R", "T", "A", "amplitudes"),
+    )
+    assessment = assess_tmm_capability(task)
+    assert not assessment.supported
+    assert any(
+        item.code == FailureCode.UNSUPPORTED_OUTPUT_COMBINATION
+        and item.context.get("requested_output") == "amplitudes"
+        for item in assessment.failures
+    )
 
 
 def test_layer_absorption_is_routed_instead_of_silently_omitted() -> None:
@@ -107,3 +149,26 @@ def test_convergence_audit_exposes_underresolved_spectrum() -> None:
     assert not outcome.passed
     assert outcome.status == "spectral_convergence_failure"
     assert outcome.rounds[0]["max_pointwise_deviation"] > 1e-4
+
+
+def test_certificate_rejects_backend_that_omits_requested_output(monkeypatch) -> None:
+    task = replace(_task(), requested_outputs=("R", "T", "A", "amplitudes"))
+    workbench = TMMWorkbench(MaterialRegistry())
+    broken = workbench.simulate(task)
+    for values in broken.channels.values():
+        values.pop("r", None)
+        values.pop("t", None)
+    monkeypatch.setattr(workbench, "simulate", lambda _task: broken)
+    certified = certify_simulation(
+        workbench,
+        task,
+        AcceptanceSettings(
+            require_spectral_convergence=False,
+            require_independent_solver=False,
+        ),
+    )
+    assert certified.result is broken
+    assert certified.certificate["accepted"] is False
+    failure = certified.certificate["failures"][0]
+    assert failure["code"] == "requested_output_missing"
+    assert failure["context"]["missing_outputs"] == ["amplitudes"]

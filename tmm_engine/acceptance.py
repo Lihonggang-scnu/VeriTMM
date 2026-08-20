@@ -6,7 +6,7 @@ import hashlib
 import json
 import platform
 import sys
-from dataclasses import asdict, dataclass, field, replace
+from dataclasses import dataclass, field, replace
 from typing import Any, Dict, List, Optional
 
 import numpy as np
@@ -14,15 +14,11 @@ import numpy as np
 from .capabilities import (
     FailureCode,
     FailureRecord,
-    PhysicsEngineError,
     assess_tmm_capability,
+    enrich_failure_actions,
+    failure_from_exception,
 )
 from .convergence import SpectralConvergenceSettings, audit_spectral_convergence
-from .material_registry import (
-    MaterialAmbiguityError,
-    MaterialNotFoundError,
-    MaterialRangeError,
-)
 from .schemas import SimulationTask, SpectralGrid, dataclass_to_dict
 from .workbench import ForwardSimulationResult, TMMWorkbench
 
@@ -92,27 +88,45 @@ def _cross_solver_check(
     }
 
 
-def _failure_from_exception(exc: Exception) -> FailureRecord:
-    if isinstance(exc, PhysicsEngineError):
-        return exc.failure
-    if isinstance(exc, MaterialRangeError):
-        return FailureRecord(
-            FailureCode.MATERIAL_RANGE_ERROR,
-            str(exc),
-            True,
-            context={
-                "material": exc.material,
-                "requested_range": exc.requested_range,
-                "available_range": exc.available_range,
-            },
-        )
-    if isinstance(exc, MaterialAmbiguityError):
-        return FailureRecord(FailureCode.MATERIAL_AMBIGUITY, str(exc), True)
-    if isinstance(exc, MaterialNotFoundError):
-        return FailureRecord(FailureCode.MATERIAL_NOT_FOUND, str(exc), True)
-    if isinstance(exc, ImportError):
-        return FailureRecord(FailureCode.OPTIONAL_DEPENDENCY_MISSING, str(exc), True)
-    return FailureRecord(FailureCode.INVALID_TASK, f"{type(exc).__name__}: {exc}", False)
+def _missing_requested_outputs(
+    task: SimulationTask,
+    result: ForwardSimulationResult,
+) -> list[str]:
+    """Return requested observables absent from the concrete solver result.
+
+    Capability routing is the first defence.  This result-side check prevents
+    an implementation or optional-backend regression from being certified as
+    successful when an advertised output was silently omitted.
+    """
+
+    missing: list[str] = []
+    channels = result.channels
+    extras = result.extras
+    for requested in task.requested_outputs:
+        if requested in {"R", "T", "A"}:
+            if not channels or any(requested not in values for values in channels.values()):
+                missing.append(requested)
+        elif requested == "system_emissivity":
+            if not channels or any("E_system" not in values for values in channels.values()):
+                missing.append(requested)
+        elif requested == "amplitudes":
+            if not channels or any(
+                "r" not in values or "t" not in values for values in channels.values()
+            ):
+                missing.append(requested)
+        elif requested == "phase_dispersion":
+            if any(f"phase_dispersion|{key}" not in extras for key in channels):
+                missing.append(requested)
+        elif requested == "layer_absorption":
+            if any(f"layer_absorption|{key}" not in extras for key in channels):
+                missing.append(requested)
+        elif requested == "ellipsometry":
+            if any(
+                f"ellipsometry|angle={float(angle):g}" not in extras
+                for angle in task.illumination.angles_deg
+            ):
+                missing.append(requested)
+    return sorted(set(missing))
 
 
 def certify_simulation(
@@ -128,6 +142,7 @@ def certify_simulation(
     base: Dict[str, Any] = {
         "schema_version": "physics-acceptance-certificate-v1",
         "task_sha256": _stable_hash(task_payload),
+        "task_hash_scope": "simulation_task_payload_without_operation_wrapper",
         "capability_assessment": assessment.to_dict(),
         "accepted": False,
         "status": "rejected_physics",
@@ -152,6 +167,20 @@ def certify_simulation(
 
         failures: List[FailureRecord] = []
         audit = result.audit
+        missing_outputs = _missing_requested_outputs(task, result)
+        if missing_outputs:
+            failures.append(
+                FailureRecord(
+                    FailureCode.REQUESTED_OUTPUT_MISSING,
+                    "The selected backend did not emit every requested observable.",
+                    True,
+                    context={
+                        "requested_outputs": list(task.requested_outputs),
+                        "missing_outputs": missing_outputs,
+                        "solver": result.solver,
+                    },
+                )
+            )
         if int(audit.get("nonfinite_value_count", 0)):
             failures.append(
                 FailureRecord(FailureCode.NUMERICAL_NONFINITE, "The solver returned non-finite observables.", False)
@@ -214,12 +243,12 @@ def certify_simulation(
                 "platform": platform.platform(),
                 "numpy": np.__version__,
             },
-            "failures": [item.to_dict() for item in failures],
+            "failures": [enrich_failure_actions(item).to_dict() for item in failures],
         }
         certificate["certificate_id"] = _stable_hash(certificate)
         return CertifiedSimulation(result, certificate)
     except Exception as exc:
-        failure = _failure_from_exception(exc)
+        failure = failure_from_exception(exc)
         base["failures"] = [failure.to_dict()]
         base["certificate_id"] = _stable_hash(base)
         return CertifiedSimulation(None, base)

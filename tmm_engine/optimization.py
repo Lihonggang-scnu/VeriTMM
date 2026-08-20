@@ -5,11 +5,11 @@ from __future__ import annotations
 import math
 import time
 from dataclasses import dataclass, field, replace
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 
-from .schemas import LayerSpec, MediumSpec, OptimizationTask, SimulationTask, StackSpec
+from .schemas import LayerSpec, MediumSpec, OptimizationTask, SimulationTask
 
 
 @dataclass
@@ -241,6 +241,38 @@ class DifferentiableThicknessOptimizer:
                 details[key] = self.torch.mean(values, dim=1)
         return total / max(total_weight, 1e-12), details
 
+    def _robust_loss_for_thicknesses(
+        self,
+        task: OptimizationTask,
+        thicknesses_nm: Any,
+        nk_stack: Any,
+        perturbations_nm: Any,
+    ) -> Any:
+        """Aggregate a fixed differentiable perturbation ensemble per design."""
+
+        if task.robustness is None or not task.robustness.enabled:
+            return self._loss_for_thicknesses(task, thicknesses_nm, nk_stack)[0]
+        batch, layers = thicknesses_nm.shape
+        samples = int(perturbations_nm.shape[0])
+        expanded = (
+            thicknesses_nm.reshape(batch, 1, layers)
+            + perturbations_nm.reshape(1, samples, layers)
+        ).clamp_min(0.1)
+        losses, _ = self._loss_for_thicknesses(
+            task,
+            expanded.reshape(batch * samples, layers),
+            nk_stack,
+        )
+        losses = losses.reshape(batch, samples)
+        objective = task.robustness.objective
+        if objective == "expected_loss":
+            return self.torch.mean(losses, dim=1)
+        if objective == "worst_case_loss":
+            return self.torch.max(losses, dim=1).values
+        return self.torch.mean(losses, dim=1) + float(task.robustness.k_sigma) * self.torch.std(
+            losses, dim=1, unbiased=False
+        )
+
     def evaluate(self, task: OptimizationTask, thicknesses_nm: Sequence[float]) -> Tuple[float, Dict[str, float]]:
         task.validate()
         nk_stack, _ = self._build_nk_stack(task.simulation)
@@ -286,6 +318,23 @@ class DifferentiableThicknessOptimizer:
         raw = torch.nn.Parameter(raw_data)
         fixed_mask = torch.tensor(fixed, dtype=torch.bool, device=self.device).reshape(1, -1)
         nk_stack, provenance = self._build_nk_stack(task.simulation)
+        robustness_offsets = None
+        if task.robustness is not None and task.robustness.enabled:
+            rng = np.random.default_rng(int(task.robustness.seed))
+            offsets = rng.normal(
+                0.0,
+                float(task.robustness.thickness_sigma_nm),
+                size=(int(task.robustness.samples_per_step), initial.size),
+            )
+            # Antithetic centering reduces gradient noise while keeping a fixed,
+            # reproducible training ensemble. Final robustness uses fresh NumPy
+            # simulations and a distinct seed.
+            offsets = offsets - np.mean(offsets, axis=0, keepdims=True)
+            robustness_offsets = torch.tensor(
+                offsets,
+                dtype=self.real_dtype,
+                device=self.device,
+            )
 
         optimizer = torch.optim.Adam([raw], lr=float(cfg.learning_rate))
         best_loss = float("inf")
@@ -305,7 +354,13 @@ class DifferentiableThicknessOptimizer:
             optimizer.zero_grad(set_to_none=True)
             thicknesses = self._raw_to_range(raw, lo.expand_as(raw), hi.expand_as(raw))
             thicknesses = torch.where(fixed_mask.expand_as(thicknesses), init.expand_as(thicknesses), thicknesses)
-            per_start, _ = self._loss_for_thicknesses(task, thicknesses, nk_stack)
+            per_start = (
+                self._robust_loss_for_thicknesses(
+                    task, thicknesses, nk_stack, robustness_offsets
+                )
+                if robustness_offsets is not None
+                else self._loss_for_thicknesses(task, thicknesses, nk_stack)[0]
+            )
             loss = torch.mean(per_start)
             if not torch.isfinite(loss):
                 stop_reason = "non_finite_loss"
@@ -350,7 +405,13 @@ class DifferentiableThicknessOptimizer:
                 lbfgs.zero_grad(set_to_none=True)
                 candidate = self._raw_to_range(raw_best, lo, hi)
                 candidate = torch.where(fixed_mask, init, candidate)
-                value, _ = self._loss_for_thicknesses(task, candidate, nk_stack)
+                value = (
+                    self._robust_loss_for_thicknesses(
+                        task, candidate, nk_stack, robustness_offsets
+                    )
+                    if robustness_offsets is not None
+                    else self._loss_for_thicknesses(task, candidate, nk_stack)[0]
+                )
                 value[0].backward()
                 return value[0]
 
@@ -359,7 +420,13 @@ class DifferentiableThicknessOptimizer:
                 candidate = self._raw_to_range(raw_best, lo, hi)
                 candidate = torch.where(fixed_mask, init, candidate)
                 with torch.no_grad():
-                    candidate_loss, _ = self._loss_for_thicknesses(task, candidate, nk_stack)
+                    candidate_loss = (
+                        self._robust_loss_for_thicknesses(
+                            task, candidate, nk_stack, robustness_offsets
+                        )
+                        if robustness_offsets is not None
+                        else self._loss_for_thicknesses(task, candidate, nk_stack)[0]
+                    )
                 if float(candidate_loss[0].item()) < best_loss:
                     best_loss = float(candidate_loss[0].item())
                     best_thickness = candidate.detach()[0].clone()
@@ -382,8 +449,25 @@ class DifferentiableThicknessOptimizer:
             quantized_loss, _ = self.evaluate(task, quantized_values)
 
         raw_candidates: List[Tuple[str, np.ndarray, float]] = [
-            ("initial", initial.copy(), float(initial_loss)),
-            ("optimized_best", optimized.copy(), float(optimized_loss)),
+            (
+                "initial",
+                initial.copy(),
+                float(
+                    initial_loss
+                    if robustness_offsets is None
+                    else self._robust_loss_for_thicknesses(
+                        task,
+                        torch.tensor(
+                            initial.reshape(1, -1),
+                            dtype=self.real_dtype,
+                            device=self.device,
+                        ),
+                        nk_stack,
+                        robustness_offsets,
+                    )[0].detach().item()
+                ),
+            ),
+            ("optimized_best", optimized.copy(), float(best_loss)),
         ]
         for index in range(starts):
             values = best_per_start_thickness[index].detach().cpu().numpy().astype(np.float64)
@@ -391,7 +475,25 @@ class DifferentiableThicknessOptimizer:
                 (f"multistart_{index}", values, float(best_per_start_loss[index].item()))
             )
         if quantized_values is not None and quantized_loss is not None:
-            raw_candidates.append(("quantized_best", quantized_values.copy(), float(quantized_loss)))
+            quantized_selection_loss = float(quantized_loss)
+            if robustness_offsets is not None:
+                quantized_selection_loss = float(
+                    self._robust_loss_for_thicknesses(
+                        task,
+                        torch.tensor(
+                            quantized_values.reshape(1, -1),
+                            dtype=self.real_dtype,
+                            device=self.device,
+                        ),
+                        nk_stack,
+                        robustness_offsets,
+                    )[0]
+                    .detach()
+                    .item()
+                )
+            raw_candidates.append(
+                ("quantized_best", quantized_values.copy(), quantized_selection_loss)
+            )
 
         # Keep distinct trajectories; repeated starts often converge to the same basin.
         candidate_designs: List[Dict[str, Any]] = []
@@ -401,13 +503,19 @@ class DifferentiableThicknessOptimizer:
             if signature in seen or not np.isfinite(loss):
                 continue
             seen.add(signature)
-            _, candidate_metrics = self.evaluate(task, values)
+            candidate_nominal_loss, candidate_metrics = self.evaluate(task, values)
             candidate_designs.append(
                 {
                     "candidate_id": f"candidate_{len(candidate_designs) + 1:02d}",
                     "source": source,
                     "thicknesses_nm": values.tolist(),
-                    "objective_loss": float(loss),
+                    "objective_loss": float(candidate_nominal_loss),
+                    "training_selection_loss": float(loss),
+                    "training_objective": (
+                        "nominal_loss"
+                        if task.robustness is None or not task.robustness.enabled
+                        else task.robustness.objective
+                    ),
                     "target_metrics": candidate_metrics,
                 }
             )
@@ -435,6 +543,14 @@ class DifferentiableThicknessOptimizer:
                 "coherent_only": True,
                 "specformer_derived_backend": True,
                 "evaluation_count": self.evaluation_count,
+                "robust_training": (
+                    None
+                    if task.robustness is None
+                    else {
+                        **task.robustness.__dict__,
+                        "final_validation_is_independent": True,
+                    }
+                ),
             },
             evaluation_count=self.evaluation_count,
         )

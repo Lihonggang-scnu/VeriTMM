@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "veritmm"
-version = "0.1.0"
-description = "A verifier-first transfer-matrix workbench for multilayer optics and inverse design"
+version = "0.5.0"
+description = "An AI-ready, verifier-first transfer-matrix tool for multilayer optics"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
@@ -26,15 +26,19 @@ classifiers = [
 ]
 dependencies = [
   "numpy>=1.24",
+  "pydantic>=2.7",
   "tmm>=0.2.0",
 ]
+
+[project.scripts]
+veritmm = "tmm_engine.cli:main"
 
 [project.optional-dependencies]
 optimize = ["torch>=2.1"]
 plot = ["matplotlib>=3.7"]
-test = ["pytest>=8"]
-dev = ["pytest>=8", "build>=1.2", "ruff>=0.6"]
-all = ["torch>=2.1", "matplotlib>=3.7", "pytest>=8"]
+test = ["pytest>=8", "jsonschema>=4.23"]
+dev = ["pytest>=8", "jsonschema>=4.23", "build>=1.2", "ruff>=0.6"]
+all = ["torch>=2.1", "matplotlib>=3.7", "pytest>=8", "jsonschema>=4.23"]
 
 [project.urls]
 Homepage = "https://github.com/Lihonggang-scnu/VeriTMM"
@@ -45,10 +49,18 @@ Issues = "https://github.com/Lihonggang-scnu/VeriTMM/issues"
 include-package-data = true
 
 [tool.setuptools.packages.find]
-include = ["tmm_engine*"]
+include = ["tmm_engine*", "benchmarks*"]
 
 [tool.setuptools.package-data]
-tmm_engine = ["materials/*.csv", "rii_cache.db"]
+tmm_engine = ["materials/*.csv", "examples/*.json", "rii_cache.db"]
+benchmarks = [
+  "cases/*/*.json",
+  "prompts/*",
+  "trajectories/*.json",
+  "expected/*",
+  "scoring/*",
+  "README.md",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -57,3 +69,7 @@ addopts = "-ra"
 [tool.ruff]
 target-version = "py310"
 line-length = 100
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]
+ignore = ["E402"]

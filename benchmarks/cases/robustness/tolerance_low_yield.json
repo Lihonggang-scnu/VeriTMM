@@ -1,0 +1,131 @@
+{
+  "schema_version": "veritmm-agentbench-case-v1",
+  "case_id": "tolerance_low_yield",
+  "category": "valid_study",
+  "natural_language_task": "Execute or validate the tolerance low yield workflow.",
+  "task": {
+    "schema_version": "tolerance-task-v1",
+    "mode": "tolerance",
+    "tolerance": {
+      "simulation": {
+        "stack": {
+          "name": "agentbench-stack",
+          "incident": {
+            "constant_n": 1.0
+          },
+          "layers": [
+            {
+              "constant_n": 1.38,
+              "thickness_nm": 105.0,
+              "optimizable": false
+            }
+          ],
+          "exit": {
+            "constant_n": 1.52
+          }
+        },
+        "spectrum": {
+          "start_nm": 500.0,
+          "stop_nm": 650.0,
+          "points": 41
+        },
+        "illumination": {
+          "angles_deg": [
+            0.0
+          ],
+          "polarizations": [
+            "unpolarized"
+          ]
+        },
+        "solver": "smatrix",
+        "requested_outputs": [
+          "R",
+          "T",
+          "A"
+        ],
+        "physics": {}
+      },
+      "uncertainties": [
+        {
+          "layer_index": 0,
+          "distribution": "normal",
+          "sigma_nm": 2.0
+        }
+      ],
+      "metric": {
+        "name": "mean_T",
+        "observable": "T",
+        "wavelength_min_nm": 520.0,
+        "wavelength_max_nm": 620.0,
+        "aggregation": "mean"
+      },
+      "target": {
+        "metric": {
+          "name": "mean_T",
+          "observable": "T",
+          "wavelength_min_nm": 520.0,
+          "wavelength_max_nm": 620.0,
+          "aggregation": "mean"
+        },
+        "constraint": "at_least",
+        "value": 0.9999
+      },
+      "sample_count": 12,
+      "seed": 42
+    }
+  },
+  "expected_mode": "tolerance",
+  "expected_capability": "supported",
+  "expected_failure_codes": [],
+  "expected_artifacts": [
+    "tolerance_result",
+    "robustness_report",
+    "result_summary"
+  ],
+  "physics_assertions": [
+    {
+      "source": "run_result",
+      "path": "ok",
+      "operator": "eq",
+      "expected": true,
+      "minimum": null,
+      "maximum": null,
+      "tolerance": 0.0
+    },
+    {
+      "source": "tolerance_result",
+      "path": "completed_sample_count",
+      "operator": "eq",
+      "expected": 12,
+      "minimum": null,
+      "maximum": null,
+      "tolerance": 0.0
+    },
+    {
+      "source": "tolerance_result",
+      "path": "failed_sample_count",
+      "operator": "eq",
+      "expected": 0,
+      "minimum": null,
+      "maximum": null,
+      "tolerance": 0.0
+    },
+    {
+      "source": "tolerance_result",
+      "path": "yield",
+      "operator": "eq",
+      "expected": 0.0,
+      "minimum": null,
+      "maximum": null,
+      "tolerance": 0.0
+    }
+  ],
+  "difficulty": "advanced",
+  "tags": [
+    "tolerance",
+    "standard"
+  ],
+  "execution": "run",
+  "scenario": "standard",
+  "reproducibility_runs": 2
+}

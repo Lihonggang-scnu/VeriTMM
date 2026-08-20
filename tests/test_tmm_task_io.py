@@ -10,7 +10,6 @@ import pytest
 from tmm_engine import OptimizationTask, SpectralTarget
 from tmm_engine.task_io import load_task, simulation_task_from_dict, write_normalized_task
 
-
 ROOT = Path(__file__).resolve().parents[1]
 
 

@@ -1,0 +1,95 @@
+{
+  "schema_version": "veritmm-agentbench-case-v1",
+  "case_id": "robust_worst_case",
+  "category": "valid_inverse_design",
+  "natural_language_task": "Execute or validate the robust worst case workflow.",
+  "task": {
+    "mode": "optimize",
+    "optimization": {
+      "simulation": {
+        "stack": {
+          "name": "agentbench-stack",
+          "incident": {
+            "constant_n": 1.0
+          },
+          "layers": [
+            {
+              "constant_n": 1.38,
+              "thickness_nm": 105.0,
+              "optimizable": true,
+              "min_thickness_nm": 50.0,
+              "max_thickness_nm": 180.0
+            }
+          ],
+          "exit": {
+            "constant_n": 1.52
+          }
+        },
+        "spectrum": {
+          "start_nm": 500.0,
+          "stop_nm": 650.0,
+          "points": 31
+        },
+        "illumination": {
+          "angles_deg": [
+            0.0
+          ],
+          "polarizations": [
+            "unpolarized"
+          ]
+        },
+        "solver": "smatrix",
+        "requested_outputs": [
+          "R",
+          "T",
+          "A"
+        ],
+        "physics": {}
+      },
+      "targets": [
+        {
+          "name": "broadband_transmission",
+          "observable": "T",
+          "target": 0.96,
+          "constraint": "at_least",
+          "aggregation": "mean",
+          "wavelength_min_nm": 520.0,
+          "wavelength_max_nm": 620.0,
+          "angle_deg": 0.0,
+          "polarization": "unpolarized"
+        }
+      ],
+      "optimizer": {
+        "method": "adam",
+        "max_steps": 4,
+        "learning_rate": 0.05,
+        "starts": 1,
+        "seed": 7,
+        "early_stop_patience": 3,
+        "quantization_nm": null
+      },
+      "robustness": {
+        "enabled": true,
+        "objective": "worst_case_loss",
+        "samples_per_step": 2,
+        "final_samples": 8,
+        "seed": 7,
+        "thickness_sigma_nm": 2.0,
+        "k_sigma": 2.0
+      }
+    }
+  },
+  "expected_mode": "optimize",
+  "expected_capability": "supported",
+  "expected_failure_codes": [],
+  "expected_artifacts": [],
+  "physics_assertions": [],
+  "difficulty": "advanced",
+  "tags": [
+    "optimize",
+    "standard"
+  ],
+  "execution": "preflight_only",
+  "scenario": "standard",
+  "reproducibility_runs": 2
+}

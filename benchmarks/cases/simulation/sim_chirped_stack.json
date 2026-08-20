@@ -1,0 +1,86 @@
+{
+  "schema_version": "veritmm-agentbench-case-v1",
+  "case_id": "sim_chirped_stack",
+  "category": "valid_simulation",
+  "natural_language_task": "Simulate a chirped alternating-index multilayer.",
+  "task": {
+    "mode": "simulate",
+    "simulation": {
+      "stack": {
+        "name": "agentbench-stack",
+        "incident": {
+          "constant_n": 1.0
+        },
+        "layers": [
+          {
+            "constant_n": 2.1,
+            "thickness_nm": 55,
+            "optimizable": false
+          },
+          {
+            "constant_n": 1.45,
+            "thickness_nm": 85,
+            "optimizable": false
+          },
+          {
+            "constant_n": 2.1,
+            "thickness_nm": 62,
+            "optimizable": false
+          },
+          {
+            "constant_n": 1.45,
+            "thickness_nm": 95,
+            "optimizable": false
+          },
+          {
+            "constant_n": 2.1,
+            "thickness_nm": 70,
+            "optimizable": false
+          },
+          {
+            "constant_n": 1.45,
+            "thickness_nm": 105,
+            "optimizable": false
+          }
+        ],
+        "exit": {
+          "constant_n": 1.52
+        }
+      },
+      "spectrum": {
+        "start_nm": 450.0,
+        "stop_nm": 750.0,
+        "points": 61
+      },
+      "illumination": {
+        "angles_deg": [
+          0.0
+        ],
+        "polarizations": [
+          "unpolarized"
+        ]
+      },
+      "solver": "smatrix",
+      "requested_outputs": [
+        "R",
+        "T",
+        "A"
+      ],
+      "physics": {}
+    }
+  },
+  "expected_mode": "simulate",
+  "expected_capability": "supported",
+  "expected_failure_codes": [],
+  "expected_artifacts": [],
+  "physics_assertions": [],
+  "difficulty": "intermediate",
+  "tags": [
+    "planar",
+    "simulation",
+    "chirped_stack"
+  ],
+  "execution": "preflight_only",
+  "scenario": "standard",
+  "reproducibility_runs": 2
+}

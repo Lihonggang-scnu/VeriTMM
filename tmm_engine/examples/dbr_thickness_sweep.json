@@ -1,0 +1,34 @@
+{
+  "schema_version": "sweep-task-v1",
+  "mode": "sweep",
+  "sweep": {
+    "base_simulation": {
+      "stack": {
+        "name": "three-layer-thickness-sweep",
+        "incident": {"constant_n": 1.0},
+        "exit": {"constant_n": 1.52},
+        "layers": [
+          {"constant_n": 2.25, "thickness_nm": 66.7, "optimizable": false},
+          {"constant_n": 1.45, "thickness_nm": 103.4, "optimizable": false},
+          {"constant_n": 2.25, "thickness_nm": 66.7, "optimizable": false}
+        ]
+      },
+      "spectrum": {"start_nm": 500.0, "stop_nm": 700.0, "points": 101},
+      "illumination": {"angles_deg": [0.0], "polarizations": ["unpolarized"]},
+      "solver": "smatrix",
+      "requested_outputs": ["R", "T", "A"]
+    },
+    "parameters": [
+      {"path": "/stack/layers/1/thickness_nm", "values": [90.0, 103.4, 115.0]}
+    ],
+    "metrics": [
+      {
+        "name": "peak_R",
+        "observable": "R",
+        "wavelength_min_nm": 500.0,
+        "wavelength_max_nm": 700.0,
+        "aggregation": "max"
+      }
+    ]
+  }
+}

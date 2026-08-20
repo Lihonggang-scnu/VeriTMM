@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Mapping, Optional, Tuple
 
 import numpy as np
 
-from .capabilities import PhysicsEngineError, assess_tmm_capability
 from .analysis import phase_dispersion_from_amplitude
+from .capabilities import PhysicsEngineError, assess_tmm_capability
 from .schemas import MediumSpec, SimulationTask
 from .tmm_solver import TMM, TMMConfig
 
@@ -98,6 +98,16 @@ class TMMWorkbench:
             nk = np.asarray(sampled.n, dtype=np.float64) + 1j * np.asarray(sampled.k, dtype=np.float64)
         provenance = dict(getattr(sampled, "provenance", {}) or {})
         warnings = list(getattr(sampled, "warnings", []) or [])
+        extrapolated_mask = np.asarray(
+            getattr(sampled, "extrapolated_mask", np.zeros(wavelengths_nm.size, dtype=bool)),
+            dtype=bool,
+        )
+        provenance["extrapolated"] = bool(np.any(extrapolated_mask))
+        provenance["extrapolated_point_count"] = int(np.count_nonzero(extrapolated_mask))
+        provenance["requested_range_um"] = [
+            float(np.min(wavelengths_nm) * 1e-3),
+            float(np.max(wavelengths_nm) * 1e-3),
+        ]
         if warnings:
             provenance["warnings"] = warnings
         return nk, provenance

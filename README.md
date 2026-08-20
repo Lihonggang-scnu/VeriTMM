@@ -9,7 +9,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-0b7285.svg)](LICENSE)
 [![Optical data: CC0](https://img.shields.io/badge/optical%20data-CC0-5c940d.svg)](THIRD_PARTY_NOTICES.md)
 
-**[中文说明](README.zh-CN.md) · [Architecture](docs/ARCHITECTURE.md) · [Validation](docs/VALIDATION.md) · [Examples](examples/tmm_tasks)**
+**[中文说明](README.zh-CN.md) · [Architecture](docs/ARCHITECTURE.md) · [Validation](docs/VALIDATION.md) · [AgentBench](docs/AGENTBENCH.md) · [Examples](examples/tmm_tasks)**
 
 </div>
 
@@ -20,6 +20,14 @@ autonomous scientific work. Stable forward simulation, mixed-coherence
 physics, governed material data, differentiable inverse design, convergence
 checks, independent cross-validation, and machine-readable physics certificates
 are exposed through one reproducible task protocol.
+
+The current v0.5 candidate builds a deterministic, AI-facing laboratory around
+that TMM core: capability discovery, JSON Schema contracts, no-spectrum
+preflight, typed failures, auditable run artifacts, persistent experiments,
+parameter studies, sensitivity/tolerance analysis, robust thickness design,
+and an offline AgentBench. This remains a TMM execution and verification tool,
+not a generic scientific-research workflow, an external-solver orchestrator,
+or an LLM kernel.
 
 The central idea is simple: **AI proposes, TMM computes, and deterministic
 verification certifies**. Neither an AI agent nor an optimizer may certify its
@@ -55,7 +63,12 @@ for an AI system to misuse.
 | Optical database | Bundled refractiveindex.info snapshot: 2,712 pages, 252,442 n points and 209,839 k points |
 | Inverse design | Batched PyTorch S-matrix, multiband thickness optimization, fabrication bounds, multistart and quantization |
 | Scientific verification | Capability gate, energy/passivity checks, spectral refinement and independent-solver comparison |
-| Reproducibility | Immutable JSON tasks, normalized inputs, result manifests, CSV spectra and acceptance certificates |
+| AI-facing protocol | Capability discovery, five task schemas, deterministic preflight, typed failures and JSON run envelopes |
+| Reproducible studies | `ExperimentStore`, content-aware cache, lineage, compare, finite sweeps and resume |
+| Scientific analysis | Audited thickness sensitivity, seeded tolerance/yield analysis and Wilson intervals |
+| Robust inverse design | Stochastic training objectives followed by independent Monte Carlo evaluation and role-based candidates |
+| Agent evaluation | 80+ deterministic cases, unsupported-task false-acceptance accounting and framework-neutral A/B trajectories |
+| Reproducibility | Immutable JSON tasks, normalized identities, `RUN_RESULT.json`, compact summaries, full artifacts and certificates |
 
 ## What we contribute
 
@@ -81,9 +94,11 @@ is not a new TMM equation, nor a generic scientific-research workflow. It is an
    ambitious target may be missed without turning a correct calculation into a
    false failure—or a high score into false proof.
 
-VeriTMM has no dependency on a particular language model or agent framework.
-Any AI system that can produce the JSON task contract and read the structured
-outputs can use it as a deterministic optical-physics tool.
+The command surface makes this contract usable without conversational state.
+The engine has no dependency on a particular language model, agent framework,
+external solver, or LLM runtime. Any AI system that can produce the JSON task
+contract and read the structured outputs can use it as a deterministic optical-
+physics tool.
 
 ## AI-facing contract
 
@@ -98,6 +113,71 @@ outputs can use it as a deterministic optical-physics tool.
 This division is intentional: AI supplies scientific strategy and candidate
 designs; VeriTMM supplies deterministic TMM computation, bounded execution and
 physical verification.
+
+## v0.5 command-line protocol
+
+The installed `veritmm` command is the public machine-facing entry point:
+
+```bash
+veritmm describe --json
+veritmm schema simulation
+veritmm schema optimization
+veritmm schema sweep
+veritmm schema sensitivity
+veritmm schema tolerance
+veritmm preflight task.json --json
+veritmm run task.json --output-dir outputs/tmm_run --json
+veritmm history --json
+veritmm inspect RUN_ID --json
+veritmm lineage RUN_ID --json
+veritmm compare RUN_A RUN_B --json
+veritmm benchmark --offline --json
+```
+
+`describe` returns the current capability manifest. The `schema` commands
+export JSON Schema contracts. `preflight` checks the task contract, TMM
+capability boundary, material coverage on the complete declared wavelength
+grid, backend routing, and numerical
+risk notices; it does **not** run a complete spectrum or an optimization. `run`
+performs the preflight, computes with TMM, and sends the result through the
+deterministic verifier.
+
+`RUN_RESULT.json` is the first-read envelope for a run, including status,
+failures, certificate identity, artifact references, and next machine actions.
+Read `RESULT_SUMMARY.json` next for compact spectral and physics features; it
+keeps an agent from having to ingest the full `SIMULATION_RESULT.json` or
+`SPECTRA.csv` before deciding what to do. Full artifacts remain available when
+the scientific question requires them.
+
+## Reproducible studies and robustness
+
+The same `run` entry point accepts sweep, sensitivity, and tolerance contracts.
+Examples are bundled under `examples/tmm_tasks/`. A sweep creates a parent run,
+stable child tasks, per-child artifacts, and a checkpoint that can be resumed.
+Sensitivity uses the differentiable backend but audits each derivative with an
+independent NumPy central difference. Tolerance studies preserve distributions,
+seeds, failed samples, requested-trial denominators, yield, and Wilson confidence
+intervals. Robust optimization uses stochastic training only to propose designs;
+final candidate roles come from a fresh independent Monte Carlo evaluation.
+
+These are different claims. `PHYSICS_ACCEPTANCE_CERTIFICATE.json` answers
+whether the nominal TMM result passed its physical/numerical checks.
+`SENSITIVITY_RESULT.json`, `TOLERANCE_RESULT.json`, and
+`ROBUSTNESS_REPORT.json` answer separate questions about perturbations.
+
+## Offline AgentBench
+
+```bash
+veritmm benchmark --offline --json
+```
+
+AgentBench uses no LLM and no network. It validates case contracts, preflight
+decisions, typed failures, run artifacts, physics assertions, and repeatability.
+Out-of-scope tasks are measured explicitly and the release gate requires an
+unsupported false-acceptance rate of exactly zero. The generic A/B harness in
+`tmm_engine.agent_harness` accepts any external callable or pre-recorded
+trajectory; VeriTMM core imports no proprietary agent SDK. Benchmark evidence
+never changes a capability rule or physics certificate.
 
 ## Installation
 
@@ -114,6 +194,24 @@ python -m pip install -e ".[optimize,plot]"
 ```
 
 ## Quick start
+
+### Agent-facing JSON task
+
+Use the command-line protocol for a deterministic machine handoff:
+
+```bash
+veritmm preflight examples/tmm_tasks/periodic_dbr_simulation.json --json
+veritmm run examples/tmm_tasks/periodic_dbr_simulation.json \
+  --output-dir outputs/dbr --json
+```
+
+The run writes `RUN_RESULT.json` and, depending on mode and settings,
+`RESULT_SUMMARY.json`, `PREFLIGHT_REPORT.json`, `NORMALIZED_TASK.json`,
+`PHYSICS_ACCEPTANCE_CERTIFICATE.json`, `SIMULATION_RESULT.json`, and
+`SPECTRA.csv`. Optimization also writes `OPTIMIZATION_RESULT.json` and
+`INDEPENDENT_VALIDATION.json`, `DESIGN_PORTFOLIO.json`, and independently
+certified candidate artifacts; a plot is optional. A failed preflight still
+produces a machine-readable run envelope and typed failure actions.
 
 ### Python API
 
@@ -144,7 +242,7 @@ result = TMMWorkbench(MaterialRegistry()).simulate(task)
 print(result.audit)
 ```
 
-### Reproducible JSON task
+### Direct reproducible task runner
 
 ```bash
 python scripts/run_tmm_task.py \
@@ -152,13 +250,19 @@ python scripts/run_tmm_task.py \
   --output-dir outputs/dbr
 ```
 
-The run writes:
+The legacy script spelling is a compatibility wrapper around the same
+execution service. It writes:
 
 - `NORMALIZED_TASK.json`
 - `SIMULATION_RESULT.json`
 - `SPECTRA.csv` and, when Matplotlib is installed, `SPECTRA.png`
 - `PHYSICS_ACCEPTANCE_CERTIFICATE.json`
 - `RUN_MANIFEST.json`
+- `RUN_RESULT.json` and `RESULT_SUMMARY.json`
+
+For AI callers, prefer the `veritmm run ... --json` interface above so
+`RUN_RESULT.json` is the first entry point and `RESULT_SUMMARY.json` is
+available before the full spectrum.
 
 ### Search the bundled material catalog
 
@@ -180,19 +284,24 @@ python scripts/run_tmm_task.py \
 
 The PyTorch optimizer proposes thicknesses; the NumPy/reference workbench then
 recomputes the design, validates target evaluation, and issues the certificate.
+The run also preserves several physically admitted candidates under separate
+performance, robustness, manufacturability, and structural-distinctiveness
+roles instead of pretending one scalar score is the only useful answer.
+In short: **AI proposes, TMM computes, and the verifier certifies**. An
+optimizer cannot certify its own proposal.
 
 ## Verification model
 
 ```mermaid
 flowchart LR
-    A[Task contract] --> B[Capability gate]
-    B --> C[Material coverage]
-    C --> D[Forward solver]
-    C --> O[Gradient optimizer]
+    A[AI task JSON] --> B[Protocol and capability manifest]
+    B --> C[Preflight: no full spectrum]
+    C --> D[TMM computation]
+    C --> O[Optimizer proposes]
     O --> D
-    D --> E[Spectral convergence]
-    E --> F[Independent solver]
-    F --> G[Physics certificate]
+    D --> E[Deterministic verifier]
+    E --> F[RUN_RESULT first]
+    F --> G[RESULT_SUMMARY and full artifacts]
 ```
 
 The raw numerical output is never clipped to hide a physical violation.
@@ -207,8 +316,8 @@ Unsupported tasks and out-of-range data fail with explicit diagnostics. See
 - angular and polarization response;
 - layer-resolved absorption, ellipsometry and field profiles;
 - phase, group delay, group-delay dispersion and Bloch-band diagnostics;
-- deterministic thickness-tolerance Monte Carlo analysis;
-- differentiable multiband thickness optimization.
+- differentiable and robust multiband thickness optimization;
+- finite parameter sweeps with resume, sensitivity audits, and tolerance/yield studies.
 
 The regression suite also reproduces the stop-band, defect-mode and field-
 enhancement trends of a published multilayer cavity example. This is a
@@ -221,6 +330,11 @@ lateral gratings, metasurface unit cells, diffraction orders, anisotropic
 tensor layers, nonlinear optics, diffuse scattering, finite beams, 3D near
 fields, thermal transport or fabrication chemistry. Use RCWA, Berreman 4×4,
 FDTD or FEM when those effects are essential.
+
+VeriTMM does not execute external solver families or contain an LLM kernel.
+The optional MCP transport remains deferred: the Python and CLI protocol are
+complete without it. Those boundaries do not change the TMM scope of the
+numerical engine.
 
 ## Testing
 
@@ -242,5 +356,8 @@ constant datasets selected by your run—not only this software.
 
 ## Status
 
-`v0.1.0` is the first standalone release. The physics engine and deterministic
-tests are usable; the public API may still evolve before `v1.0`.
+`v0.5.0` is the current source release. It extends the deterministic,
+AI-facing protocol with reproducible studies, scientific uncertainty analysis,
+robust design, and AgentBench. The project remains pre-`v1.0`; public APIs and
+protocol details may still evolve while the documented physics boundary remains
+fail-closed.

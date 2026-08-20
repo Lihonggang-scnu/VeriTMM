@@ -56,6 +56,25 @@ def test_constant_index_layer_and_fresnel_limit() -> None:
     assert result.audit["passivity_check_passed"]
 
 
+def test_material_provenance_reports_structured_extrapolation() -> None:
+    task = SimulationTask(
+        stack=StackSpec(
+            layers=(LayerSpec("sio2", 100.0),),
+            incident=MediumSpec.air(),
+            exit=MediumSpec.air(),
+        ),
+        spectrum=SpectralGrid(values_nm=(100.0, 200.0, 300.0)),
+        allow_material_extrapolation=True,
+    )
+    result = _workbench().simulate(task)
+    material = next(
+        item for item in result.material_provenance if item.get("provider") == "local_csv"
+    )
+    assert material["extrapolated"] is True
+    assert material["extrapolated_point_count"] == 1
+    assert material["requested_range_um"] == [0.1, 0.3]
+
+
 @pytest.mark.parametrize("angle", [0.0, 37.0, 67.0])
 def test_internal_smatrix_matches_independent_byrnes(angle: float) -> None:
     workbench = _workbench()

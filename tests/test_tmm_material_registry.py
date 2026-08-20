@@ -15,7 +15,6 @@ from tmm_engine.material_registry import (
     normalize_material_name,
 )
 
-
 ROOT = Path(__file__).resolve().parents[1]
 
 

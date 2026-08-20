@@ -13,7 +13,6 @@ if str(ROOT) not in sys.path:
 from tmm_engine import MaterialRegistry, TMMWorkbench  # noqa: E402
 from tmm_engine.validation_cases import validate_pmc9147317  # noqa: E402
 
-
 PAPER_FIGURE_URL = (
     "https://cdn.ncbi.nlm.nih.gov/pmc/blobs/ffd5/9147317/cee236241fa1/"
     "sensors-22-03627-g003.jpg"

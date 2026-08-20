@@ -11,7 +11,6 @@ import numpy as np
 
 from .schemas import LayerSpec, MediumSpec, SimulationTask, SpectralGrid, StackSpec
 
-
 PMC9147317_REFERENCE = {
     "title": "Distributed Bragg Reflectors Employed in Sensors and Filters Based on Cavity-Mode Spectral-Domain Resonances",
     "doi": "10.3390/s22103627",

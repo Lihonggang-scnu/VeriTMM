@@ -1,0 +1,129 @@
+{
+  "schema_version": "veritmm-agentbench-case-v1",
+  "case_id": "sweep_cache_replay",
+  "category": "valid_study",
+  "natural_language_task": "Execute or validate the sweep cache replay workflow.",
+  "task": {
+    "schema_version": "sweep-task-v1",
+    "mode": "sweep",
+    "sweep": {
+      "base_simulation": {
+        "stack": {
+          "name": "agentbench-stack",
+          "incident": {
+            "constant_n": 1.0
+          },
+          "layers": [
+            {
+              "constant_n": 2.2,
+              "thickness_nm": 68.18181818181817,
+              "optimizable": false
+            },
+            {
+              "constant_n": 1.45,
+              "thickness_nm": 103.44827586206897,
+              "optimizable": false
+            },
+            {
+              "constant_n": 2.2,
+              "thickness_nm": 68.18181818181817,
+              "optimizable": false
+            },
+            {
+              "constant_n": 1.45,
+              "thickness_nm": 103.44827586206897,
+              "optimizable": false
+            }
+          ],
+          "exit": {
+            "constant_n": 1.52
+          }
+        },
+        "spectrum": {
+          "start_nm": 500.0,
+          "stop_nm": 700.0,
+          "points": 41
+        },
+        "illumination": {
+          "angles_deg": [
+            0.0
+          ],
+          "polarizations": [
+            "unpolarized"
+          ]
+        },
+        "solver": "smatrix",
+        "requested_outputs": [
+          "R",
+          "T",
+          "A"
+        ],
+        "physics": {}
+      },
+      "parameters": [
+        {
+          "path": "/stack/layers/1/thickness_nm",
+          "values": [
+            90.0,
+            103.4,
+            116.0
+          ]
+        }
+      ],
+      "metrics": [
+        {
+          "name": "peak_R",
+          "observable": "R",
+          "wavelength_min_nm": 520.0,
+          "wavelength_max_nm": 680.0,
+          "aggregation": "max"
+        }
+      ]
+    }
+  },
+  "expected_mode": "sweep",
+  "expected_capability": "supported",
+  "expected_failure_codes": [],
+  "expected_artifacts": [
+    "sweep_result",
+    "sweep_table",
+    "result_summary"
+  ],
+  "physics_assertions": [
+    {
+      "source": "run_result",
+      "path": "ok",
+      "operator": "eq",
+      "expected": true,
+      "minimum": null,
+      "maximum": null,
+      "tolerance": 0.0
+    },
+    {
+      "source": "sweep_result",
+      "path": "successful_child_count",
+      "operator": "eq",
+      "expected": 3,
+      "minimum": null,
+      "maximum": null,
+      "tolerance": 0.0
+    },
+    {
+      "source": "run_result",
+      "path": "cache_hit",
+      "operator": "eq",
+      "expected": true,
+      "minimum": null,
+      "maximum": null,
+      "tolerance": 0.0
+    }
+  ],
+  "difficulty": "advanced",
+  "tags": [
+    "sweep",
+    "cache_replay"
+  ],
+  "execution": "run",
+  "scenario": "cache_replay",
+  "reproducibility_runs": 2
+}

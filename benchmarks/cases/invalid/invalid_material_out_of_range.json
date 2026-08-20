@@ -1,0 +1,46 @@
+{
+  "schema_version": "veritmm-agentbench-case-v1",
+  "case_id": "invalid_material_out_of_range",
+  "category": "invalid_or_unresolved_input",
+  "natural_language_task": "Diagnose the material out of range input without guessing a replacement.",
+  "task": {
+    "mode": "simulate",
+    "simulation": {
+      "stack": {
+        "incident": {
+          "constant_n": 1.0
+        },
+        "layers": [
+          {
+            "material": "sio2",
+            "provider": "local",
+            "thickness_nm": 1000.0
+          }
+        ],
+        "exit": {
+          "constant_n": 1.0
+        }
+      },
+      "spectrum": {
+        "start_nm": 26000.0,
+        "stop_nm": 27000.0,
+        "points": 21
+      }
+    }
+  },
+  "expected_mode": "simulate",
+  "expected_capability": "invalid",
+  "expected_failure_codes": [
+    "material_range_error"
+  ],
+  "expected_artifacts": [],
+  "physics_assertions": [],
+  "difficulty": "adversarial",
+  "tags": [
+    "typed_failure",
+    "material_out_of_range"
+  ],
+  "execution": "preflight_only",
+  "scenario": "standard",
+  "reproducibility_runs": 2
+}

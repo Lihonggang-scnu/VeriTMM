@@ -18,7 +18,6 @@ from typing import Any, Iterable, Mapping, Sequence
 
 import numpy as np
 
-
 PACKAGE_ROOT = Path(__file__).resolve().parent
 DEFAULT_MATERIALS_DIR = PACKAGE_ROOT / "materials"
 DEFAULT_RII_DB_PATH = PACKAGE_ROOT / "rii_cache.db"

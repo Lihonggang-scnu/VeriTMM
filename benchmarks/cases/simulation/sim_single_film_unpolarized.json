@@ -1,0 +1,61 @@
+{
+  "schema_version": "veritmm-agentbench-case-v1",
+  "case_id": "sim_single_film_unpolarized",
+  "category": "valid_simulation",
+  "natural_language_task": "Evaluate unpolarized reflectance of a passive film.",
+  "task": {
+    "mode": "simulate",
+    "simulation": {
+      "stack": {
+        "name": "agentbench-stack",
+        "incident": {
+          "constant_n": 1.0
+        },
+        "layers": [
+          {
+            "constant_n": 1.38,
+            "thickness_nm": 105.0,
+            "optimizable": false
+          }
+        ],
+        "exit": {
+          "constant_n": 1.52
+        }
+      },
+      "spectrum": {
+        "start_nm": 450.0,
+        "stop_nm": 750.0,
+        "points": 61
+      },
+      "illumination": {
+        "angles_deg": [
+          0.0
+        ],
+        "polarizations": [
+          "unpolarized"
+        ]
+      },
+      "solver": "smatrix",
+      "requested_outputs": [
+        "R",
+        "T",
+        "A"
+      ],
+      "physics": {}
+    }
+  },
+  "expected_mode": "simulate",
+  "expected_capability": "supported",
+  "expected_failure_codes": [],
+  "expected_artifacts": [],
+  "physics_assertions": [],
+  "difficulty": "intermediate",
+  "tags": [
+    "planar",
+    "simulation",
+    "single_film_unpolarized"
+  ],
+  "execution": "preflight_only",
+  "scenario": "standard",
+  "reproducibility_runs": 2
+}

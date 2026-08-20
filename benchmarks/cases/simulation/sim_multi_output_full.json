@@ -1,0 +1,64 @@
+{
+  "schema_version": "veritmm-agentbench-case-v1",
+  "case_id": "sim_multi_output_full",
+  "category": "valid_simulation",
+  "natural_language_task": "Request RTA, layer absorption and system emissivity together.",
+  "task": {
+    "mode": "simulate",
+    "simulation": {
+      "stack": {
+        "name": "agentbench-stack",
+        "incident": {
+          "constant_n": 1.0
+        },
+        "layers": [
+          {
+            "constant_n": 2.0,
+            "thickness_nm": 80.0,
+            "constant_k": 0.05,
+            "optimizable": false
+          }
+        ],
+        "exit": {
+          "constant_n": 1.52
+        }
+      },
+      "spectrum": {
+        "start_nm": 450.0,
+        "stop_nm": 750.0,
+        "points": 61
+      },
+      "illumination": {
+        "angles_deg": [
+          0.0
+        ],
+        "polarizations": [
+          "unpolarized"
+        ]
+      },
+      "solver": "smatrix",
+      "requested_outputs": [
+        "R",
+        "T",
+        "A",
+        "layer_absorption",
+        "system_emissivity"
+      ],
+      "physics": {}
+    }
+  },
+  "expected_mode": "simulate",
+  "expected_capability": "supported",
+  "expected_failure_codes": [],
+  "expected_artifacts": [],
+  "physics_assertions": [],
+  "difficulty": "intermediate",
+  "tags": [
+    "planar",
+    "simulation",
+    "multi_output_full"
+  ],
+  "execution": "preflight_only",
+  "scenario": "standard",
+  "reproducibility_runs": 2
+}

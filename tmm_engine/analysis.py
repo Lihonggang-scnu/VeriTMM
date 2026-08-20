@@ -3,12 +3,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Sequence, Tuple
 
 import numpy as np
 
-from .schemas import LayerSpec, SimulationTask, StackSpec
-
+from .schemas import SimulationTask
 
 _SPEED_OF_LIGHT_M_PER_S = 299_792_458.0
 
