@@ -8,7 +8,7 @@ the characteristic-matrix method at quad-precision arithmetic (113 bits,
 The referee result is PURELY INFORMATIONAL — it never overrides or relaxes the
 physics-acceptance decision made by the certificate.  Its purpose is to
 identify which of the two float64 solvers (smatrix / byrnes) is closer to the
-high-precision ground truth.
+high-precision referee reference.
 
 Conventions match tmm_solver.TMM.rt_spectrum_cm exactly:
   - eta_s = n * cos(theta)   for s-polarisation
@@ -121,77 +121,79 @@ def compute_rt_single_channel(
     else:
         return {"status": "error", "reason": "exactly one of n_all or n_by_wavelength must be provided"}
 
-    mp = _mp
-    mp.mp.prec = precision_bits
-
-    theta0_rad = mp.mpf(math.radians(angle_deg))
-    sin0 = mp.sin(theta0_rad)
-    cos0 = mp.cos(theta0_rad)
+    theta0_rad = math.radians(angle_deg)
     pol = polarization.lower().strip()
 
     R_out: List[float] = []
     T_out: List[float] = []
 
-    for i_lam, lam_nm in enumerate(wavelengths_nm):
-        lam = mp.mpf(float(lam_nm))
-        # Both lam and d_i are in nm — ratio is dimensionless, no conversion needed.
+    # Use a local workprec context so the global mpmath precision is not mutated.
+    with _mp.workprec(precision_bits):
+        mp = _mp
+        theta0_mp = mp.mpf(theta0_rad)
+        sin0 = mp.sin(theta0_mp)
+        cos0 = mp.cos(theta0_mp)
 
-        n0 = mp.mpc(complex(n_table[0][i_lam]))
-        n_exit = mp.mpc(complex(n_table[-1][i_lam]))
-        film_n = [mp.mpc(complex(n_table[j + 1][i_lam])) for j in range(len(d_nm))]
-        film_d = [mp.mpf(float(d)) for d in d_nm]
+        for i_lam, lam_nm in enumerate(wavelengths_nm):
+            lam = mp.mpf(float(lam_nm))
+            # Both lam and d_i are in nm — ratio is dimensionless, no conversion needed.
 
-        # Incident medium admittance
-        if pol == "s":
-            eta0 = n0 * cos0
-        else:
-            eta0 = n0 / (cos0 + mp.mpf("1e-200"))
+            n0 = mp.mpc(complex(n_table[0][i_lam]))
+            n_exit = mp.mpc(complex(n_table[-1][i_lam]))
+            film_n = [mp.mpc(complex(n_table[j + 1][i_lam])) for j in range(len(d_nm))]
+            film_d = [mp.mpf(float(d)) for d in d_nm]
 
-        # Exit medium admittance
-        cos_exit = _cos_layer(n_exit, n0, sin0, mp)
-        if pol == "s":
-            eta_exit = n_exit * cos_exit
-        else:
-            eta_exit = n_exit / (cos_exit + mp.mpf("1e-200"))
-
-        # Build characteristic matrix M = M_1 · M_2 · … · M_N
-        M = mp.matrix([[mp.mpc(1), mp.mpc(0)], [mp.mpc(0), mp.mpc(1)]])
-
-        for n_i, d_i in zip(film_n, film_d):
-            cos_i = _cos_layer(n_i, n0, sin0, mp)
+            # Incident medium admittance
             if pol == "s":
-                eta_i = n_i * cos_i
+                eta0 = n0 * cos0
             else:
-                eta_i = n_i / (cos_i + mp.mpf("1e-200"))
+                eta0 = n0 / (cos0 + mp.mpf("1e-200"))
 
-            delta = 2 * mp.pi * n_i * cos_i * d_i / lam
-            c = mp.cos(delta)
-            s = mp.mpc(0, 1) * mp.sin(delta)   # = i·sin(δ)
+            # Exit medium admittance
+            cos_exit = _cos_layer(n_exit, n0, sin0, mp)
+            if pol == "s":
+                eta_exit = n_exit * cos_exit
+            else:
+                eta_exit = n_exit / (cos_exit + mp.mpf("1e-200"))
 
-            Mi = mp.matrix([
-                [c, s / (eta_i + mp.mpf("1e-200"))],
-                [s * eta_i, c],
-            ])
-            M = M * Mi
+            # Build characteristic matrix M = M_1 · M_2 · … · M_N
+            M = mp.matrix([[mp.mpc(1), mp.mpc(0)], [mp.mpc(0), mp.mpc(1)]])
 
-        # [B, C]^T = M · [1, eta_exit]^T
-        B = M[0, 0] + M[0, 1] * eta_exit
-        C = M[1, 0] + M[1, 1] * eta_exit
+            for n_i, d_i in zip(film_n, film_d):
+                cos_i = _cos_layer(n_i, n0, sin0, mp)
+                if pol == "s":
+                    eta_i = n_i * cos_i
+                else:
+                    eta_i = n_i / (cos_i + mp.mpf("1e-200"))
 
-        denom = eta0 * B + C
-        if abs(denom) < 1e-300:
-            R_out.append(float("nan"))
-            T_out.append(float("nan"))
-            continue
+                delta = 2 * mp.pi * n_i * cos_i * d_i / lam
+                c = mp.cos(delta)
+                s = mp.mpc(0, 1) * mp.sin(delta)   # = i·sin(δ)
 
-        r = (eta0 * B - C) / denom
-        t = 2 * eta0 / denom
+                Mi = mp.matrix([
+                    [c, s / (eta_i + mp.mpf("1e-200"))],
+                    [s * eta_i, c],
+                ])
+                M = M * Mi
 
-        R_val = float(mp.re(abs(r) ** 2))
-        T_val = float(mp.re(eta_exit) / mp.re(eta0)) * float(abs(t) ** 2)
+            # [B, C]^T = M · [1, eta_exit]^T
+            B = M[0, 0] + M[0, 1] * eta_exit
+            C = M[1, 0] + M[1, 1] * eta_exit
 
-        R_out.append(max(0.0, R_val))
-        T_out.append(max(0.0, T_val))
+            denom = eta0 * B + C
+            if abs(denom) < 1e-300:
+                R_out.append(float("nan"))
+                T_out.append(float("nan"))
+                continue
+
+            r = (eta0 * B - C) / denom
+            t = 2 * eta0 / denom
+
+            R_val = float(mp.re(abs(r) ** 2))
+            T_val = float(mp.re(eta_exit) / mp.re(eta0)) * float(abs(t) ** 2)
+
+            R_out.append(max(0.0, R_val))
+            T_out.append(max(0.0, T_val))
 
     return {
         "status": "ok",

@@ -176,24 +176,42 @@ class TMMWorkbench:
         return [incident] + films + [exit_nk], wavelengths_nm, provenance
 
     @staticmethod
-    def _audit_channels(channels: Mapping[str, Mapping[str, np.ndarray]]) -> Dict[str, Any]:
+    def _audit_channels(
+        channels: Mapping[str, Mapping[str, np.ndarray]],
+        wavelengths_nm: Optional[np.ndarray] = None,
+    ) -> Dict[str, Any]:
         max_energy_error = 0.0
+        energy_worst_channel: Optional[str] = None
+        energy_worst_lam_idx: int = 0
         min_value = float("inf")
         max_value = float("-inf")
         nonfinite = 0
-        for values in channels.values():
+        for ch_key, values in channels.items():
             R = np.asarray(values["R"], dtype=np.float64)
             T = np.asarray(values["T"], dtype=np.float64)
             A = np.asarray(values["A"], dtype=np.float64)
-            max_energy_error = max(max_energy_error, float(np.max(np.abs(R + T + A - 1.0))))
+            err = np.abs(R + T + A - 1.0)
+            ch_max_err = float(np.max(err))
+            if ch_max_err > max_energy_error:
+                max_energy_error = ch_max_err
+                energy_worst_channel = ch_key
+                energy_worst_lam_idx = int(np.argmax(err))
             merged = np.concatenate([R, T, A])
             nonfinite += int(np.sum(~np.isfinite(merged)))
             if merged.size:
                 min_value = min(min_value, float(np.nanmin(merged)))
                 max_value = max(max_value, float(np.nanmax(merged)))
         passive = bool(nonfinite == 0 and min_value >= -1e-7 and max_value <= 1.0 + 1e-7)
+        # Resolve worst-case wavelength in nm when the wavelength array is available
+        energy_worst_lam_nm: Optional[float] = None
+        if energy_worst_channel is not None and wavelengths_nm is not None:
+            if 0 <= energy_worst_lam_idx < len(wavelengths_nm):
+                energy_worst_lam_nm = float(wavelengths_nm[energy_worst_lam_idx])
         return {
             "energy_conservation_max_abs_error": max_energy_error,
+            "energy_worst_case_channel": energy_worst_channel,
+            "energy_worst_case_wavelength_idx": energy_worst_lam_idx if energy_worst_channel is not None else None,
+            "energy_worst_case_wavelength_nm": energy_worst_lam_nm,
             "minimum_observable": min_value,
             "maximum_observable": max_value,
             "nonfinite_value_count": nonfinite,
@@ -209,7 +227,7 @@ class TMMWorkbench:
             result = self._simulate_byrnes(task, media, wavelengths_nm, provenance)
         else:
             result = self._simulate_internal(task, media, wavelengths_nm, provenance)
-        result.audit.update(self._audit_channels(result.channels))
+        result.audit.update(self._audit_channels(result.channels, result.wavelengths_nm))
         result.audit["material_extrapolation_allowed"] = bool(task.allow_material_extrapolation)
         result.audit["incoherent_layers_present"] = bool(task.stack.has_incoherent_layers)
         result.audit["absorptance_definition"] = "A_finite_layers=1-R-T_into_exit_medium"

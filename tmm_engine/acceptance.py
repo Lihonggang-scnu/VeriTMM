@@ -171,13 +171,23 @@ def _compute_tightest_margin(
 
     name, observed, threshold = min(checks, key=lambda c: _norm(c[1], c[2]))
     margin = threshold - observed
-    return {
+    result_dict: Dict[str, Any] = {
         "check": name,
         "observed_value": observed,
         "acceptance_limit": threshold,
         "distance_to_limit": float(margin),
         "normalized_margin": float(_norm(observed, threshold)),
     }
+    # Attach worst-case location so the High-Precision Referee can target the
+    # right channel/wavelength without guessing.
+    if name == "energy_conservation":
+        result_dict["worst_case_channel"] = physics_audit.get("energy_worst_case_channel")
+        result_dict["worst_case_wavelength_nm"] = physics_audit.get("energy_worst_case_wavelength_nm")
+        result_dict["worst_case_wavelength_idx"] = physics_audit.get("energy_worst_case_wavelength_idx")
+    elif name == "cross_solver_agreement":
+        result_dict["worst_case_channel"] = cross_solver.get("offending_channel")
+        result_dict["worst_case_observable"] = cross_solver.get("offending_observable")
+    return result_dict
 
 
 def _maybe_run_referee(
@@ -210,8 +220,16 @@ def _maybe_run_referee(
 
     illumination = task.illumination
 
-    # P0-3: use the channel that actually showed the problem, not always the first
-    offending_channel = cross_solver.get("offending_channel")
+    # Select the channel to referee based on what triggered the check.
+    # Solver disagreement → channel with the largest cross-solver difference.
+    # Energy margin       → channel with the worst energy conservation error.
+    # Cross-solver margin → channel with the largest cross-solver difference.
+    if solver_disagreement:
+        offending_channel = cross_solver.get("offending_channel")
+    elif tightest_margin is not None and tightest_margin.get("check") == "energy_conservation":
+        offending_channel = result.audit.get("energy_worst_case_channel")
+    else:
+        offending_channel = cross_solver.get("offending_channel")
     if offending_channel and offending_channel in result.channels:
         channel_key = offending_channel
         m = _re.match(r"angle=([^|]+)\|pol=(.+)$", channel_key)

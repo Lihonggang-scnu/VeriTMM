@@ -12,7 +12,7 @@
   `accepted`).  Triggered when cross-solver check fails or
   `tightest_margin.normalized_margin < 0.20`.  Uses mpmath characteristic-matrix
   TMM at 113-bit (quad) precision to identify which float64 solver is closer to
-  the high-precision ground truth.  Degrades gracefully to
+  the high-precision referee reference.  Degrades gracefully to
   `{"status": "unavailable"}` when mpmath is not installed.
 
 ### Sampling robustness（`tmm_engine/research/sampling.py`）
