@@ -129,6 +129,48 @@ def _missing_requested_outputs(
     return sorted(set(missing))
 
 
+def _compute_tightest_margin(
+    physics_audit: Dict[str, Any],
+    cross_solver: Dict[str, Any],
+    settings: "AcceptanceSettings",
+) -> Optional[Dict[str, Any]]:
+    """Return the acceptance check that sits closest to its threshold.
+
+    ``relative_margin = (threshold - actual) / threshold``; a value near 0
+    means the result barely passed and the caller should treat it carefully.
+    Returns ``None`` when no continuous check values are available.
+    """
+    import math as _math
+
+    checks: List[tuple] = []  # (name, actual, threshold)
+
+    energy_err = physics_audit.get("energy_conservation_max_abs_error")
+    if isinstance(energy_err, (int, float)) and _math.isfinite(float(energy_err)):
+        checks.append(("energy_conservation", float(energy_err), settings.energy_tolerance))
+
+    if cross_solver.get("status") in ("passed", "failed"):
+        max_diff = cross_solver.get("maximum_absolute_difference")
+        if isinstance(max_diff, (int, float)) and _math.isfinite(float(max_diff)):
+            checks.append(
+                ("cross_solver_agreement", float(max_diff), settings.cross_solver_tolerance)
+            )
+
+    if not checks:
+        return None
+
+    def _rel(actual: float, threshold: float) -> float:
+        return (threshold - actual) / threshold if threshold > 0 else float("inf")
+
+    name, actual, threshold = min(checks, key=lambda c: _rel(c[1], c[2]))
+    return {
+        "check": name,
+        "actual_value": actual,
+        "threshold": threshold,
+        "margin": float(threshold - actual),
+        "relative_margin": float(_rel(actual, threshold)),
+    }
+
+
 def certify_simulation(
     workbench: TMMWorkbench,
     task: SimulationTask,
@@ -222,6 +264,9 @@ def certify_simulation(
                 )
             )
 
+        tightest_margin = _compute_tightest_margin(
+            result.audit, cross_solver, settings
+        )
         accepted = not failures
         limited = bool(settings.require_independent_solver and cross_solver["status"] == "unavailable")
         certificate = {
@@ -236,6 +281,7 @@ def certify_simulation(
             "physics_audit": result.audit,
             "spectral_convergence": convergence_report,
             "independent_solver_check": cross_solver,
+            "tightest_margin": tightest_margin,
             "material_provenance_sha256": _stable_hash(result.material_provenance),
             "material_catalog": workbench.registry.catalog_status(),
             "runtime": {

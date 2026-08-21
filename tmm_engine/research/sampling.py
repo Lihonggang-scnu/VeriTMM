@@ -117,9 +117,15 @@ def sample_candidates(
             for index, candidate in enumerate(raw)
         )
     else:
-        normalized = normalized_samples(design_space, plan)
+        normalized, effective_strategy = _normalized_samples_impl(design_space, plan)
         candidates = tuple(
-            _candidate_from_normalized(design_space, plan, index, row)
+            _candidate_from_normalized(
+                design_space,
+                plan,
+                index,
+                row,
+                effective_strategy=effective_strategy,
+            )
             for index, row in enumerate(normalized)
         )
     candidate_ids = [candidate.candidate_id for candidate in candidates]
@@ -133,23 +139,37 @@ def sample_candidates(
 
 def normalized_samples(design_space: DesignSpace, plan: SamplingPlan) -> np.ndarray:
     """Return the bounded normalized matrix for non-random strategies."""
+    samples, _ = _normalized_samples_impl(design_space, plan)
+    return samples
 
+
+def _normalized_samples_impl(
+    design_space: DesignSpace, plan: SamplingPlan
+) -> tuple[np.ndarray, str]:
+    """Return ``(matrix, effective_strategy)`` — may differ from plan.strategy."""
     dimension = len(design_space.variables)
     if plan.strategy == "grid":
-        return _grid_samples(design_space, plan)
+        return _grid_samples(design_space, plan), "grid"
     if plan.strategy == "latin_hypercube":
-        return _latin_hypercube_samples(
-            design_space,
-            plan,
-            centered=bool(plan.options.get("centered", False)),
+        return (
+            _latin_hypercube_samples(
+                design_space,
+                plan,
+                centered=bool(plan.options.get("centered", False)),
+            ),
+            "latin_hypercube",
         )
     if plan.strategy == "sobol":
         if dimension > SOBOL_MAX_DIMENSION:
-            raise ValueError(
-                f"core Sobol sampler supports at most {SOBOL_MAX_DIMENSION} dimensions"
+            # Graceful fallback: the 32-bit Sobol engine supports at most 16
+            # dimensions.  LHS is used instead with the same seed so the plan
+            # identity and candidate values are still deterministic.
+            return (
+                _latin_hypercube_samples(design_space, plan, centered=False),
+                "latin_hypercube",
             )
         skip = int(plan.options.get("skip", 0))
-        return _sobol_samples(design_space, plan, skip=skip)
+        return _sobol_samples(design_space, plan, skip=skip), "sobol"
     raise ValueError("normalized_samples is not used for random strategy")
 
 
@@ -158,14 +178,20 @@ def _candidate_from_normalized(
     plan: SamplingPlan,
     sample_index: int,
     row: np.ndarray,
+    *,
+    effective_strategy: str | None = None,
 ) -> DesignCandidate:
     decoded = design_space.candidate_from_normalized(tuple(float(value) for value in row))
+    metadata: dict[str, Any] = {"sampling_plan_id": plan.plan_id}
+    if effective_strategy is not None and effective_strategy != plan.strategy:
+        metadata["effective_strategy"] = effective_strategy
+        metadata["declared_strategy"] = plan.strategy
     return design_space.candidate(
         decoded.values,
         sample_index=sample_index,
-        sampler=plan.strategy,
+        sampler=effective_strategy if effective_strategy is not None else plan.strategy,
         seed=plan.seed,
-        metadata={"sampling_plan_id": plan.plan_id},
+        metadata=metadata,
     )
 
 
