@@ -59,6 +59,10 @@ ArtifactType: TypeAlias = Literal[
     "benchmark_result",
     "agent_trajectory",
     "agent_ab_result",
+    "research_batch_manifest",
+    "research_batch_index",
+    "research_dataset_manifest",
+    "research_dataset_index",
 ]
 
 
@@ -194,6 +198,110 @@ class AgentBenchManifest(ProtocolModel):
     mcp_status: Literal["optional_deferred"] = "optional_deferred"
 
 
+class ResearchDesignSpaceManifest(ProtocolModel):
+    """Deterministic candidate contract over the existing simulation task."""
+
+    base_task_contract: Literal["SimulationTask"] = "SimulationTask"
+    variable_kinds: tuple[str, ...] = (
+        "continuous_thickness",
+        "discrete_thickness",
+        "material_choice",
+    )
+    fixed_layers_preserved: bool = True
+    variable_layer_count: bool = False
+    normalized_design_range: tuple[float, float] = (0.0, 1.0)
+    identity: Literal["canonical_content_sha256"] = "canonical_content_sha256"
+
+
+class ResearchObjectiveManifest(ProtocolModel):
+    """Algorithm bookkeeping supported by the research interface."""
+
+    observables: tuple[Literal["R", "T", "A"], ...] = ("R", "T", "A")
+    directions: tuple[str, ...] = ("maximize", "minimize", "target")
+    aggregations: tuple[str, ...] = ("mean", "min", "max")
+    constraint_relations: tuple[str, ...] = ("at_least", "at_most")
+    weighted_multi_objective: bool = True
+    score_confers_physics_validity: bool = False
+
+
+class ResearchEvaluationManifest(ProtocolModel):
+    """Only managed execution and its verifier establish accepted physics."""
+
+    evaluator: Literal["ResearchEvaluator"] = "ResearchEvaluator"
+    managed_operation: Literal["simulate"] = "simulate"
+    preflight_required: bool = True
+    independent_certificate_required: bool = True
+    batch_executor_replaceable: bool = True
+    reference_batch_executor: Literal["sequential"] = "sequential"
+    resumable_batch_ledger: bool = True
+    response_profile: Literal["compact"] = "compact"
+
+
+class ResearchDatasetManifest(ProtocolModel):
+    """Artifact-backed verified dataset generation surface."""
+
+    factory: Literal["DatasetFactory"] = "DatasetFactory"
+    sampling_strategies: tuple[str, ...] = (
+        "random",
+        "grid",
+        "latin_hypercube",
+        "sobol",
+    )
+    sobol_core_max_dimension: int = 16
+    deterministic_indexed_sampling: bool = True
+    resumable: bool = True
+    spectra_inline: bool = False
+
+
+class ResearchAdapterManifest(ProtocolModel):
+    """Algorithm-neutral optimizer, optional ML, and environment adapters."""
+
+    optimizer_protocol: Literal["ask_tell"] = "ask_tell"
+    reference_optimizer: Literal["random_search"] = "random_search"
+    concrete_third_party_optimizers: bool = False
+    torch_dataset: Literal["optional_lazy"] = "optional_lazy"
+    gymnasium_required: bool = False
+    environment: Literal["fixed_layer"] = "fixed_layer"
+    actions: tuple[str, ...] = (
+        "choose_material",
+        "choose_thickness",
+        "stop",
+    )
+    reserved_actions: tuple[str, ...] = ("add_layer", "remove_layer")
+
+
+class ResearchInterfaceManifest(ProtocolModel):
+    """Bounded discovery surface for the independent v0.6 research layer."""
+
+    schema_version: Literal["veritmm-research-interface-v1"] = (
+        "veritmm-research-interface-v1"
+    )
+    version: Literal["0.6.0"] = "0.6.0"
+    supported: bool = True
+    design_space: ResearchDesignSpaceManifest = Field(
+        default_factory=ResearchDesignSpaceManifest
+    )
+    objectives: ResearchObjectiveManifest = Field(
+        default_factory=ResearchObjectiveManifest
+    )
+    evaluation: ResearchEvaluationManifest = Field(
+        default_factory=ResearchEvaluationManifest
+    )
+    dataset: ResearchDatasetManifest = Field(default_factory=ResearchDatasetManifest)
+    adapters: ResearchAdapterManifest = Field(default_factory=ResearchAdapterManifest)
+    validity_invariant: str = (
+        "Algorithms propose; only managed VeriTMM execution plus an accepted "
+        "independent physics certificate validates a result."
+    )
+    exclusions: tuple[str, ...] = (
+        "variable_layer_count",
+        "concrete_ml_or_rl_algorithms",
+        "pinn_or_diffusion_models",
+        "mcp_transport",
+        "new_physics_or_solver_paths",
+    )
+
+
 class CapabilityManifest(ProtocolModel):
     """Complete public capability declaration for the current engine."""
 
@@ -259,6 +367,10 @@ class CapabilityManifest(ProtocolModel):
         "benchmark_result",
         "agent_trajectory",
         "agent_ab_result",
+        "research_batch_manifest",
+        "research_batch_index",
+        "research_dataset_manifest",
+        "research_dataset_index",
     )
     mixed_coherence: MixedCoherenceManifest = Field(default_factory=MixedCoherenceManifest)
     optimization: OptimizationManifest = Field(default_factory=OptimizationManifest)
@@ -266,6 +378,9 @@ class CapabilityManifest(ProtocolModel):
         default_factory=ScientificAnalysisManifest
     )
     agent_bench: AgentBenchManifest = Field(default_factory=AgentBenchManifest)
+    research_interface: ResearchInterfaceManifest = Field(
+        default_factory=ResearchInterfaceManifest
+    )
 
     @property
     def geometry_classes(self) -> tuple[str, ...]:
@@ -299,7 +414,7 @@ def describe_capabilities() -> CapabilityManifest:
         try:
             package_version = version("veritmm")
         except PackageNotFoundError:
-            package_version = "0.5.2"
+            package_version = "0.6.0"
     return CapabilityManifest(
         package_version=package_version,
         modes=("simulate", "optimize", "sweep", "sensitivity", "tolerance"),
@@ -316,6 +431,12 @@ __all__ = [
     "MaterialModelManifest",
     "MixedCoherenceManifest",
     "OptimizationManifest",
+    "ResearchAdapterManifest",
+    "ResearchDatasetManifest",
+    "ResearchDesignSpaceManifest",
+    "ResearchEvaluationManifest",
+    "ResearchInterfaceManifest",
+    "ResearchObjectiveManifest",
     "ScientificAnalysisManifest",
     "SUPPORTED_REQUESTED_OUTPUTS",
     "SUPPORTED_SOLVERS",

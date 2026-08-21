@@ -9,7 +9,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-0b7285.svg)](LICENSE)
 [![Optical data: CC0](https://img.shields.io/badge/optical%20data-CC0-5c940d.svg)](THIRD_PARTY_NOTICES.md)
 
-**[English](README.md) · [系统架构](docs/ARCHITECTURE.md) · [验收机制](docs/VALIDATION.md) · [AgentBench](docs/AGENTBENCH.md) · [示例任务](examples/tmm_tasks)**
+**[English](README.md) · [系统架构](docs/ARCHITECTURE.md) · [科研接口](docs/RESEARCH_INTERFACE.md) · [验收机制](docs/VALIDATION.md) · [AgentBench](docs/AGENTBENCH.md) · [示例](examples)**
 
 </div>
 
@@ -19,7 +19,7 @@ VeriTMM 首先且始终是一个面向平面、各向同性、一维分层光学
 求解、混合相干传播、材料数据治理、可微逆向设计、光谱收敛检查、独立求解器
 复算和机器可读物理证书，共享同一种可复现任务协议。
 
-当前 v0.5 候选版在 TMM 核心外建立了一套确定性的 AI 实验工作台：能力发现、
+当前 v0.6 候选版在 TMM 核心外建立了一套确定性的 AI 实验工作台：能力发现、
 JSON Schema 合同、不运行完整光谱的 preflight、typed failure、可审计运行产物、
 实验存储、参数扫描、灵敏度/容差分析、稳健厚度优化和离线 AgentBench。
 它仍是一套 TMM 执行与验证工具，不是通用科研工作流、外部求解器编排器或
@@ -57,6 +57,7 @@ TMM 合同。它的数值核心依然是 TMM，额外工程使这个核心更容
 | 物理验收 | 能力边界、无源性/能量、光谱收敛和独立求解器一致性检查 |
 | 面向 AI 的协议 | 能力发现、五类任务 schema、确定性 preflight、typed failure 和 JSON 运行信封 |
 | 可复现实验 | `ExperimentStore`、内容感知缓存、谱系、对比、有限参数扫描与断点续跑 |
+| 科研接口 | 确定性设计空间、证书约束的评估/批处理、数据集生成、ask/tell 适配器和固定层环境 |
 | 科学分析 | 经独立差分复核的厚度灵敏度、固定随机种子的容差/良率分析和 Wilson 区间 |
 | 稳健逆向设计 | 随机训练目标、独立蒙特卡洛终验和按角色保留候选方案 |
 | 智能体评测 | 80+ 个确定性案例、超范围任务误接收统计和与框架无关的 A/B 轨迹 |
@@ -96,7 +97,7 @@ VeriTMM 不依赖特定大模型或智能体框架。任何能够生成标准 JS
 这种分工是有意设计的：AI 提供科研策略和候选方案，VeriTMM 提供确定性的
 TMM 计算、受控执行与物理核验。
 
-## v0.5 命令行协议
+## v0.6 命令行协议
 
 安装后的 `veritmm` 命令是面向机器的公共入口：
 
@@ -144,6 +145,24 @@ benchmark case/trajectory 和完整 provenance 在所有档位都保持外置。
 产物引用访问这些内容；没有可到达引用时会报告 `artifact_backed: false`。档位记录在
 `summary.response` 中，版本为 `veritmm-response-v1`；已有的 `veritmm-run-result-v1`
 信封和任务 schema 保持兼容。
+
+## v0.6 科研接口
+
+独立的 `tmm_engine.research` 包在已有 `SimulationTask` 上定义确定性设计空间、
+R/T/A 多目标与约束、必须经过托管执行和独立证书的评估器、可恢复批处理，以及
+可验证的 `DatasetFactory`。采样包括 random、有限 grid、Latin hypercube 和核心
+无额外依赖的 Sobol；Sobol 上限为 16 维。
+
+`RandomSearchAdapter` 是唯一参考 ask/tell 优化适配器；
+`VerifiedTorchDataset` 仅在实际构造时延迟导入 Torch，只暴露已验收记录的
+`normalized_design` 和显式目标；`DesignSpaceEnvironment` 不依赖 Gymnasium，
+仅为固定层变量赋值，并在 `stop` 时调用 `ResearchEvaluator`。`add_layer` 和
+`remove_layer` 仍为保留动作，会返回 typed unsupported。
+
+算法得分、数据集标签、ML 输出和环境 reward 都不能产生或提升物理证书。详见
+[科研接口说明](docs/RESEARCH_INTERFACE.md)、
+[DatasetFactory 指南](docs/DATASET_FACTORY.md)和
+[可运行示例](examples/research_interface.py)。
 
 ## 可复现实验与稳健性
 
@@ -308,7 +327,7 @@ python -m pytest -q
 
 ## 当前状态
 
-`v0.5.2` 是当前本地加固候选版。它保持 v0.5.0 的求解器与验证边界，保留 v0.5.1
-的来源与稳健性加固，并新增默认紧凑、由工件承载详细内容的响应档案。项目仍处于
+`v0.6.0` 是当前科研接口候选版。它保留 v0.5 的求解器、验证器、来源、稳健性和
+紧凑响应加固，并增加算法中立、受物理证书约束的科研基础设施。项目仍处于
 `v1.0` 之前；公共 API 与协议细节仍可能继续演进，但已经声明的物理适用边界会继续
 采用失败关闭原则。

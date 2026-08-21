@@ -20,7 +20,7 @@ def test_manifest_is_stable_and_machine_readable() -> None:
     assert first_payload == second.model_dump(mode="json")
     json.dumps(first_payload)
     assert first_payload["protocol_version"] == PROTOCOL_VERSION
-    assert first_payload["package_version"] == "0.5.2"
+    assert first_payload["package_version"] == "0.6.0"
 
 
 def test_manifest_declares_the_current_supported_surface() -> None:

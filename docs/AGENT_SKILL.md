@@ -1,4 +1,4 @@
-# VeriTMM v0.5 AI-Facing TMM Skill
+# VeriTMM v0.6 AI-Facing TMM Skill
 
 Use this skill only after a scientific request has been converted into a
 standard simulation, optimization, sweep, sensitivity, or tolerance task.
@@ -186,13 +186,28 @@ network. Benchmark evidence never changes a physics gate. An external agent
 runner may emit the documented A/B trajectory format; unavailable token or
 timing fields must remain null rather than being estimated.
 
+## Research-interface call order
+
+Use `DesignSpace` only as a deterministic candidate-to-`SimulationTask`
+adapter. Submit candidates through `ResearchEvaluator` or its public batch
+path; use `DatasetFactory` for sampled datasets. Never call a workbench,
+solver, or certifier from an external algorithm.
+
+Read `EvaluationRecord.physics_accepted`, `certificate_id`, `run_id`, and
+`task_sha256` together. A score, feasible flag, optimizer winner, Torch target,
+or environment reward cannot replace those fields. Dataset and batch responses
+are compact and reference detailed run artifacts. Sampling is deterministic by
+design-space identity, plan, seed, and sample index; the core Sobol sampler
+supports at most 16 dimensions. Fixed-layer `add_layer` and `remove_layer`
+actions are typed unsupported in v0.6.
+
 ## Physics boundary
 
 This is an isotropic planar 1D solver. It does not claim to model lateral
 patterning, diffraction gratings, metasurface unit cells, diffuse scattering,
 anisotropic tensor layers, nonlinear optics, thermal transport, or fabrication
 chemistry. Route those tasks to a suitable RCWA/FDTD/FEM/thermal tool outside
-the VeriTMM v0.5 protocol; VeriTMM will not perform that handoff or certify the
+the VeriTMM v0.6 protocol; VeriTMM will not perform that handoff or certify the
 external result.
 
 VeriTMM does not execute external solver families and contains no LLM kernel.

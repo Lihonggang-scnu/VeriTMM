@@ -9,7 +9,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-0b7285.svg)](LICENSE)
 [![Optical data: CC0](https://img.shields.io/badge/optical%20data-CC0-5c940d.svg)](THIRD_PARTY_NOTICES.md)
 
-**[中文说明](README.zh-CN.md) · [Architecture](docs/ARCHITECTURE.md) · [Validation](docs/VALIDATION.md) · [AgentBench](docs/AGENTBENCH.md) · [Examples](examples/tmm_tasks)**
+**[中文说明](README.zh-CN.md) · [Architecture](docs/ARCHITECTURE.md) · [Research API](docs/RESEARCH_INTERFACE.md) · [Validation](docs/VALIDATION.md) · [AgentBench](docs/AGENTBENCH.md) · [Examples](examples)**
 
 </div>
 
@@ -21,7 +21,7 @@ physics, governed material data, differentiable inverse design, convergence
 checks, independent cross-validation, and machine-readable physics certificates
 are exposed through one reproducible task protocol.
 
-The current v0.5 candidate builds a deterministic, AI-facing laboratory around
+The current v0.6 candidate builds a deterministic, AI-facing laboratory around
 that TMM core: capability discovery, JSON Schema contracts, no-spectrum
 preflight, typed failures, auditable run artifacts, persistent experiments,
 parameter studies, sensitivity/tolerance analysis, robust thickness design,
@@ -65,6 +65,7 @@ for an AI system to misuse.
 | Scientific verification | Capability gate, energy/passivity checks, spectral refinement and independent-solver comparison |
 | AI-facing protocol | Capability discovery, five task schemas, deterministic preflight, typed failures and JSON run envelopes |
 | Reproducible studies | `ExperimentStore`, content-aware cache, lineage, compare, finite sweeps and resume |
+| Research interface | Deterministic design spaces, verified evaluator/batches, dataset generation, ask/tell adapter and fixed-layer environment |
 | Scientific analysis | Audited thickness sensitivity, seeded tolerance/yield analysis and Wilson intervals |
 | Robust inverse design | Stochastic training objectives followed by independent Monte Carlo evaluation and role-based candidates |
 | Agent evaluation | 80+ deterministic cases, unsupported-task false-acceptance accounting and framework-neutral A/B trajectories |
@@ -114,7 +115,7 @@ This division is intentional: AI supplies scientific strategy and candidate
 designs; VeriTMM supplies deterministic TMM computation, bounded execution and
 physical verification.
 
-## v0.5 command-line protocol
+## v0.6 command-line protocol
 
 The installed `veritmm` command is the public machine-facing entry point:
 
@@ -179,6 +180,27 @@ guards its complete v2 document—including the experiment record—under one
 outer response profile. Legacy runs without a validated response context fail
 closed with `response_detail_unavailable` for standard/full. The existing
 `veritmm-run-result-v1` envelope and task schemas remain compatible.
+
+## Research interface
+
+The independent `tmm_engine.research` package defines deterministic design
+spaces over the existing `SimulationTask`, weighted R/T/A objectives and
+constraints, managed certificate-bound evaluation, resumable batches, and a
+verified `DatasetFactory`. Sampling supports random, finite grid, Latin
+hypercube, and a dependency-free Sobol core for at most 16 dimensions.
+
+`RandomSearchAdapter` is the reference algorithm-neutral ask/tell adapter.
+`VerifiedTorchDataset` imports Torch only when constructed, uses normalized
+designs plus explicit objective targets, and excludes every unverified row.
+`DesignSpaceEnvironment` needs no Gymnasium; it assigns fixed-layer variables
+and routes `stop` through `ResearchEvaluator`. Layer addition/removal is
+reserved and returns typed unsupported status.
+
+Algorithms, datasets, ML adapters, and rewards only consume evaluation
+evidence. They cannot create or upgrade a physics certificate. See the
+[research interface](docs/RESEARCH_INTERFACE.md),
+[DatasetFactory guide](docs/DATASET_FACTORY.md), and
+[runnable example](examples/research_interface.py).
 
 ## Reproducible studies and robustness
 
@@ -400,8 +422,8 @@ constant datasets selected by your run—not only this software.
 
 ## Status
 
-`v0.5.2` is the current local hardening candidate. It preserves the v0.5.0
-solver and verifier boundary, retains the v0.5.1 provenance and robustness
-hardening, and adds compact-by-default, artifact-backed response profiles. The
+`v0.6.0` is the current research-interface candidate. It preserves the v0.5
+solver, verifier, provenance, robustness, and compact-response hardening while
+adding algorithm-neutral, certificate-bound research infrastructure. The
 project remains pre-`v1.0`; public APIs and protocol details may still evolve
 while the documented physics boundary remains fail-closed.

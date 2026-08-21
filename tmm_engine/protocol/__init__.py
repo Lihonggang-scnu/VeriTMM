@@ -1,4 +1,4 @@
-"""AI-facing public protocol for VeriTMM v0.5.
+"""AI-facing public protocol for VeriTMM v0.6.
 
 Importing this package does not execute a simulation, contact a material
 service, or require an LLM.  Numerical execution remains in the existing

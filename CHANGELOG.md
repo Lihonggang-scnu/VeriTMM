@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.6.0 — Research interface
+
+- Added strict, deterministic design-space, candidate, objective, constraint,
+  evaluator, batch, sampling, dataset, optimizer-adapter, optional Torch, and
+  dependency-free fixed-layer environment contracts.
+- Routed every research evaluation through managed simulation, existing
+  preflight/capability gates, deterministic TMM, and independent certificate
+  validation; scores and rewards never imply physics validity.
+- Added random, bounded-grid, Latin-hypercube, and 16-dimensional core Sobol
+  sampling, resumable artifact-backed datasets, bounded batch/adapter results,
+  capability discovery, examples, and end-to-end acceptance tests.
+- Deliberately did not add new physics, solvers, concrete third-party
+  optimizers, ML/RL algorithms, PINNs, diffusion models, MCP, Gymnasium, or
+  SciPy requirements.
+
 ## 0.5.2 — Context-efficient response infrastructure
 
 - Added one protocol-level `compact`/`standard`/`full` response projection for

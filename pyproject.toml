@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "veritmm"
-version = "0.5.2"
+version = "0.6.0"
 description = "An AI-ready, verifier-first transfer-matrix tool for multilayer optics"
 readme = "README.md"
 requires-python = ">=3.10"

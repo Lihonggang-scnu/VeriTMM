@@ -89,6 +89,23 @@ Use `--store-dir`, `--experiment-id`, `--parent-run-id`, `--hypothesis`, and
 retain a new invocation ID and its source run ID. `--resume` is valid only for
 sweeps.
 
+## Research interface
+
+For algorithmic studies, construct `tmm_engine.research.DesignSpace` over an
+existing validated `SimulationTask`, then use `ResearchEvaluator` or
+`DatasetFactory`. Do not call a numerical backend or certifier from an
+algorithm adapter. The only accepted flow is candidate -> design-space task ->
+managed `simulate` -> preflight/capability gate -> TMM -> independent verifier.
+
+Candidate and sampling identities are content-derived and deterministic.
+Dataset and batch first reads are compact; spectra remain run artifacts. Sobol
+sampling is limited to 16 dimensions. Random-search scores, Torch targets, and
+environment rewards are proposal metadata, never physics validity. Require
+`physics_accepted`, `certificate_id`, `run_id`, and `task_sha256`. Variable
+layer count, add/remove-layer execution, concrete ML/RL algorithms, and MCP
+remain outside v0.6. See `docs/RESEARCH_INTERFACE.md` and
+`docs/DATASET_FACTORY.md`.
+
 ## Repository checks
 
 Before submitting code changes, run:

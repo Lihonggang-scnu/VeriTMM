@@ -58,6 +58,22 @@ _ARTIFACT_KINDS = {
     ),
     "TOLERANCE_RESULT.json": ("tolerance_result", "veritmm-tolerance-result-v2"),
     "ROBUSTNESS_REPORT.json": ("robustness_report", "veritmm-robustness-report-v2"),
+    "BATCH_MANIFEST.json": (
+        "research_batch_manifest",
+        "veritmm-research-batch-manifest-v1",
+    ),
+    "BATCH_INDEX.jsonl": (
+        "research_batch_index",
+        "veritmm-research-batch-index-v1",
+    ),
+    "DATASET_MANIFEST.json": (
+        "research_dataset_manifest",
+        "veritmm-dataset-manifest-v1",
+    ),
+    "DATASET_INDEX.jsonl": (
+        "research_dataset_index",
+        "veritmm-dataset-index-v1",
+    ),
     RESPONSE_CONTEXT_FILENAME: (
         "response_context",
         RESPONSE_CONTEXT_SCHEMA_VERSION,

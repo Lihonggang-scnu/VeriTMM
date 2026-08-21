@@ -1,10 +1,10 @@
 # Architecture
 
-VeriTMM remains a TMM engine. Version 0.5 exposes a deterministic protocol,
-reproducible experiment layer, scientific-analysis studies, and an offline
-agent benchmark around that engine. It does not turn the project into a
-generic scientific-research workflow, an external-solver orchestrator, or an
-LLM runtime.
+VeriTMM remains a TMM engine. Version 0.6 exposes a deterministic protocol,
+reproducible experiment layer, scientific-analysis studies, a research
+interface, and an offline agent benchmark around that engine. It does not turn
+the project into a generic scientific-research workflow, an external-solver
+orchestrator, or an LLM runtime.
 
 ```mermaid
 flowchart LR
@@ -30,6 +30,40 @@ The roles are deliberately separate: **AI proposes, TMM computes, and the
 verifier certifies**. The optimizer is a proposal mechanism, not an authority;
 every optimized stack returns to independent recomputation and the same
 acceptance path used by a forward simulation.
+
+## Research layer
+
+The v0.6 research package is a client of the managed execution boundary, not a
+numerical backend:
+
+```mermaid
+flowchart LR
+    A[External algorithm] --> D[DesignSpace]
+    D --> E[ResearchEvaluator]
+    E --> M[Managed simulate]
+    M --> C[Capability gate and preflight]
+    C --> T[Existing deterministic TMM]
+    T --> V[Independent verifier]
+    V --> R[Certificate-bound EvaluationRecord]
+    V --> Z[Evidence and ExperimentStore]
+    R --> B[Batch and DatasetFactory]
+    R --> O[OptimizerAdapter]
+    R --> N[Fixed-layer environment]
+    R --> X[Optional lazy Torch dataset]
+```
+
+`DesignSpace` always reconstructs the existing `SimulationTask`. Fixed layers
+are retained, candidate IDs are content-derived, and normalized variables do
+not define new physics. `ResearchEvaluator` calls managed `simulate`; it does
+not call a workbench, solver, or certifier directly. Dataset rows, optimizer
+observations, Torch targets, and environment rewards can retain certificate
+identity but cannot create acceptance.
+
+Batch and dataset first reads remain compact and bounded. Their ledgers point
+to ordinary run artifacts for spectra and detailed evidence. Random, grid,
+Latin-hypercube, and 16-dimensional core Sobol sampling are deterministic by
+contract/plan/seed/index. Variable layer count and concrete ML/RL algorithms
+are reserved.
 
 ## Protocol boundary
 
@@ -70,7 +104,7 @@ does not replace physical verification.
 - **PyTorch differentiable S-matrix:** batched gradient path for thickness design;
   its output is independently recomputed before acceptance.
 
-The v0.5 protocol formally exposes finite sweep, thickness sensitivity, and
+The v0.6 protocol formally exposes finite sweep, thickness sensitivity, and
 tolerance/yield operations. It still does not execute external solver families.
 Unsupported geometry, material, excitation, or output combinations are
 rejected with typed failures rather than routed silently. AgentBench observes

@@ -40,7 +40,7 @@ import numpy as np
 
 from .tmm_solver import TMM, TMMConfig
 
-__version__ = "0.5.2"
+__version__ = "0.6.0"
 
 PACKAGE_ROOT = Path(__file__).resolve().parent
 DEFAULT_MATERIALS_DIR = PACKAGE_ROOT / "materials"
