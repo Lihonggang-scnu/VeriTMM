@@ -2,114 +2,280 @@
 
 # VeriTMM
 
-### 面向 AI 自主科研的可验证 TMM 多层膜光学工具
+### 面向 AI 驱动科研的可验证多层光学研究基础设施
+
+**从 TMM 出发，把计算、优化、验证、数据与实验记录接成一条可以被 AI 持续调用的研究链路。**
 
 [![CI](https://github.com/Lihonggang-scnu/VeriTMM/actions/workflows/ci.yml/badge.svg)](https://github.com/Lihonggang-scnu/VeriTMM/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-0b7285.svg)](LICENSE)
-[![Optical data: CC0](https://img.shields.io/badge/optical%20data-CC0-5c940d.svg)](THIRD_PARTY_NOTICES.md)
 
-**[English](README.md) · [系统架构](docs/ARCHITECTURE.md) · [科研接口](docs/RESEARCH_INTERFACE.md) · [验收机制](docs/VALIDATION.md) · [AgentBench](docs/AGENTBENCH.md) · [示例](examples)**
+**[English](README.md) · [架构](docs/ARCHITECTURE.md) · [科研接口](docs/RESEARCH_INTERFACE.md) · [验证](docs/VALIDATION.md) · [示例](examples)**
+
+`pip install veritmm` &nbsp;·&nbsp; [→ 快速开始](#-快速开始)
 
 </div>
 
-VeriTMM 首先且始终是一个面向平面、各向同性、一维分层光学问题的
-**传输矩阵法（TMM）工具**。它的特色不是脱离 TMM 去构造一套宽泛的科研流程，
-而是把成熟的 TMM 物理能力封装成更适合 AI 自主科研调用的计算工具：稳定正向
-求解、混合相干传播、材料数据治理、可微逆向设计、光谱收敛检查、独立求解器
-复算和机器可读物理证书，共享同一种可复现任务协议。
+---
 
-当前 v0.6 候选版在 TMM 核心外建立了一套确定性的 AI 实验工作台：能力发现、
-JSON Schema 合同、不运行完整光谱的 preflight、typed failure、可审计运行产物、
-实验存储、参数扫描、灵敏度/容差分析、稳健厚度优化和离线 AgentBench。
-它仍是一套 TMM 执行与验证工具，不是通用科研工作流、外部求解器编排器或
-LLM 内核。
+## VeriTMM 能做什么？
 
-项目的核心原则是：**AI 提出方案，TMM 负责计算，确定性验证器负责裁决。**
-AI 智能体和优化器都不能给自己的方案颁发合格证；无论结果来自正向计算还是
-梯度优化，都必须重新进入确定性物理验收。
+VeriTMM 具备完整的多层薄膜 TMM 基础能力：R/T/A、复振幅、相位、场分布、逐层吸收、椭偏参数、发射率、色散材料、多角度 s/p 偏振、相干/非相干混合传播、DBR 与腔体分析、PyTorch 可微 TMM、Adam/LBFGS 厚度优化、多起点搜索、灵敏度、容差/良率、稳健优化、参数扫描、实验存储、数据集生成和 Agent/JSON 接口。
 
-![VeriTMM 计算的六周期 DBR 光谱](docs/assets/dbr_spectrum.png)
+作为一套 TMM 工具，它首先把该做的物理计算做好。
 
-## 为什么要做这个项目
+真正让 VeriTMM 与普通 TMM 库拉开距离的，是它把过去依赖研究者经验维持的**科学纪律**写进了程序本身。
 
-传统 TMM 工具通常默认由人类专家选择合法输入、阅读警告并解释结果。AI 自主
-科研则需要更严格的工具接口：用了哪一份材料数据？有没有外推？光谱是否
-收敛？第二套实现能否复现？任务是否超出了标量 TMM 的能力边界？脱离当前
-对话以后，结果能否被另一智能体或另一台机器重放？
+---
 
-VeriTMM 把这些问题从“使用者自己注意”变成可执行、可审计、机器可读的
-TMM 合同。它的数值核心依然是 TMM，额外工程使这个核心更容易被 AI 正确调用，
-也更难被 AI 误用。
+# 🌟 VeriTMM 真正解决什么问题？
 
-## 核心能力
+> 关于这背后更大的背景，见 [Instrument-Centered AI for Science](README_Instrument-Centered_AI4S.zh-CN.md)。
 
-| 能力 | 当前实现 |
-|---|---|
-| 稳定正向求解 | 相干 S 矩阵主求解器、特征矩阵诊断路径、Byrnes 独立参考后端 |
-| 多层膜任务 | 薄膜、DBR、一维光子晶体、缺陷腔、啁啾膜、吸收体和有限厚基底 |
-| 入射条件 | 多波长、多角度、s/TE、p/TM 和非偏振光 |
-| 混合相干 | 相干薄膜与光学厚层/非相干层统一计算 |
-| 输出量 | R/T/A、复振幅、场分布、逐层吸收、椭偏、系统发射率、相位与色散 |
-| 材料治理 | 数据集身份、适用波段、来源、插值策略和禁止静默外推 |
-| 本地光学数据库 | refractiveindex.info 快照：2,712 个数据页、252,442 个 n 点、209,839 个 k 点 |
-| 逆向设计 | PyTorch 批量可微 S 矩阵、多波段厚度优化、制造边界、多起点和厚度量化 |
-| 物理验收 | 能力边界、无源性/能量、光谱收敛和独立求解器一致性检查 |
-| 面向 AI 的协议 | 能力发现、五类任务 schema、确定性 preflight、typed failure 和 JSON 运行信封 |
-| 可复现实验 | `ExperimentStore`、内容感知缓存、谱系、对比、有限参数扫描与断点续跑 |
-| 科研接口 | 确定性设计空间、证书约束的评估/批处理、数据集生成、ask/tell 适配器和固定层环境 |
-| 科学分析 | 经独立差分复核的厚度灵敏度、固定随机种子的容差/良率分析和 Wilson 区间 |
-| 稳健逆向设计 | 随机训练目标、独立蒙特卡洛终验和按角色保留候选方案 |
-| 智能体评测 | 80+ 个确定性案例、超范围任务误接收统计和与框架无关的 A/B 轨迹 |
-| 可复现性 | 不可变 JSON 任务、规范化身份、紧凑摘要、完整产物和物理证书 |
+传统 TMM 库通常默认：**有一个懂物理的人始终在旁边。**
 
-## 我们真正贡献了什么
+材料波段不够，人会发现；模型越界，人会停下来；优化结果好得离谱，人会重新检查；实验参数和材料来源，也会有人记下来。
 
-传输矩阵法是成熟的基础物理，本项目不声称发明了新的 TMM 方程，也不把自己
-包装成通用科研工作流。我们的贡献是提供一套**面向 AI 调用的 TMM 工具接口**：
+当 AI 开始自动提出结构、批量仿真、调整优化策略、生成数据集并继续下一轮搜索时，这个人不再守在每一次计算旁边。
 
-1. 仿真和逆向设计共享机器可读的不可变任务协议，AI 不必依赖隐含对话记忆；
-2. 能力协议会用结构化原因明确拒绝光栅、超表面、各向异性、非线性等
-   超出范围的问题；
-3. 材料选择成为可追溯的科研决策，数据来源、编号和波段随结果保存；
-4. AI 或可微优化器提出的厚度必须由独立路径重新计算；
-5. 每次合格运行生成机器可读的物理验收证书，记录收敛、能量、一致性、
-   输入身份和限制条件；
-6. 把“目标得分”与“物理可信”彻底分开——未达到理想指标不等于计算错误，
-   高分也不能代替物理证明。
+VeriTMM 因此把其中一部分判断变成机器可以执行的约束：
 
-当前命令面让这份合同不依赖对话状态即可调用。引擎不依赖特定大模型、
-智能体框架、外部求解器或 LLM 运行时。
+> **物理有效性是结果成立的前提——从来都是，只是过去由人来守。**
 
-VeriTMM 不依赖特定大模型或智能体框架。任何能够生成标准 JSON 任务并读取
-结构化结果的 AI 系统，都可以把它作为确定性的多层膜光学计算工具。
+## ① Verifier-first：优化器不能给自己颁发合格证
 
-## 面向 AI 的职责边界
+```text
+AI / Optimizer
+      ↓
+Design Space
+      ↓
+Evaluator
+      ↓
+Managed Physics Execution
+      ↓
+Preflight / Capability Gate
+      ↓
+TMM
+      ↓
+Independent Verification
+      ↓
+Physics Acceptance Certificate
+```
 
-| AI 负责 | VeriTMM 负责 |
-|---|---|
-| 提出膜系、材料、目标或厚度更新 | 在计算前校验并规范化任务 |
-| 请求正向仿真或可微优化 | 在声明的能力边界内执行对应 TMM 路径 |
-| 根据结果继续迭代 | 保存可复现输入、输出和结构化失败原因 |
-| 选择有潜力的候选方案 | 独立复算并生成物理验收证书 |
-| 提出超出 TMM 范围的任务 | 明确拒绝，而不是返回一条看似合理的错误光谱 |
+优化器只负责提出候选。最终结果必须重新进入受管物理计算和独立验证。
 
-这种分工是有意设计的：AI 提供科研策略和候选方案，VeriTMM 提供确定性的
-TMM 计算、受控执行与物理核验。
+> **高分说明它值得看，证书说明它究竟通过了什么检查。**
 
-## v0.6 命令行协议
+## ② 会算，也会拒绝
 
-安装后的 `veritmm` 命令是面向机器的公共入口：
+可靠的科研工具不仅要回答“结果是多少”，还应该在必要的时候回答：
+
+> **这个问题不属于当前模型。**
+
+VeriTMM 的 capability gate 会主动拒绝明显超出当前一维 TMM 能力范围的任务。给出一个拒绝，胜过返回一条看起来合理却站不住脚的光谱。
+
+当前离线 AgentBench：
+
+| 指标 | 当前结果 |
+|---|---:|
+| AgentBench | **85 / 85** |
+| unsupported false acceptance | **0** |
+| release gate | **PASS** |
+
+“会拒绝”是一种能力。**能用可重复 benchmark 证明自己会拒绝，是另一回事。**
+
+## ③ 不只验证数字，还验证物理关系
+
+Physics Metamorphic Suite 检查诸如：
+
+```text
+100 nm A ≈ 50 nm A + 50 nm A
+A / 0 nm B / C ≈ A / C
+```
+
+以及 lossless `R + T = 1`、passivity、正入射 s/p 等价、Fresnel 解析关系、互易性、波长网格细化一致性等。
+
+它真正想问的是：
+
+> **求解器有没有尊重物理结构本身应该满足的关系。**
+
+## ④ 专门攻击 TMM 最容易失稳的地方
+
+TMM StressBench 覆盖多层 DBR、金属和强吸收膜、超薄层、85° 掠入射、Brewster 条件等困难场景，并检查证书、能量守恒、passivity、NaN/Inf 和 solver agreement。
+
+## ⑤ 两路 float64 求解器有争议时，还有高精度第三裁判
+
+```text
+Primary Solver ───────┐
+                      │
+Reference Solver ─────┼→ Locate disagreement
+                      │
+                      ↓
+          High-Precision Referee
+                 113-bit
+                      ↓
+      Which solver is closer?
+      At which angle / pol?
+      Which check is tightest?
+```
+
+可选 High-Precision Referee 使用 `mpmath` 113-bit 算术作为**高精度参考**，记录触发原因、worst-case / offending channel、两路差异和 closer solver。
+
+它不会放宽验收标准，也不会覆写原来的 `accepted` 状态。
+
+## ⑥ Certificate 不只说“通过”，还告诉你哪里最紧
+
+证书的 `tightest_margin` 会指出距离失败阈值最近的检查：
+
+```json
+{
+  "tightest_margin": {
+    "check": "cross_solver_agreement",
+    "observed_value": 2.3e-8,
+    "acceptance_limit": 1e-7,
+    "distance_to_limit": 7.7e-8,
+    "normalized_margin": 0.77
+  }
+}
+```
+
+对于 energy conservation，还会记录最差位置对应的 angle、polarization 和 wavelength。
+
+## ⑦ 材料和结果都有来历
+
+一条 `R = 0.9984` 本身并不能告诉我们材料来自哪里、当前波长是否越界、有没有外推、哪个任务生成了结果、软件版本是什么、是否通过验证。
+
+VeriTMM 会把材料身份、task hash、run identity、provenance、artifact hash、验证结果和 certificate 连接起来，并默认禁止静默材料外推。
+
+## ⑧ 换算法，不必重新搭一套物理实验系统
+
+```text
+Gradient / Random / BO / CMA-ES / RL / DL / LLM Agent
+                          ↓
+                     Design Space
+                          ↓
+                      Evaluator
+                          ↓
+                       VeriTMM
+                          ↓
+                       Verifier
+                          ↓
+                  Experiment Record
+```
+
+算法可以变化，但 candidate identity、physics evaluation、provenance、certificate、dataset record 和 experiment lineage 保持同一种语义。
+
+## ⑨ DatasetFactory：数据也应该能回到原始物理证据
+
+DatasetFactory 不只生成 `input → label`。每条记录还能和 candidate、task、run、material、verification、certificate、seed、version 重新连接起来。
+
+> **几年以后再问“这一行 label 是怎么来的？”，我们仍然希望能找到答案。**
+
+## ⑩ 仿真工具也应该考虑 LLM 的上下文预算
+
+科学计算很容易产生大量数组。如果每次都把原始 spectra、Monte Carlo samples、optimization history 和 dataset 直接塞进 Agent 上下文，很快就会出现：
+
+> **上下文里全是数字，却没有空间继续思考。**
+
+所以 VeriTMM 采用：
+
+> **Compact by default. Detailed on demand.**
+
+默认先返回 status、objective、constraints、physics acceptance、certificate/run identity、warning/failure 和 artifact reference；大型数组留在 artifacts 中，需要时再展开。
+
+---
+
+# ⚖️ 与成熟仿真软件和科研平台相比
+
+成熟的 FDTD、FEM、RCWA 和多物理场平台，在复杂几何、全波求解、工程生态和物理覆盖上远强于当前 VeriTMM。
+
+VeriTMM 当前聚焦的是另一个方向：
+
+> **当 AI 开始自动使用物理求解器，怎样让计算过程本身更可验证、更可追溯、更难被误用？**
+
+| 问题 | 传统 TMM / 成熟仿真工作流常见方式 | VeriTMM 当前设计 |
+|---|---|---|
+| 基础光学计算 | 成熟且覆盖广 | 完整 1D multilayer TMM |
+| 复杂几何 / 全波 | 顶级平台优势明显 | 当前不覆盖 |
+| 材料数据越界 | 用户配置、脚本或人工判断 | **Preflight 主动检查，默认 fail-closed** |
+| 模型超出适用域 | 用户自己知道边界 | **Capability Gate 主动拒绝** |
+| 优化器异常高分 | 用户决定是否接受 | **未通过物理验收不能进入可信结果链** |
+| 独立数值复核 | 额外搭建工作流 | **内置 independent solver check** |
+| 两路 solver 有争议 | 人工继续排查 | **可选 113-bit High-Precision Referee** |
+| “通过得有多稳” | 人工读日志 | **tightest_margin + worst-case location** |
+| 物理不变量验证 | 散落在测试中 | **Physics Metamorphic Suite** |
+| 极端数值场景 | 取决于项目测试习惯 | **TMM StressBench** |
+| 实验 provenance | 外部脚本/数据库 | **run/task/material/artifact 原生连接** |
+| 换优化算法 | 容易重写 glue code | **共享 Design Space + Evaluator** |
+| Agent 上下文成本 | 通常不是设计目标 | **compact response + artifact-backed detail** |
+| 域外拒绝是否可测 | 很少作为独立指标 | **AgentBench + false acceptance metric** |
+| 可审计性 | 商业平台内部实现通常封闭 | **开源、可检查、可修改** |
+
+VeriTMM 当前并不打算”比顶级全波工具算得更多”。
+
+它想做的，是另一件事：
+
+> **一块适合 AI 自动研究长期依赖的、透明而保守的光学物理底座。**
+
+当问题属于 TMM 的能力范围时，我们希望做到三件事：
+
+> **算得对。**  
+> **说得清。**  
+> **以后还能查得回来。**
+
+---
+
+# 📊 当前 v0.6 候选版验证状态
+
+当前 PR #3 候选分支已经通过全部 8 个 GitHub Actions jobs：
+
+```text
+Python 3.10       PASS
+Python 3.11       PASS
+Python 3.12       PASS
+Torch             PASS
+High Precision    PASS
+AgentBench        PASS
+Ruff              PASS
+Build / Wheel     PASS
+```
+
+| 验收项 | 结果 |
+|---|---:|
+| 本地测试 | **382 passed / 1 skipped** |
+| AgentBench | **85 / 85** |
+| unsupported false acceptance | **0** |
+| High-Precision CI gate | **PASS** |
+| Python 3.10 / 3.11 / 3.12 | **PASS** |
+| Real Torch gate | **PASS** |
+| Ruff | **PASS** |
+| Wheel / fresh install smoke | **PASS** |
+
+测试数量是一方面，更值得看的是它们在验什么：
+
+```text
+数值正确性
++ 物理不变量
++ 域外拒绝能力
++ solver 一致性争议
++ 最差情形定位
++ 高精度参考验证
++ AI 执行契约
+```
+
+---
+
+# 🚀 快速开始
+
+```bash
+pip install veritmm
+```
 
 ```bash
 veritmm describe --json
 veritmm schema simulation
-veritmm schema optimization
-veritmm schema sweep
-veritmm schema sensitivity
-veritmm schema tolerance
 veritmm preflight task.json --json
-veritmm run task.json --output-dir outputs/tmm_run --json
+veritmm run task.json --output-dir outputs/example --json
 veritmm history --json
 veritmm inspect RUN_ID --json
 veritmm lineage RUN_ID --json
@@ -117,217 +283,191 @@ veritmm compare RUN_A RUN_B --json
 veritmm benchmark --offline --json
 ```
 
-`describe` 返回当前能力清单；`schema` 命令导出 JSON Schema 合同。
-`preflight` 检查任务合同、TMM 能力边界、材料在完整声明波长网格上的覆盖、后端路由和数值风险提示，
-**不会运行完整光谱，也不会运行优化**。`run` 会先执行 preflight，再由 TMM
-计算，并交给确定性验证器。
-
-`RUN_RESULT.json` 是一次运行的第一入口，包含状态、失败信息、证书身份、产物引用
-和下一步机器动作。随后先读 `RESULT_SUMMARY.json` 获取紧凑的光谱特征和物理摘要；
-在决定下一步之前，不必先吞下完整的 `SIMULATION_RESULT.json` 或 `SPECTRA.csv`。
-需要深入科研分析时，再读取完整产物。
-
-### 面向上下文效率的响应档位
-
-面向机器的 CLI 和 Python 执行响应默认使用 `compact`。同一个统一的
-`RUN_RESULT.json` 入口支持显式请求更丰富的附加投影：
+可选高精度裁判：
 
 ```bash
-veritmm run task.json --output-dir outputs/tmm_run --json --detail compact
-veritmm run task.json --output-dir outputs/tmm_run --json --detail standard
-veritmm run task.json --output-dir outputs/tmm_run --json --detail full
+pip install "veritmm[high_precision]"
 ```
 
-`compact` 只保留决策所需的状态、证书身份、有界指标、typed action 和有效的
-相对产物引用；`standard` 提供有界诊断集合；`full` 保留更丰富的标量、映射和上下文。
-`full` 也不是 raw：光谱、波长网格、R/T/A 通道数组、容差样本、优化历史、扫描子项、
-benchmark case/trajectory 和完整 provenance 在所有档位都保持外置。运行响应通过带哈希的
-产物引用访问这些内容；没有可到达引用时会报告 `artifact_backed: false`。档位记录在
-`summary.response` 中，版本为 `veritmm-response-v1`；已有的 `veritmm-run-result-v1`
-信封和任务 schema 保持兼容。
+---
 
-## v0.6 科研接口
+# 从一条普通的薄膜光谱说起
 
-独立的 `tmm_engine.research` 包在已有 `SimulationTask` 上定义确定性设计空间、
-R/T/A 多目标与约束、必须经过托管执行和独立证书的评估器、可恢复批处理，以及
-可验证的 `DatasetFactory`。采样包括 random、有限 grid、Latin hypercube 和核心
-无额外依赖的 Sobol；Sobol 上限为 16 维。
+做多层薄膜的人，大多写过这样的程序：
 
-`RandomSearchAdapter` 是唯一参考 ask/tell 优化适配器；
-`VerifiedTorchDataset` 仅在实际构造时延迟导入 Torch，只暴露已验收记录的
-`normalized_design` 和显式目标；`DesignSpaceEnvironment` 不依赖 Gymnasium，
-仅为固定层变量赋值，并在 `stop` 时调用 `ResearchEvaluator`。`add_layer` 和
-`remove_layer` 仍为保留动作，会返回 typed unsupported。
-
-算法得分、数据集标签、ML 输出和环境 reward 都不能产生或提升物理证书。详见
-[科研接口说明](docs/RESEARCH_INTERFACE.md)、
-[DatasetFactory 指南](docs/DATASET_FACTORY.md)和
-[可运行示例](examples/research_interface.py)。
-
-## 可复现实验与稳健性
-
-同一个 `run` 入口可执行 sweep、sensitivity 和 tolerance 合同，示例位于
-`examples/tmm_tasks/`。参数扫描会生成父运行、稳定的子任务、逐项产物和可恢复
-检查点；灵敏度由可微后端计算，再用独立 NumPy 中心差分复核；容差 v2 将“已完成
-样本中的条件良率”与“全部请求样本中的总体成功比例”分开，并记录计算失败分类。
-稳健优化的训练与终验使用同一扰动边界语义，但随机训练只负责提出方案，正式候选
-角色由新的独立蒙特卡洛评估决定；终验不完整的候选不能成为 `best_robust`。
-
-本地 `ExperimentStore` 按 `run_id` 只追加记录；已有规范运行目录不会被合并或
-覆盖，缓存复用也会创建新的运行身份。缓存复用参数扫描时，每个复制的子运行同样
-获得新身份，同时明确保留来源父运行和来源子运行的追溯关系。
-
-若独立稳健终验失败，标称候选仍可供检查，但 `best_robust`、`best_quantized`
-以及兼容字段 `most_robust` 均保持为空，启发式筛选分数不会冒充正式稳健结论。
-
-这些产物回答不同问题：`PHYSICS_ACCEPTANCE_CERTIFICATE.json` 只证明标称 TMM
-结果通过物理和数值验收；`SENSITIVITY_RESULT.json`、`TOLERANCE_RESULT.json` 与
-`ROBUSTNESS_REPORT.json` 分别描述扰动响应，不能相互冒充。
-
-## 离线 AgentBench
-
-```bash
-veritmm benchmark --offline --json
+```text
+定义材料
+→ 设置膜层厚度
+→ 扫描波长
+→ 计算 R / T / A
+→ 画图
 ```
 
-AgentBench 不调用 LLM，也不访问网络。它检查案例合同、preflight 决策、失败代码、
-运行产物、物理断言和重复运行一致性。发布闸门要求适用域外任务误接收率严格为
-零。`tmm_engine.agent_harness` 提供与框架无关的 A/B 轨迹接口，可接外部 callable
-或已有轨迹；核心包不依赖任何专有智能体 SDK。基准证据永远不能修改能力规则或
-物理证书。
+如果全过程都有研究者盯着，很多问题可以靠经验兜住。
 
-## 安装
+材料选错了，会有人发现。结果离谱了，会有人停下来。优化器突然给出一个“好得不像真的”结构，人也会多看一眼。
 
-```bash
-git clone https://github.com/Lihonggang-scnu/VeriTMM.git
-cd VeriTMM
-python -m pip install -e .
+但如果一天运行几千个结构呢？
+
+如果这些结构由 AI 自动提出呢？
+
+如果生成、计算、优化、筛选、比较、数据集生成和下一轮搜索全部串起来呢？
+
+这时，一条漂亮的光谱已经不够了。
+
+我们开始问：材料从哪里来？当前波长是否越界？模型有没有超出能力范围？优化器找到的是好设计还是数值漏洞？两个独立求解器是否一致？如果不一致，哪一个更接近高精度参考？失败样本有没有从统计中消失？几天以后还能不能复现实验？最终“最优设计”到底经过了哪些检查？
+
+过去这些问题常常散落在研究者的经验、脚本、笔记和记忆里。
+
+自动化程度越来越高以后，它们需要慢慢成为程序本身的一部分。
+
+---
+
+# 把“可信”写进计算流程
+
+```text
+候选设计
+   ↓
+受管计算
+   ↓
+物理检查
+   ↓
+独立复核
+   ↓
+验收证书
+   ↓
+实验记录
 ```
 
-需要可微优化和绘图时：
+所以一个结果除了光谱，还可以留下：
 
-```bash
-python -m pip install -e ".[optimize,plot]"
+```text
+run_id
+task_sha256
+material provenance
+certificate_id
+tightest_margin
+worst_case_channel
+artifact hash
+validation result
+warnings
+failures
 ```
 
-## 快速开始
+这些东西没有一条漂亮光谱那么显眼。
 
-### 面向 AI 的 JSON 任务
+但实验做得越多，它们越重要。
 
-使用命令行协议完成确定性的机器交接：
+---
 
-```bash
-veritmm preflight examples/tmm_tasks/periodic_dbr_simulation.json --json
-veritmm run examples/tmm_tasks/periodic_dbr_simulation.json \
-  --output-dir outputs/dbr --json --detail compact
+# 可微优化：让梯度负责找路
+
+```text
+Thickness
+   ↓
+Differentiable TMM
+   ↓
+Objective
+   ↓
+Autograd
+   ↓
+Adam / LBFGS
+   ↓
+Candidate
+   ↓
+Deterministic Recompute
+   ↓
+Independent Validation
+   ↓
+Physics Certificate
 ```
 
-运行会根据模式和设置写出 `RUN_RESULT.json`，以及可能的
-`RESULT_SUMMARY.json`、`PREFLIGHT_REPORT.json`、`NORMALIZED_TASK.json`、
-`PHYSICS_ACCEPTANCE_CERTIFICATE.json`、`SIMULATION_RESULT.json` 和
-`SPECTRA.csv`。优化任务还会写出 `OPTIMIZATION_RESULT.json` 和
-`INDEPENDENT_VALIDATION.json`、`DESIGN_PORTFOLIO.json` 和经过独立认证的候选
-产物；光谱图是可选的。即使 preflight 拒绝，仍会生成
-机器可读的运行信封和带 typed failure action 的失败信息。
+梯度负责找路。
 
-### 运行标准 JSON 任务
+最终验收仍然交给确定性的物理流程。
 
-```bash
-python scripts/run_tmm_task.py \
-  --input examples/tmm_tasks/periodic_dbr_simulation.json \
-  --output-dir outputs/dbr
+---
+
+# 当前物理范围
+
+VeriTMM 当前核心仍是：
+
+> **平面、各向同性、一维分层结构的 Transfer Matrix Method。**
+
+适合 multilayer thin films、DBR、1D photonic crystals、Fabry–Pérot / defect cavities、absorbers、chirped multilayers、finite substrates、coherent/incoherent mixed propagation、多角度 s/p response 和支持范围内的 ellipsometry。
+
+当前不覆盖任意二维周期光栅、metasurface 全波问题、横向衍射、一般各向异性、有限尺寸散射体、完整三维近场和非线性 Maxwell 问题。
+
+> **对于自动化科研来说，明确拒绝一个越界问题，本身就是一种能力。**
+
+---
+
+# 🔭 TMM 是现在的起点
+
+VeriTMM 当前不会为了“看起来更大”而急着把所有仿真方法塞进同一个仓库。
+
+更重要的是先把一种研究接口做扎实：
+
+```text
+AI / Research Agent
+        ↓
+Problem Definition
+        ↓
+Design Space
+        ↓
+Physics Evaluation
+        ↓
+Verification
+        ↓
+Evidence
+        ↓
+Next Decision
 ```
 
-旧脚本名现在只是统一执行服务的兼容入口。系统会写出规范化任务、完整
-仿真结果、CSV 光谱、运行清单、`RUN_RESULT.json`、`RESULT_SUMMARY.json`，以及
-`PHYSICS_ACCEPTANCE_CERTIFICATE.json`。安装 Matplotlib 后还会生成光谱图。
+未来如果扩展到 RCWA、FDFD、FDTD 或其他电磁方法，希望真正复用的是：
 
-对于 AI 调用，优先使用上面的 `veritmm run ... --json --detail compact` 接口：
-`RUN_RESULT.json` 是第一入口，需要时再通过产物引用打开完整光谱。确实需要内嵌
-诊断内容时，再显式使用 `--detail standard|full`。
-
-### 检索本地材料数据库
-
-```bash
-python scripts/search_optical_material.py TiO2 \
-  --provider rii --start-nm 500 --stop-nm 800 --limit 5
+```text
+Design Space
+Objective
+Constraint
+Evaluator
+Dataset
+Experiment
+Verifier
+Evidence
 ```
 
-正式复现时应明确指定 `dataset_id`。材料波段不足时默认拒绝，不会偷偷
-使用端点值外推。
+这是愿景，不是当前能力声明。
 
-### 可微逆向设计
+今天的 VeriTMM 仍然从 TMM 做起。
 
-```bash
-python scripts/run_tmm_task.py \
-  --input examples/tmm_tasks/antireflection_optimization.json \
-  --output-dir outputs/antireflection
-```
+先把这一块做深。
 
-PyTorch 负责提出候选厚度；随后 NumPy/参考求解器会重新计算、校验目标并颁发
-物理证书。系统还会分别保留性能、鲁棒性、易制造性和结构差异性候选，而不是
-把所有价值压成一个总分。优化模型不能修改光谱或绕过验收。
+---
 
-简言之：**AI 提出方案，TMM 负责计算，验证器负责颁证**。优化器不能给自己的
-候选方案认证。
+# 最后
 
-## 验收链
+VeriTMM 从一件很普通的事情开始：
 
-```mermaid
-flowchart LR
-    A[AI JSON 任务] --> B[协议与能力清单]
-    B --> C[Preflight：不跑完整光谱]
-    C --> D[TMM 计算]
-    C --> O[优化器提出候选]
-    O --> D
-    D --> E[确定性验证器]
-    E --> F[先读 RUN_RESULT]
-    F --> G[RESULT_SUMMARY 与完整产物]
-```
+> **算一条多层薄膜光谱。**
 
-程序不会通过裁剪光谱来掩盖负吸收、非有限数或能量异常。详细说明见
-[验收机制](docs/VALIDATION.md)。
+然后慢慢加入优化、实验记录、数据集、Agent 接口、物理不变量测试、独立复算和高精度裁判。
 
-## 适用范围
+等这些东西真正连起来以后，我们越来越在意一个问题：
 
-- 相干与混合相干平面多层结构；
-- 周期/啁啾多层膜、DBR、一维光子晶体和缺陷腔；
-- 有损吸收膜和有限厚基底；
-- 角度、偏振、逐层吸收、椭偏和场分布；
-- 相位、群时延、群时延色散和 Bloch 禁带分析；
-- 多波段可微与稳健厚度优化；
-- 有限参数扫描与断点续跑、灵敏度复核、容差和良率研究。
+> **这些自动产生的结果，我们凭什么相信？**
 
-## 明确不做什么
+我们希望 VeriTMM 最终能够同时做好两件事：
 
-当前是标量、各向同性、平面一维求解器，不应拿来模拟横向光栅、超表面单元、
-衍射级、各向异性张量、非线性光学、散射、有限光束、三维近场、热传输或
-制造化学。遇到这些问题应切换 RCWA、Berreman 4×4、FDTD 或 FEM，而不是
-强行让 TMM 给出看似完整的答案。
+> **让计算更容易。**  
+> **也让结果更值得相信。**
 
-VeriTMM 不执行外部求解器，也不包含 LLM 内核。可选 MCP 传输层暂缓实现；
-Python 和 CLI 协议无需 MCP 即可完整工作。这些边界不改变数值引擎以 TMM 为
-核心的定位。
+---
 
-## 测试
+## License
 
-```bash
-python -m pip install -e ".[test]"
-python -m pytest -q
-```
+MIT License
 
-没有安装 PyTorch 时，可微优化专项测试会自动跳过，其余物理测试照常运行。
+## Citation
 
-## 数据、引用与许可证
-
-项目代码采用 MIT 许可证；refractiveindex.info 数据为 CC0；Byrnes `tmm`
-运行依赖采用 MIT 许可证。详情及推荐引用见
-[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。发表科研结果时，还应引用
-本次运行实际选择的原始光学常数论文。
-
-## 当前状态
-
-`v0.6.0` 是当前科研接口候选版。它保留 v0.5 的求解器、验证器、来源、稳健性和
-紧凑响应加固，并增加算法中立、受物理证书约束的科研基础设施。项目仍处于
-`v1.0` 之前；公共 API 与协议细节仍可能继续演进，但已经声明的物理适用边界会继续
-采用失败关闭原则。
+如果 VeriTMM 对你的研究有帮助，建议在论文或实验记录中注明所使用的软件版本、材料数据集、计算设置和验证配置。

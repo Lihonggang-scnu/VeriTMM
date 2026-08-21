@@ -38,6 +38,8 @@ checks before it is accepted.
 
 ## Why this project exists
 
+> For the conceptual background behind this project, see [Instrument-Centered AI for Science](README_Instrument-Centered_AI4S.md).
+
 Most TMM libraries assume that a human expert will choose valid inputs, inspect
 warnings, and interpret the result. An autonomous AI agent needs a stricter
 interface. It must be able to ask: Which material dataset was used? Was it
