@@ -84,6 +84,19 @@ jobs:
           assert result["metrics"]["unsupported_false_accept_rate"] == 0.0
           PY
 
+  high_precision:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e ".[test,high_precision]"
+      - run: python -c "import mpmath; print('mpmath', mpmath.__version__)"
+      - run: python -m pytest tests/test_high_precision_referee.py -v
+
   build:
     runs-on: ubuntu-latest
     steps:

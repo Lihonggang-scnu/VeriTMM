@@ -65,7 +65,8 @@ def _cos_layer(n_i: Any, n0: Any, sin_theta0: Any, mp: Any) -> Any:
 
 def compute_rt_single_channel(
     *,
-    n_all: Sequence[complex],
+    n_all: Optional[Sequence[complex]] = None,
+    n_by_wavelength: Optional[Sequence[Sequence[complex]]] = None,
     d_nm: Sequence[float],
     wavelengths_nm: Sequence[float],
     angle_deg: float,
@@ -76,9 +77,16 @@ def compute_rt_single_channel(
 
     Parameters
     ----------
-    n_all : sequence of complex
-        Refractive indices for [incident_medium, layer_1, ..., layer_N, exit_medium].
-        Length must equal len(d_nm) + 2.
+    n_all : sequence of complex, optional
+        Scalar (wavelength-independent) refractive indices for
+        [incident_medium, layer_1, ..., layer_N, exit_medium].
+        Length must equal len(d_nm) + 2.  Use for non-dispersive stacks.
+        Exactly one of *n_all* or *n_by_wavelength* must be provided.
+    n_by_wavelength : sequence of sequences of complex, optional
+        Per-wavelength refractive indices.  ``n_by_wavelength[i][j]`` is the
+        complex refractive index of medium *i* at wavelength index *j*.
+        Length must equal len(d_nm) + 2; each inner sequence must have length
+        len(wavelengths_nm).  Preferred over *n_all* for dispersive materials.
     d_nm : sequence of float
         Layer thicknesses in nm (internal layers only; media are semi-infinite).
     wavelengths_nm : sequence of float
@@ -93,7 +101,7 @@ def compute_rt_single_channel(
     Returns
     -------
     dict with keys:
-        status        : "ok" or "unavailable"
+        status        : "ok" or "unavailable" or "error"
         precision_bits: int
         R             : list[float]
         T             : list[float]
@@ -101,6 +109,17 @@ def compute_rt_single_channel(
     """
     if not _MPMATH_AVAILABLE:
         return {"status": "unavailable", "reason": "mpmath not installed"}
+
+    N_lam = len(wavelengths_nm)
+
+    # Resolve per-wavelength index table: n_table[medium_idx][lam_idx] -> complex
+    if n_by_wavelength is not None:
+        n_table: Sequence[Sequence[complex]] = n_by_wavelength
+    elif n_all is not None:
+        # Broadcast each scalar to all wavelengths (non-dispersive backward-compat path)
+        n_table = [[complex(n)] * N_lam for n in n_all]
+    else:
+        return {"status": "error", "reason": "exactly one of n_all or n_by_wavelength must be provided"}
 
     mp = _mp
     mp.mp.prec = precision_bits
@@ -113,13 +132,13 @@ def compute_rt_single_channel(
     R_out: List[float] = []
     T_out: List[float] = []
 
-    for lam_nm in wavelengths_nm:
+    for i_lam, lam_nm in enumerate(wavelengths_nm):
         lam = mp.mpf(float(lam_nm))
         # Both lam and d_i are in nm — ratio is dimensionless, no conversion needed.
 
-        n0 = mp.mpc(complex(n_all[0]))
-        n_exit = mp.mpc(complex(n_all[-1]))
-        film_n = [mp.mpc(complex(x)) for x in n_all[1:-1]]
+        n0 = mp.mpc(complex(n_table[0][i_lam]))
+        n_exit = mp.mpc(complex(n_table[-1][i_lam]))
+        film_n = [mp.mpc(complex(n_table[j + 1][i_lam])) for j in range(len(d_nm))]
         film_d = [mp.mpf(float(d)) for d in d_nm]
 
         # Incident medium admittance
@@ -185,7 +204,8 @@ def compute_rt_single_channel(
 
 def run_referee(
     *,
-    n_all: Sequence[complex],
+    n_all: Optional[Sequence[complex]] = None,
+    n_by_wavelength: Optional[Sequence[Sequence[complex]]] = None,
     d_nm: Sequence[float],
     wavelengths_nm: Sequence[float],
     angle_deg: float,
@@ -224,6 +244,7 @@ def run_referee(
     try:
         hp = compute_rt_single_channel(
             n_all=n_all,
+            n_by_wavelength=n_by_wavelength,
             d_nm=d_nm,
             wavelengths_nm=wavelengths_nm,
             angle_deg=angle_deg,

@@ -64,6 +64,8 @@ def _cross_solver_check(
     reference = workbench.simulate(reference_task)
     maximum = 0.0
     per_channel: Dict[str, Any] = {}
+    offending_channel: Optional[str] = None
+    offending_observable: Optional[str] = None
     for channel_key, values in primary.channels.items():
         metrics: Dict[str, float] = {}
         for observable in ("R", "T", "A"):
@@ -76,7 +78,10 @@ def _cross_solver_check(
                 )
             )
             metrics[observable] = difference
-            maximum = max(maximum, difference)
+            if difference > maximum:
+                maximum = difference
+                offending_channel = channel_key
+                offending_observable = observable
         per_channel[channel_key] = metrics
     return {
         "status": "passed" if maximum <= tolerance else "failed",
@@ -85,6 +90,8 @@ def _cross_solver_check(
         "maximum_absolute_difference": maximum,
         "tolerance": tolerance,
         "channels": per_channel,
+        "offending_channel": offending_channel,
+        "offending_observable": offending_observable,
     }
 
 
@@ -182,6 +189,8 @@ def _maybe_run_referee(
     tightest_margin: Optional[Dict[str, Any]],
 ) -> Optional[Dict[str, Any]]:
     """Return a high-precision referee report or None if not triggered."""
+    import re as _re
+
     from .high_precision import TRIGGER_THRESHOLD, is_available, run_referee
 
     # Determine whether to trigger
@@ -199,38 +208,70 @@ def _maybe_run_referee(
             "reason": "mpmath not installed; install with: pip install mpmath>=1.3",
         }
 
-    # Pick the first channel: first angle, first polarisation
     illumination = task.illumination
-    angle_deg = float(illumination.angles_deg[0])
-    pol = str(illumination.polarizations[0])
-    if pol == "unpolarized":
-        pol = "s"  # use s as proxy; referee is per-channel
 
-    channel_key = "angle=%g|pol=%s" % (angle_deg, pol)
+    # P0-3: use the channel that actually showed the problem, not always the first
+    offending_channel = cross_solver.get("offending_channel")
+    if offending_channel and offending_channel in result.channels:
+        channel_key = offending_channel
+        m = _re.match(r"angle=([^|]+)\|pol=(.+)$", channel_key)
+        if m:
+            angle_deg = float(m.group(1))
+            pol = m.group(2)
+            if pol == "unpolarized":
+                pol = "s"
+        else:
+            # Unexpected key format — fall back to first channel
+            angle_deg = float(illumination.angles_deg[0])
+            pol = str(illumination.polarizations[0])
+            if pol == "unpolarized":
+                pol = "s"
+            channel_key = "angle=%g|pol=%s" % (angle_deg, pol)
+    else:
+        angle_deg = float(illumination.angles_deg[0])
+        pol = str(illumination.polarizations[0])
+        if pol == "unpolarized":
+            pol = "s"
+        channel_key = "angle=%g|pol=%s" % (angle_deg, pol)
+
     if channel_key not in result.channels:
         return {"status": "error", "reason": "channel not found: %s" % channel_key}
 
-    # Resolve nk arrays — same call the workbench already made internally
+    # P0-1: resolve dispersive nk arrays — shape (N_wavelengths,) per medium
     try:
         media_list, wavelengths_nm, _ = workbench._resolve_stack(task)
     except Exception as exc:
         return {"status": "error", "reason": "stack resolution failed: %s" % exc}
 
-    n_all = [complex(float(np.real(nk[0])), float(np.imag(nk[0]))) for nk in media_list]
     d_nm = [float(layer.thickness_nm) for layer in task.stack.layers]
-
     ch = result.channels[channel_key]
-    primary_R = list(ch.get("R", []))
-    primary_T = list(ch.get("T", []))
+    primary_R = list(np.asarray(ch.get("R", []), dtype=np.float64))
+    primary_T = list(np.asarray(ch.get("T", []), dtype=np.float64))
 
-    # Secondary solver result (from cross_solver check) — extract per-channel
+    # P0-2: re-run the reference solver to obtain secondary R/T for closer_solver
     secondary_R: Optional[list] = None
     secondary_T: Optional[list] = None
-    # We don't store secondary R/T values in cross_solver (only differences)
-    # so secondary comparison isn't available from stored data.
+    reference_solver_name = cross_solver.get("reference_solver")
+    if reference_solver_name and not task.stack.has_incoherent_layers:
+        try:
+            ref_task = replace(
+                task,
+                spectrum=SpectralGrid(
+                    values_nm=tuple(float(w) for w in wavelengths_nm)
+                ),
+                solver=reference_solver_name,
+                requested_outputs=("R", "T"),
+            )
+            ref_result = workbench.simulate(ref_task)
+            if channel_key in ref_result.channels:
+                ref_ch = ref_result.channels[channel_key]
+                secondary_R = list(np.asarray(ref_ch.get("R", []), dtype=np.float64))
+                secondary_T = list(np.asarray(ref_ch.get("T", []), dtype=np.float64))
+        except Exception:
+            pass  # secondary comparison is best-effort; don't fail the referee
 
     report = run_referee(
-        n_all=n_all,
+        n_by_wavelength=media_list,
         d_nm=d_nm,
         wavelengths_nm=wavelengths_nm.tolist(),
         angle_deg=angle_deg,
