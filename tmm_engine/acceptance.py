@@ -134,15 +134,16 @@ def _compute_tightest_margin(
     cross_solver: Dict[str, Any],
     settings: "AcceptanceSettings",
 ) -> Optional[Dict[str, Any]]:
-    """Return the acceptance check that sits closest to its threshold.
+    """Return the acceptance check closest to its threshold.
 
-    ``relative_margin = (threshold - actual) / threshold``; a value near 0
-    means the result barely passed and the caller should treat it carefully.
-    Returns ``None`` when no continuous check values are available.
+    ``normalized_margin = (threshold - observed) / threshold``; a value near
+    zero means the result barely passed — the caller should treat it carefully.
+    Returns ``None`` when no continuous check values are available (e.g. all
+    checks were skipped or unavailable).
     """
     import math as _math
 
-    checks: List[tuple] = []  # (name, actual, threshold)
+    checks: List[tuple] = []  # (check_name, observed, threshold)
 
     energy_err = physics_audit.get("energy_conservation_max_abs_error")
     if isinstance(energy_err, (int, float)) and _math.isfinite(float(energy_err)):
@@ -158,16 +159,17 @@ def _compute_tightest_margin(
     if not checks:
         return None
 
-    def _rel(actual: float, threshold: float) -> float:
-        return (threshold - actual) / threshold if threshold > 0 else float("inf")
+    def _norm(observed: float, threshold: float) -> float:
+        return (threshold - observed) / threshold if threshold > 0 else float("inf")
 
-    name, actual, threshold = min(checks, key=lambda c: _rel(c[1], c[2]))
+    name, observed, threshold = min(checks, key=lambda c: _norm(c[1], c[2]))
+    margin = threshold - observed
     return {
         "check": name,
-        "actual_value": actual,
-        "threshold": threshold,
-        "margin": float(threshold - actual),
-        "relative_margin": float(_rel(actual, threshold)),
+        "observed_value": observed,
+        "acceptance_limit": threshold,
+        "distance_to_limit": float(margin),
+        "normalized_margin": float(_norm(observed, threshold)),
     }
 
 

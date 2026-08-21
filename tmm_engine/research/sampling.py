@@ -67,7 +67,7 @@ class SamplingPlan(ResearchModel):
             "random": set(),
             "grid": set(),
             "latin_hypercube": {"centered"},
-            "sobol": {"skip"},
+            "sobol": {"skip", "fallback_policy"},
         }[self.strategy]
         unknown = set(self.options) - allowed_options
         if unknown:
@@ -78,6 +78,12 @@ class SamplingPlan(ResearchModel):
             self.options["centered"], bool
         ):
             raise ValueError("latin_hypercube centered option must be boolean")
+        if "fallback_policy" in self.options:
+            fp = self.options["fallback_policy"]
+            if fp not in ("fail", "lhs"):
+                raise ValueError(
+                    "sobol fallback_policy must be 'fail' or 'lhs'"
+                )
         if "skip" in self.options:
             skip = self.options["skip"]
             if isinstance(skip, bool) or not isinstance(skip, int) or skip < 0:
@@ -161,12 +167,16 @@ def _normalized_samples_impl(
         )
     if plan.strategy == "sobol":
         if dimension > SOBOL_MAX_DIMENSION:
-            # Graceful fallback: the 32-bit Sobol engine supports at most 16
-            # dimensions.  LHS is used instead with the same seed so the plan
-            # identity and candidate values are still deterministic.
-            return (
-                _latin_hypercube_samples(design_space, plan, centered=False),
-                "latin_hypercube",
+            fallback_policy = str(plan.options.get("fallback_policy", "fail"))
+            if fallback_policy == "lhs":
+                return (
+                    _latin_hypercube_samples(design_space, plan, centered=False),
+                    "latin_hypercube",
+                )
+            raise ValueError(
+                f"Sobol sampler supports at most {SOBOL_MAX_DIMENSION} dimensions "
+                f"(got {dimension}); set options={{'fallback_policy': 'lhs'}} to "
+                f"use Latin-hypercube sampling instead"
             )
         skip = int(plan.options.get("skip", 0))
         return _sobol_samples(design_space, plan, skip=skip), "sobol"
@@ -186,6 +196,7 @@ def _candidate_from_normalized(
     if effective_strategy is not None and effective_strategy != plan.strategy:
         metadata["effective_strategy"] = effective_strategy
         metadata["declared_strategy"] = plan.strategy
+        metadata["fallback_reason"] = "sobol_dimension_limit"
     return design_space.candidate(
         decoded.values,
         sample_index=sample_index,

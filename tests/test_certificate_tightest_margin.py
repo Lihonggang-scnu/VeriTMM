@@ -27,21 +27,21 @@ class TestComputeTightestMargin:
         result = _compute_tightest_margin(audit, {"status": "not_requested"}, settings)
         assert result is not None
         assert result["check"] == "energy_conservation"
-        assert result["actual_value"] == pytest.approx(5e-8)
-        assert result["threshold"] == pytest.approx(1e-7)
-        assert result["margin"] == pytest.approx(5e-8)
-        assert result["relative_margin"] == pytest.approx(0.5)
+        assert result["observed_value"] == pytest.approx(5e-8)
+        assert result["acceptance_limit"] == pytest.approx(1e-7)
+        assert result["distance_to_limit"] == pytest.approx(5e-8)
+        assert result["normalized_margin"] == pytest.approx(0.5)
 
     def test_tightest_check_is_cross_solver_when_closer(self) -> None:
-        # energy: actual=1e-9, threshold=1e-7 → margin=99e-9, relative=0.99
-        # cross:  actual=9.5e-8, threshold=1e-7 → margin=0.5e-8, relative=0.05
+        # energy: observed=1e-9, limit=1e-7 → margin=99e-9, normalized=0.99
+        # cross:  observed=9.5e-8, limit=1e-7 → margin=0.5e-8, normalized=0.05
         audit = {"energy_conservation_max_abs_error": 1e-9}
         cross = {"status": "passed", "maximum_absolute_difference": 9.5e-8}
         settings = AcceptanceSettings(energy_tolerance=1e-7, cross_solver_tolerance=1e-7)
         result = _compute_tightest_margin(audit, cross, settings)
         assert result is not None
         assert result["check"] == "cross_solver_agreement"
-        assert result["actual_value"] == pytest.approx(9.5e-8)
+        assert result["observed_value"] == pytest.approx(9.5e-8)
 
     def test_tightest_check_is_energy_when_closer(self) -> None:
         # energy: actual=9.9e-8, threshold=1e-7 → rel=0.01
@@ -58,7 +58,7 @@ class TestComputeTightestMargin:
         settings = AcceptanceSettings(energy_tolerance=1e-7)
         result = _compute_tightest_margin(audit, {"status": "not_requested"}, settings)
         assert result is not None
-        for key in ("check", "actual_value", "threshold", "margin", "relative_margin"):
+        for key in ("check", "observed_value", "acceptance_limit", "distance_to_limit", "normalized_margin"):
             assert key in result
 
     def test_nonfinite_energy_is_ignored(self) -> None:
