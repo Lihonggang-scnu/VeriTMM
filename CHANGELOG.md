@@ -1,5 +1,66 @@
 # Changelog
 
+## 0.6.0-upgrades-batch1 — Certificate diagnostics, sampling robustness, physics invariants, stress suite
+
+### Certificate & Acceptance（`tmm_engine/acceptance.py`）
+- Added `tightest_margin` field to every physics-acceptance certificate.
+  Reports which acceptance check (energy_conservation or cross_solver_agreement)
+  is closest to its failure threshold, with `observed_value`, `acceptance_limit`,
+  `distance_to_limit`, and `normalized_margin`.  Field is `null` when no
+  continuous check values are available.
+- Added `high_precision_referee` field (informational only, never changes
+  `accepted`).  Triggered when cross-solver check fails or
+  `tightest_margin.normalized_margin < 0.20`.  Uses mpmath characteristic-matrix
+  TMM at 113-bit (quad) precision to identify which float64 solver is closer to
+  the high-precision ground truth.  Degrades gracefully to
+  `{"status": "unavailable"}` when mpmath is not installed.
+
+### Sampling robustness（`tmm_engine/research/sampling.py`）
+- Sobol sampler now requires an explicit `fallback_policy` option when dimension
+  exceeds the 16-D limit.  Default is `"fail"` (fail-closed, preserves declared
+  semantics).  Set `options={"fallback_policy": "lhs"}` to allow automatic
+  downgrade to Latin Hypercube; the candidate metadata records
+  `effective_strategy`, `declared_strategy`, and `fallback_reason` so the
+  strategy change is never silent.
+
+### Physics Metamorphic Suite（`tests/test_physics_metamorphic.py`, 16 tests）
+- Structural physics invariants verified without golden numbers:
+  split-layer identity, zero-thickness insert, lossless R+T=1 (normal and
+  oblique), passivity bounds, normal-incidence s/p equivalence, wavelength-grid
+  refinement consistency, single-interface Fresnel analytic check, reciprocity.
+
+### TMM StressBench（`tests/test_tmm_stress.py`, 17 tests）
+- Numerical-stability stress tests for extreme configurations: 40-layer DBR,
+  high-RI film (n=4.0), metallic film (n=0.5+3.0i), near-grazing 85° incidence
+  (s and p), ultra-thin 0.5 nm film, Brewster-angle p-pol (R<0.01).
+  All lossless cases verified with energy_tolerance=1e-6.
+
+### AgentBench oblique cases（3 new cases in `benchmarks/cases/simulation/`）
+- `sim_oblique_sp_equivalence`: 0° dual-polarisation, asserts certificate
+  accepted and `tightest_margin` present.
+- `sim_oblique_dbr_multiangle`: 4-period DBR at 0°/30°/45°, asserts certificate
+  accepted at all angles.
+- `sim_oblique_energy_conservation`: 45° lossless film, asserts
+  `energy_conservation_max_abs_error ≤ 1e-6`.
+
+### Optional dependency
+- Added `[project.optional-dependencies] high_precision = ["mpmath>=1.3"]`.
+  Install with `pip install veritmm[high_precision]`.
+
+### Test coverage
+- `tests/test_certificate_tightest_margin.py` — 7 unit tests for
+  `_compute_tightest_margin`.
+- `tests/test_sobol_fallback.py` — 6 tests for explicit fallback_policy
+  semantics.
+- `tests/test_high_precision_referee.py` — 9 tests including R+T=1 to atol=1e-12
+  and float64 agreement to atol=1e-9.
+- Full suite: **388 passed / 0 failed**.  AgentBench: **85/85**.
+
+### Not added
+- No new physics solvers, RCWA/FDTD/FEM, ML/RL algorithms, third-party
+  optimizers, MCP, or Gymnasium dependencies.  Physics validation unchanged;
+  `physics_accepted=False` cannot be bypassed.
+
 ## 0.6.0 — Research interface
 
 - Added strict, deterministic design-space, candidate, objective, constraint,
