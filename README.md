@@ -160,15 +160,24 @@ veritmm run task.json --output-dir outputs/tmm_run --json --detail standard
 veritmm run task.json --output-dir outputs/tmm_run --json --detail full
 ```
 
-`compact` keeps decision-critical status, certificate identity, bounded metrics,
-typed actions, and valid relative artifact references. `standard` exposes
-bounded diagnostics; `full` keeps richer scalar/mapping metadata and context.
-Full is not raw: spectra, wavelength grids, R/T/A channel arrays, tolerance
-samples, optimizer histories, sweep children, benchmark cases/trajectories,
-and full provenance stay external to every response profile. Run responses
-expose them through hashed artifact references; a response without reachable
-references reports `artifact_backed: false`. The profile is recorded under
-`summary.response` as `veritmm-response-v1`, while the existing
+`compact` targets 16 KiB and has a fixed 32 KiB hard limit. It keeps
+decision-critical status, certificate identity, bounded metrics, typed actions,
+and valid relative artifact references. `standard` exposes bounded diagnostics;
+`full` keeps richer scalar/mapping metadata and context. Full means the full
+view of retained, bounded response metadata; it is not a raw-data promise:
+spectra, wavelength grids, R/T/A channel arrays, tolerance samples,
+optimizer histories, sweep children, benchmark cases/trajectories, and full
+provenance stay external to every response profile. Run responses expose them
+through hashed artifact references; a response without reachable references
+reports `artifact_backed: false`. The profile is recorded under
+`summary.response` as `veritmm-response-v1`. Each run also persists bounded,
+unprojected `RESPONSE_CONTEXT.json` (`veritmm-response-context-v2`) with
+explicit retention limits plus omission/truncation accounting, so
+`inspect --detail standard|full` reconstructs richer profiles from the source
+instead of re-projecting compact `RUN_RESULT.json`. `inspect` projects and
+guards its complete v2 document—including the experiment record—under one
+outer response profile. Legacy runs without a validated response context fail
+closed with `response_detail_unavailable` for standard/full. The existing
 `veritmm-run-result-v1` envelope and task schemas remain compatible.
 
 ## Reproducible studies and robustness

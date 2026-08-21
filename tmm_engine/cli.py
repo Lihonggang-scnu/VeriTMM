@@ -17,8 +17,14 @@ from .execution import ExecutionSettings
 from .experiment_store import ExperimentStore, compare_runs, default_store_root
 from .managed_execution import execute_managed_task
 from .preflight import preflight_path
-from .protocol.responses import DEFAULT_RESPONSE_DETAIL, project_response
+from .protocol.responses import (
+    DEFAULT_RESPONSE_DETAIL,
+    is_projected_response,
+    project_response,
+    validate_projected_response,
+)
 from .run_artifacts import (
+    ResponseDetailUnavailableError,
     build_result_summary,
     file_sha256,
     prepare_output_directory,
@@ -44,7 +50,13 @@ def _emit(
     documents opt out because their arrays are part of the contract itself.
     """
 
-    rendered = project_response(payload, detail=detail) if project else payload
+    if project and is_projected_response(payload):
+        validate_projected_response(payload, detail=detail)
+        rendered = payload
+    elif project:
+        rendered = project_response(payload, detail=detail)
+    else:
+        rendered = payload
 
     print(
         json.dumps(
@@ -549,11 +561,17 @@ def main(argv: Sequence[str] | None = None) -> int:
             return 0
         if args.command == "inspect":
             store = ExperimentStore(args.store_dir or default_store_root())
-            _emit({"ok": True, **store.inspect(args.run_id)}, detail=args.detail)
+            _emit(store.inspect(args.run_id, detail=args.detail), detail=args.detail)
             return 0
         if args.command == "lineage":
             store = ExperimentStore(args.store_dir or default_store_root())
-            _emit({"ok": True, **store.get_lineage(args.run_id)}, detail=args.detail)
+            _emit(
+                {
+                    "ok": True,
+                    **store.get_lineage(args.run_id, detail=args.detail),
+                },
+                detail=args.detail,
+            )
             return 0
         if args.command == "compare":
             store = ExperimentStore(args.store_dir or default_store_root())
@@ -593,6 +611,12 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
             _emit(payload, detail=args.detail)
             return 0
+    except ResponseDetailUnavailableError as exc:
+        _emit(
+            exc.to_response(operation=str(args.command)),
+            detail=str(getattr(args, "detail", DEFAULT_RESPONSE_DETAIL)),
+        )
+        return 2
     except Exception as exc:
         failure = failure_from_exception(exc)
         _emit(

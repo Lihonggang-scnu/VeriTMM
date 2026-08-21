@@ -18,6 +18,15 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
+from .protocol.responses import (
+    CANONICAL_MAX_ARTIFACT_REFS,
+    LINEAGE_MAX_RECORDS,
+    RESPONSE_CONTEXT_FILENAME,
+    normalize_response_detail,
+    project_response,
+    rebase_response_context,
+    response_profile,
+)
 from .run_artifacts import stable_payload_sha256, write_json
 
 EXPERIMENT_STORE_SCHEMA_VERSION = "veritmm-experiment-store-v1"
@@ -529,7 +538,9 @@ class ExperimentStore:
             ).fetchall()
         return [self._from_row(row) for row in rows]
 
-    def get_lineage(self, run_id: str) -> dict[str, Any]:
+    def get_lineage(
+        self, run_id: str, *, detail: str | None = None
+    ) -> dict[str, Any]:
         current = self.get_run(run_id)
         if current is None:
             raise KeyError(f"unknown run_id: {run_id}")
@@ -546,12 +557,35 @@ class ExperimentStore:
             ancestors.append(parent)
             parent_id = parent.parent_run_id
         ancestors.reverse()
-        return {
+        profile = None if detail is None else normalize_response_detail(detail)
+        if profile == "compact":
+            with self._connect() as conn:
+                child_count = int(
+                    conn.execute(
+                        "SELECT COUNT(*) FROM runs WHERE parent_run_id=?",
+                        (run_id,),
+                    ).fetchone()[0]
+                )
+                child_rows = conn.execute(
+                    """
+                    SELECT * FROM runs WHERE parent_run_id=?
+                    ORDER BY created_at,run_id LIMIT ?
+                    """,
+                    (run_id, LINEAGE_MAX_RECORDS),
+                ).fetchall()
+            children = [self._from_row(row) for row in child_rows]
+        else:
+            children = self.list_children(run_id)
+            child_count = len(children)
+        payload = {
             "schema_version": "veritmm-lineage-v1",
             "run": current.to_dict(),
             "ancestors": [record.to_dict() for record in ancestors],
-            "children": [record.to_dict() for record in self.list_children(run_id)],
+            "children": [record.to_dict() for record in children],
         }
+        if profile == "compact":
+            payload["children_count"] = child_count
+        return payload
 
     def find_cache_source(self, execution_identity_sha256: str) -> RunRecord | None:
         with self._connect() as conn:
@@ -601,6 +635,7 @@ class ExperimentStore:
         destination: str | Path,
         *,
         new_run_id: str,
+        detail: str = "compact",
     ) -> dict[str, Any]:
         """Copy immutable artifacts while preserving source provenance."""
 
@@ -625,6 +660,7 @@ class ExperimentStore:
                 source,
                 staging,
                 new_run_id=new_run_id,
+                detail=detail,
             )
             if target.exists():
                 target.rmdir()
@@ -653,14 +689,36 @@ class ExperimentStore:
                     if entry.is_dir(follow_symlinks=False):
                         pending.append(Path(entry.path))
 
+    @staticmethod
+    def _rebase_cached_payload_identity(
+        payload: dict[str, Any],
+        *,
+        new_run_id: str,
+        source_run_id: str,
+        provenance: Mapping[str, Any],
+    ) -> None:
+        payload["run_id"] = new_run_id
+        payload["cache_hit"] = True
+        payload["source_run_id"] = source_run_id
+        payload["artifact_provenance"] = dict(provenance)
+        summary = payload.get("summary")
+        if isinstance(summary, dict):
+            summary["run_id"] = new_run_id
+            summary["cache_hit"] = True
+            summary["source_run_id"] = source_run_id
+            summary["artifact_provenance"] = dict(provenance)
+            summary.pop("response", None)
+
     def _materialize_cache_hit_into(
         self,
         source: RunRecord,
         target: Path,
         *,
         new_run_id: str,
+        detail: str,
     ) -> dict[str, Any]:
         source_root = Path(source.artifact_root)
+        from .run_artifacts import validate_run_artifact_integrity
         for path in sorted(source_root.iterdir()):
             if path.name == "RUN_RESULT.json":
                 continue
@@ -677,6 +735,12 @@ class ExperimentStore:
             raise ValueError("cached RUN_RESULT.run_id does not match source ledger")
         if result.get("ok") is not True:
             raise ValueError("only a successful source run can be materialized from cache")
+        # Modern runs carry a hashed artifact index and must pass it before any
+        # copied file is rewritten. Minimal pre-index legacy fixtures have no
+        # references to validate and continue through the legacy normalization
+        # below.
+        if "artifacts" in result:
+            validate_run_artifact_integrity(source_root)
         artifact_payloads: dict[str, dict[str, Any]] = {}
         for name in _RUN_SCOPED_CACHE_ARTIFACTS:
             artifact_path = target / name
@@ -700,36 +764,121 @@ class ExperimentStore:
             artifact_payloads.get("SWEEP_RESULT.json"),
             source_parent_run_id=source.run_id,
         )
-        result["run_id"] = new_run_id
-        result["cache_hit"] = True
-        result["source_run_id"] = source.run_id
-        result["artifact_provenance"] = {
+        if not isinstance(result.get("summary"), Mapping):
+            result["summary"] = dict(
+                artifact_payloads.get("RESULT_SUMMARY.json")
+                or {
+                    "run_id": source.run_id,
+                    "task_sha256": source.task_sha256,
+                    "status": source.status,
+                }
+            )
+        result.setdefault("schema_version", "veritmm-run-result-v1")
+        result.setdefault("protocol_version", source.protocol_version)
+        result.setdefault("task_sha256", source.task_sha256)
+        result.setdefault("task_hash_scope", "normalized_operation_wrapper")
+        result.setdefault("input_sha256", None)
+        result.setdefault("operation", source.operation)
+        result.setdefault("status", source.status)
+        result.setdefault("warnings", [])
+        result.setdefault("failures", [])
+        result.setdefault("certificate_id", source.certificate_id)
+        result.setdefault("next_machine_actions", [])
+        result_summary = result["summary"]
+        if isinstance(result_summary, dict):
+            result_summary["run_id"] = source.run_id
+            result_summary["task_sha256"] = source.task_sha256
+        provenance = {
             "mode": "cache_copy",
             "source_run_id": source.run_id,
         }
+        self._rebase_cached_payload_identity(
+            result,
+            new_run_id=new_run_id,
+            source_run_id=source.run_id,
+            provenance=provenance,
+        )
         for name in _RUN_SCOPED_CACHE_ARTIFACTS:
             artifact_path = target / name
             artifact = artifact_payloads.get(name)
             if artifact is None:
                 continue
-            artifact["run_id"] = new_run_id
-            artifact["cache_hit"] = True
-            artifact["source_run_id"] = source.run_id
-            artifact["artifact_provenance"] = {
-                "mode": "cache_copy",
-                "source_run_id": source.run_id,
-            }
+            if name == "RESULT_SUMMARY.json":
+                artifact.setdefault("task_sha256", source.task_sha256)
+            self._rebase_cached_payload_identity(
+                artifact,
+                new_run_id=new_run_id,
+                source_run_id=source.run_id,
+                provenance=provenance,
+            )
             write_json(artifact_path, artifact)
         self._rebase_cached_sweep_children(
             target,
             source_parent_run_id=source.run_id,
         )
-        # Refresh hashes because RESULT_SUMMARY changed.
-        from .run_artifacts import index_artifacts
+        context_path = target / RESPONSE_CONTEXT_FILENAME
+        self._refresh_cached_response_context(target, result)
+        # Refresh hashes only after all copied run-scoped artifacts and children
+        # have been integrity-checked and rebound.
+        from .run_artifacts import index_artifacts, load_run_result
 
         result["artifacts"] = index_artifacts(target)
         write_json(target / "RUN_RESULT.json", result)
-        return result
+        requested_profile = normalize_response_detail(detail)
+        if context_path.is_file():
+            final_result = load_run_result(
+                target,
+                detail=requested_profile,
+                force_context=True,
+            )
+        else:
+            legacy_source = dict(result)
+            legacy_source.pop("response", None)
+            legacy_summary = legacy_source.get("summary")
+            if isinstance(legacy_summary, dict):
+                legacy_summary.pop("response", None)
+            if requested_profile != "compact":
+                from .run_artifacts import ResponseDetailUnavailableError
+
+                raise ResponseDetailUnavailableError(
+                    requested_profile,
+                    "the cached legacy source has no RESPONSE_CONTEXT.json",
+                )
+            final_result = project_response(legacy_source, detail="compact")
+        write_json(target / "RUN_RESULT.json", final_result)
+        validate_run_artifact_integrity(target)
+        return final_result
+
+    @staticmethod
+    def _root_artifact_refs(root: Path) -> list[dict[str, Any]]:
+        from .run_artifacts import index_artifacts
+
+        records = [
+            item
+            for item in index_artifacts(root)
+            if "/" not in str(item.get("path", ""))
+            and str(item.get("path")) != RESPONSE_CONTEXT_FILENAME
+        ]
+        return records[:CANONICAL_MAX_ARTIFACT_REFS]
+
+    def _refresh_cached_response_context(
+        self, target: Path, result: Mapping[str, Any]
+    ) -> None:
+        """Rebuild run-scoped context after cache identities and hashes change."""
+
+        context_path = target / RESPONSE_CONTEXT_FILENAME
+        if not context_path.is_file():
+            return
+        context = json.loads(context_path.read_text(encoding="utf-8"))
+        if not isinstance(context, Mapping):
+            raise ValueError("cached RESPONSE_CONTEXT.json must contain an object")
+        rebased = rebase_response_context(context, result)
+        source = rebased.get("source")
+        if not isinstance(source, dict):
+            raise ValueError("cached RESPONSE_CONTEXT.json source must contain an object")
+        source["artifacts"] = self._root_artifact_refs(target)
+        rebased["source"] = source
+        write_json(context_path, rebased)
 
     def _validate_cached_sweep_children(
         self,
@@ -740,6 +889,8 @@ class ExperimentStore:
     ) -> None:
         if sweep is None:
             return
+        from .run_artifacts import validate_run_artifact_integrity
+
         children = sweep.get("children")
         if not isinstance(children, list):
             raise ValueError("cached SWEEP_RESULT.children must be a list")
@@ -814,6 +965,8 @@ class ExperimentStore:
                     raise ValueError(
                         "cached sweep child RUN_RESULT.json must describe a successful run"
                     )
+                if name == "RUN_RESULT.json" and "artifacts" in payload:
+                    validate_run_artifact_integrity(child_root)
         table_path = target / "SWEEP_TABLE.csv"
         if not table_path.is_file():
             raise ValueError("cached sweep is missing SWEEP_TABLE.csv")
@@ -857,7 +1010,7 @@ class ExperimentStore:
         if not isinstance(children, list):
             return
 
-        from .run_artifacts import index_artifacts
+        from .run_artifacts import index_artifacts, validate_run_artifact_integrity
 
         child_id_map: dict[str, str] = {}
         for child in children:
@@ -885,10 +1038,12 @@ class ExperimentStore:
                     raise ValueError(
                         f"cached sweep child artifact must be a JSON object: {name}"
                     )
-                artifact["run_id"] = new_child_run_id
-                artifact["cache_hit"] = True
-                artifact["source_run_id"] = str(source_child_run_id)
-                artifact["artifact_provenance"] = provenance
+                self._rebase_cached_payload_identity(
+                    artifact,
+                    new_run_id=new_child_run_id,
+                    source_run_id=str(source_child_run_id),
+                    provenance=provenance,
+                )
                 write_json(artifact_path, artifact)
 
             result_path = child_root / "RUN_RESULT.json"
@@ -899,12 +1054,48 @@ class ExperimentStore:
             result = json.loads(result_path.read_text(encoding="utf-8"))
             if not isinstance(result, dict):
                 raise ValueError("cached sweep child RUN_RESULT.json must be an object")
-            result["run_id"] = new_child_run_id
-            result["cache_hit"] = True
-            result["source_run_id"] = str(source_child_run_id)
-            result["artifact_provenance"] = provenance
+            self._rebase_cached_payload_identity(
+                result,
+                new_run_id=new_child_run_id,
+                source_run_id=str(source_child_run_id),
+                provenance=provenance,
+            )
+            context_path = child_root / RESPONSE_CONTEXT_FILENAME
+            if context_path.is_file():
+                context = json.loads(context_path.read_text(encoding="utf-8"))
+                if not isinstance(context, Mapping):
+                    raise ValueError(
+                        "cached sweep child RESPONSE_CONTEXT.json must be an object"
+                    )
+                rebased = rebase_response_context(context, result)
+                source = rebased.get("source")
+                if not isinstance(source, dict):
+                    raise ValueError(
+                        "cached sweep child RESPONSE_CONTEXT.json source must be an object"
+                    )
+                source["artifacts"] = self._root_artifact_refs(child_root)
+                rebased["source"] = source
+                write_json(context_path, rebased)
             result["artifacts"] = index_artifacts(child_root)
             write_json(result_path, result)
+            existing_profile = response_profile(result) or "compact"
+            if context_path.is_file():
+                from .run_artifacts import load_run_result
+
+                result = load_run_result(
+                    child_root,
+                    detail=existing_profile,
+                    force_context=True,
+                )
+            else:
+                legacy_source = dict(result)
+                legacy_source.pop("response", None)
+                legacy_summary = legacy_source.get("summary")
+                if isinstance(legacy_summary, dict):
+                    legacy_summary.pop("response", None)
+                result = project_response(legacy_source, detail=existing_profile)
+            write_json(result_path, result)
+            validate_run_artifact_integrity(child_root)
 
             child["source_child_run_id"] = str(source_child_run_id)
             child["child_run_id"] = new_child_run_id
@@ -932,23 +1123,35 @@ class ExperimentStore:
                 writer.writerows(rows)
             temporary.replace(table_path)
 
-    def inspect(self, run_id: str) -> dict[str, Any]:
+    def inspect(self, run_id: str, *, detail: str = "compact") -> dict[str, Any]:
         record = self.get_run(run_id)
         if record is None:
             raise KeyError(f"unknown run_id: {run_id}")
+        profile = normalize_response_detail(detail)
         root = Path(record.artifact_root)
         result_path = root / "RUN_RESULT.json"
-        result = (
-            json.loads(result_path.read_text(encoding="utf-8"))
-            if result_path.is_file()
-            else None
-        )
-        return {
-            "schema_version": "veritmm-inspect-v1",
+        if result_path.is_file():
+            from .run_artifacts import load_run_result_source
+
+            result, retention = load_run_result_source(root, detail=profile)
+        else:
+            result = None
+            retention = {
+                "schema_version": "veritmm-response-retention-v1",
+                "semantics": "no_run_result_available",
+                "bounded": True,
+                "full_profile_scope": "unavailable",
+            }
+        payload = {
+            "schema_version": "veritmm-inspect-v2",
+            "ok": True,
             "record": record.to_dict(),
             "run_result": result,
+            "detail_source": retention,
+            "artifacts": [] if result is None else result.get("artifacts", []),
             "artifact_root_exists": root.is_dir(),
         }
+        return project_response(payload, detail=profile)
 
 
 def _stable_diff(left: Any, right: Any, path: str = "") -> list[dict[str, Any]]:

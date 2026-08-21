@@ -48,6 +48,9 @@ def test_successful_run_stdout_is_one_parseable_json_object(tmp_path: Path) -> N
     payload = json.loads(result.stdout)
     assert payload["ok"] is True
     assert result.stdout.count("\n") <= 1
+    on_disk = json.loads((output / "RUN_RESULT.json").read_text(encoding="utf-8"))
+    assert on_disk["summary"]["response"] == payload["summary"]["response"]
+    assert (output / "RESPONSE_CONTEXT.json").is_file()
 
 
 def test_invalid_run_has_parseable_stdout_no_traceback_and_result_file(tmp_path: Path) -> None:

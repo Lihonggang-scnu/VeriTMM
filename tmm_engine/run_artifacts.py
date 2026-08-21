@@ -6,6 +6,7 @@ import hashlib
 import json
 import shutil
 import uuid
+from copy import deepcopy
 from pathlib import Path
 from typing import Any, Iterable, Mapping, Sequence
 
@@ -14,8 +15,16 @@ import numpy as np
 from .protocol.models import PROTOCOL_VERSION
 from .protocol.responses import (
     DEFAULT_RESPONSE_DETAIL,
+    RESPONSE_CONTEXT_FILENAME,
+    RESPONSE_CONTEXT_SCHEMA_VERSION,
+    RESPONSE_RETENTION_SCHEMA_VERSION,
+    canonical_response_context,
+    normalize_response_detail,
     project_response,
+    response_profile,
+    response_projection_source,
     validate_artifact_references,
+    validate_projected_response,
 )
 
 RESULT_SUMMARY_SCHEMA_VERSION = "veritmm-result-summary-v2"
@@ -49,7 +58,54 @@ _ARTIFACT_KINDS = {
     ),
     "TOLERANCE_RESULT.json": ("tolerance_result", "veritmm-tolerance-result-v2"),
     "ROBUSTNESS_REPORT.json": ("robustness_report", "veritmm-robustness-report-v2"),
+    RESPONSE_CONTEXT_FILENAME: (
+        "response_context",
+        RESPONSE_CONTEXT_SCHEMA_VERSION,
+    ),
 }
+
+
+class ResponseContextValidationError(ValueError):
+    """Raised when a persisted canonical response source fails integrity checks."""
+
+
+class ResponseDetailUnavailableError(ValueError):
+    """Raised when a legacy compact run cannot supply a richer profile."""
+
+    code = "response_detail_unavailable"
+
+    def __init__(self, requested_detail: str, reason: str) -> None:
+        self.requested_detail = normalize_response_detail(requested_detail)
+        self.reason = str(reason)
+        super().__init__(
+            f"response detail {self.requested_detail!r} is unavailable: {self.reason}"
+        )
+
+    def to_response(self, *, operation: str = "inspect") -> dict[str, Any]:
+        return {
+            "schema_version": "veritmm-detail-unavailable-v1",
+            "ok": False,
+            "operation": operation,
+            "status": "detail_unavailable",
+            "error": {
+                "code": self.code,
+                "message": str(self),
+                "recoverable": True,
+                "requested_detail": self.requested_detail,
+                "reason": self.reason,
+                "actions": [
+                    {
+                        "action_id": "rerun_with_response_context",
+                        "action_type": "rerun_required",
+                        "description": (
+                            "Re-run the task with VeriTMM v0.5.2+ to persist "
+                            "RESPONSE_CONTEXT.json, then inspect again."
+                        ),
+                        "safety": "safe",
+                    }
+                ],
+            },
+        }
 
 
 def canonical_json_bytes(payload: Any) -> bytes:
@@ -98,7 +154,9 @@ def write_json(path: str | Path, payload: Any) -> None:
             temporary.unlink()
 
 
-def prepare_output_directory(output_dir: str | Path) -> Path:
+def prepare_output_directory(
+    output_dir: str | Path, *, preserve_sweep_children: bool = False
+) -> Path:
     """Remove stale top-level protocol artifacts before a new run.
 
     Only paths owned by VeriTMM are removed. User files and unrelated
@@ -114,6 +172,13 @@ def prepare_output_directory(output_dir: str | Path) -> Path:
     candidate_root = root / "candidates"
     if candidate_root.is_dir() and candidate_root.resolve().parent == root:
         shutil.rmtree(candidate_root)
+    children_root = root / "children"
+    if (
+        not preserve_sweep_children
+        and children_root.is_dir()
+        and children_root.resolve().parent == root
+    ):
+        shutil.rmtree(children_root)
     return root
 
 
@@ -323,6 +388,168 @@ def index_artifacts(output_dir: str | Path) -> list[dict[str, Any]]:
     return records
 
 
+def _read_json_object(path: Path, label: str) -> dict[str, Any]:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError(f"{label} is unreadable: {exc}") from exc
+    if not isinstance(payload, dict):
+        raise ValueError(f"{label} must contain a JSON object")
+    return payload
+
+
+def _validate_identity_binding(
+    payload: Mapping[str, Any],
+    result: Mapping[str, Any],
+    *,
+    label: str,
+) -> None:
+    for key in ("run_id", "task_sha256"):
+        if payload.get(key) != result.get(key):
+            raise ResponseContextValidationError(
+                f"{label}.{key} does not match RUN_RESULT.{key}"
+            )
+
+
+def validate_response_context(
+    context: Mapping[str, Any],
+    result: Mapping[str, Any],
+    *,
+    root: str | Path,
+) -> bool:
+    """Validate schema, run/task binding, retention, and the no-self-ref rule."""
+
+    base = Path(root).resolve()
+    if context.get("schema_version") != RESPONSE_CONTEXT_SCHEMA_VERSION:
+        raise ResponseContextValidationError(
+            "RESPONSE_CONTEXT.json has an unsupported schema_version"
+        )
+    _validate_identity_binding(context, result, label="RESPONSE_CONTEXT")
+    retention = context.get("retention")
+    if not isinstance(retention, Mapping):
+        raise ResponseContextValidationError(
+            "RESPONSE_CONTEXT.json retention must be an object"
+        )
+    if (
+        retention.get("schema_version") != RESPONSE_RETENTION_SCHEMA_VERSION
+        or retention.get("semantics") != "bounded_retained_metadata"
+        or retention.get("bounded") is not True
+        or retention.get("full_profile_scope")
+        != "full_of_retained_bounded_metadata"
+    ):
+        raise ResponseContextValidationError(
+            "RESPONSE_CONTEXT.json retention semantics are invalid"
+        )
+    for key in ("omitted_fields", "truncated_fields"):
+        counts = retention.get(key)
+        if not isinstance(counts, Mapping) or any(
+            not isinstance(value, int) or isinstance(value, bool) or value < 0
+            for value in counts.values()
+        ):
+            raise ResponseContextValidationError(
+                f"RESPONSE_CONTEXT.json retention.{key} is invalid"
+            )
+    source = context.get("source")
+    if not isinstance(source, Mapping):
+        raise ResponseContextValidationError(
+            "RESPONSE_CONTEXT.json source must contain an object"
+        )
+    _validate_identity_binding(source, result, label="RESPONSE_CONTEXT.source")
+    source_summary = source.get("summary")
+    if not isinstance(source_summary, Mapping):
+        raise ResponseContextValidationError(
+            "RESPONSE_CONTEXT.json source.summary must contain an object"
+        )
+    _validate_identity_binding(
+        source_summary,
+        result,
+        label="RESPONSE_CONTEXT.source.summary",
+    )
+    if response_profile(source) is not None:
+        raise ResponseContextValidationError(
+            "RESPONSE_CONTEXT.json source must be unprojected"
+        )
+    source_refs = source.get("artifacts", [])
+    if not isinstance(source_refs, list):
+        raise ResponseContextValidationError(
+            "RESPONSE_CONTEXT.json source.artifacts must be a list"
+        )
+    try:
+        validate_artifact_references(source_refs, root=base)
+    except ValueError as exc:
+        raise ResponseContextValidationError(str(exc)) from exc
+    if any(str(item.get("path")) == RESPONSE_CONTEXT_FILENAME for item in source_refs):
+        raise ResponseContextValidationError(
+            "RESPONSE_CONTEXT.json must not reference itself"
+        )
+
+    result_refs = result.get("artifacts", [])
+    if not isinstance(result_refs, list):
+        raise ResponseContextValidationError("RUN_RESULT.artifacts must be a list")
+    context_refs = [
+        item
+        for item in result_refs
+        if isinstance(item, Mapping)
+        and str(item.get("path")) == RESPONSE_CONTEXT_FILENAME
+    ]
+    if len(context_refs) != 1:
+        raise ResponseContextValidationError(
+            "RUN_RESULT must contain exactly one RESPONSE_CONTEXT.json artifact reference"
+        )
+    reference = context_refs[0]
+    if (
+        reference.get("kind") != "response_context"
+        or reference.get("schema_version") != RESPONSE_CONTEXT_SCHEMA_VERSION
+    ):
+        raise ResponseContextValidationError(
+            "RUN_RESULT response_context artifact reference is invalid"
+        )
+    return True
+
+
+def _load_validated_run(
+    output_dir: str | Path,
+) -> tuple[dict[str, Any], dict[str, Any] | None]:
+    root = Path(output_dir).resolve()
+    result_path = root / "RUN_RESULT.json"
+    if not result_path.is_file():
+        return {}, None
+    result = _read_json_object(result_path, "RUN_RESULT.json")
+    try:
+        validate_artifact_references(result, root=root)
+    except ValueError as exc:
+        raise ValueError(f"RUN_RESULT artifact integrity failure: {exc}") from exc
+    summary = result.get("summary")
+    if not isinstance(summary, Mapping):
+        raise ValueError("RUN_RESULT.summary must contain an object")
+    _validate_identity_binding(summary, result, label="RUN_RESULT.summary")
+    summary_path = root / "RESULT_SUMMARY.json"
+    if summary_path.is_file():
+        standalone = _read_json_object(summary_path, "RESULT_SUMMARY.json")
+        _validate_identity_binding(standalone, result, label="RESULT_SUMMARY")
+    context_path = root / RESPONSE_CONTEXT_FILENAME
+    context = (
+        _read_json_object(context_path, RESPONSE_CONTEXT_FILENAME)
+        if context_path.is_file()
+        else None
+    )
+    if context is not None:
+        validate_response_context(context, result, root=root)
+    return result, context
+
+
+def validate_run_artifact_integrity(output_dir: str | Path) -> bool:
+    """Fail closed when persisted run references or response context are stale."""
+
+    result, _ = _load_validated_run(output_dir)
+    if not result:
+        raise ValueError("RUN_RESULT.json is missing")
+    existing = response_profile(result)
+    if existing is not None:
+        validate_projected_response(result, detail=existing)
+    return True
+
+
 def write_run_result(
     output_dir: str | Path,
     *,
@@ -348,24 +575,39 @@ def write_run_result(
 
     root = Path(output_dir)
     root.mkdir(parents=True, exist_ok=True)
+    context_path = root / RESPONSE_CONTEXT_FILENAME
+    if context_path.is_file():
+        context_path.unlink()
+    effective_run_id = run_id or f"run_{uuid.uuid4().hex}"
+    summary_payload = dict(summary or {})
+    summary_payload.setdefault("schema_version", RESULT_SUMMARY_SCHEMA_VERSION)
+    summary_payload.setdefault("protocol_version", PROTOCOL_VERSION)
+    summary_payload["run_id"] = effective_run_id
+    summary_payload["task_sha256"] = task_sha256
+    summary_payload.setdefault("task_hash_scope", "normalized_operation_wrapper")
+    summary_payload.setdefault("mode", str(operation))
+    summary_payload.setdefault("status", str(status))
+    # RESULT_SUMMARY is normalized here so the standalone artifact, canonical
+    # source, and RUN_RESULT all originate from this exact mapping.
+    write_json(root / "RESULT_SUMMARY.json", summary_payload)
     failure_list = [dict(item) for item in failures]
-    artifacts = index_artifacts(root)
-    validate_artifact_references(artifacts, root=root)
-    payload = {
+    operation_artifacts = index_artifacts(root)
+    validate_artifact_references(operation_artifacts, root=root)
+    base_payload = {
         "schema_version": RUN_RESULT_SCHEMA_VERSION,
         "protocol_version": PROTOCOL_VERSION,
         "ok": bool(ok),
-        "run_id": run_id or f"run_{uuid.uuid4().hex}",
+        "run_id": effective_run_id,
         "task_sha256": task_sha256,
         "task_hash_scope": "normalized_operation_wrapper",
         "input_sha256": input_sha256,
         "operation": str(operation),
         "status": str(status),
-        "summary": dict(summary or {}),
+        "summary": summary_payload,
         "warnings": list(warnings),
         "failures": failure_list,
         "certificate_id": certificate_id,
-        "artifacts": artifacts,
+        "artifacts": operation_artifacts,
         "next_machine_actions": [
             action
             for failure in failure_list
@@ -375,21 +617,114 @@ def write_run_result(
         "source_run_id": None,
         "artifact_provenance": None,
     }
-    projected = project_response(payload, detail=detail)
+    context = canonical_response_context(
+        base_payload, artifact_refs=operation_artifacts
+    )
+    write_json(context_path, context)
+    artifacts = index_artifacts(root)
+    validate_artifact_references(artifacts, root=root)
+    payload = {**base_payload, "artifacts": artifacts}
+    projected = project_response(
+        response_projection_source(payload, context["retention"]),
+        detail=detail,
+    )
     write_json(root / "RUN_RESULT.json", projected)
+    validate_run_artifact_integrity(root)
     return projected
+
+
+def load_run_result(
+    output_dir: str | Path,
+    *,
+    detail: str = DEFAULT_RESPONSE_DETAIL,
+    force_context: bool = False,
+) -> dict[str, Any]:
+    """Load a persisted run at one profile without re-projecting compact data."""
+
+    root = Path(output_dir).resolve()
+    result, context = _load_validated_run(root)
+    if not result:
+        return {}
+    profile = normalize_response_detail(detail)
+    existing = response_profile(result)
+    if existing is not None:
+        validate_projected_response(result, detail=existing)
+    if context is None and profile != "compact":
+        raise ResponseDetailUnavailableError(
+            profile,
+            "this legacy run has no validated RESPONSE_CONTEXT.json canonical source",
+        )
+    if existing == profile and not force_context:
+        return deepcopy(result)
+    source_payload, retention = load_run_result_source(root, detail=profile)
+    return project_response(
+        response_projection_source(source_payload, retention),
+        detail=profile,
+    )
+
+
+def load_run_result_source(
+    output_dir: str | Path,
+    *,
+    detail: str = DEFAULT_RESPONSE_DETAIL,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Load one validated unprojected source plus honest retention semantics."""
+
+    root = Path(output_dir).resolve()
+    result, context = _load_validated_run(root)
+    if not result:
+        return {}, {}
+    profile = normalize_response_detail(detail)
+    if context is not None:
+        source = context.get("source")
+        retention = context.get("retention")
+        if not isinstance(source, Mapping) or not isinstance(retention, Mapping):
+            raise ResponseContextValidationError(
+                "validated response context lost its source or retention metadata"
+            )
+        source_payload = deepcopy(dict(source))
+        source_payload["artifacts"] = deepcopy(result.get("artifacts", []))
+        return source_payload, deepcopy(dict(retention))
+
+    if profile != "compact":
+        raise ResponseDetailUnavailableError(
+            profile,
+            "this legacy run has no validated RESPONSE_CONTEXT.json canonical source",
+        )
+    source_payload = deepcopy(result)
+    source_payload.pop("response", None)
+    source_summary = source_payload.get("summary")
+    if isinstance(source_summary, dict):
+        source_summary.pop("response", None)
+    retention = {
+        "schema_version": RESPONSE_RETENTION_SCHEMA_VERSION,
+        "semantics": "legacy_compact_only",
+        "bounded": True,
+        "full_profile_scope": "unavailable_without_response_context",
+        "large_operation_arrays_retained": False,
+        "limits": {},
+        "omitted_fields": {},
+        "truncated_fields": {},
+    }
+    return source_payload, retention
 
 
 __all__ = [
     "PROTOCOL_VERSION",
+    "ResponseContextValidationError",
+    "ResponseDetailUnavailableError",
     "RESULT_SUMMARY_SCHEMA_VERSION",
     "RUN_RESULT_SCHEMA_VERSION",
     "build_result_summary",
     "canonical_json_bytes",
     "file_sha256",
     "index_artifacts",
+    "load_run_result",
+    "load_run_result_source",
     "prepare_output_directory",
     "stable_payload_sha256",
+    "validate_response_context",
+    "validate_run_artifact_integrity",
     "write_json",
     "write_run_result",
 ]

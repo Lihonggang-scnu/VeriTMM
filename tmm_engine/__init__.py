@@ -425,6 +425,7 @@ from .material_registry import (  # noqa: E402
 from .preflight import preflight_path, preflight_task  # noqa: E402
 from .protocol import (  # noqa: E402
     COMPACT_MAX_BYTES,
+    COMPACT_TARGET_BYTES,
     DEFAULT_RESPONSE_DETAIL,
     RESPONSE_DETAILS,
     RESPONSE_SCHEMA_VERSION,
@@ -441,9 +442,12 @@ from .protocol import (  # noqa: E402
     describe_capabilities,
     export_schema,
     guard_context_budget,
+    is_projected_response,
     normalize_response_detail,
     project_response,
+    response_profile,
     validate_artifact_references,
+    validate_projected_response,
 )
 from .schemas import (  # noqa: E402
     IlluminationSpec,
@@ -468,6 +472,7 @@ __all__ = [
     "CertifiedSimulation",
     "CapabilityAssessment",
     "CapabilityManifest",
+    "COMPACT_TARGET_BYTES",
     "COMPACT_MAX_BYTES",
     "ContextBudgetError",
     "DEFAULT_RESPONSE_DETAIL",
@@ -533,9 +538,12 @@ __all__ = [
     "export_schema",
     "failure_from_exception",
     "guard_context_budget",
+    "is_projected_response",
     "normalize_response_detail",
     "preflight_path",
     "preflight_task",
     "project_response",
+    "response_profile",
     "validate_artifact_references",
+    "validate_projected_response",
 ]

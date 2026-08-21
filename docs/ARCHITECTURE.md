@@ -47,7 +47,12 @@ contains status, typed failures, certificate identity, and next machine actions.
 `RESULT_SUMMARY.json` is intentionally compact so an agent can inspect physics
 and spectral features without first ingesting the full spectrum. The full
 `SIMULATION_RESULT.json` and `SPECTRA.csv` remain available for scientific
-inspection.
+inspection. A bounded, unprojected `RESPONSE_CONTEXT.json` v2 preserves the
+retained non-array response source used by `inspect --detail standard|full`
+and records retention limits plus omitted/truncated paths. It is written before
+artifact indexing so its own hash is never self-referential. Loaders validate
+its schema, run/task binding, no-self-reference rule, and the enclosing
+artifact reference hash/size before reconstruction.
 
 `ExperimentStore` adds invocation identity, content-aware cache provenance,
 parent/child lineage, history, and deterministic comparisons without putting

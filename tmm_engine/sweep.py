@@ -135,7 +135,7 @@ def execute_sweep(
     if config.resume and existing_run_result.is_file():
         previous_parent = json.loads(existing_run_result.read_text(encoding="utf-8")).get("run_id")
     parent_run_id = run_id or previous_parent or f"run_{uuid.uuid4().hex}"
-    prepare_output_directory(output)
+    prepare_output_directory(output, preserve_sweep_children=config.resume)
     write_json(output / "NORMALIZED_TASK.json", normalized)
 
     children: list[dict[str, Any]] = []

@@ -99,24 +99,32 @@ veritmm run task.json --output-dir outputs/tmm_run --json --detail full
 ```
 
 `compact` is also the default when `detail` is omitted from execution response
-APIs. `standard` exposes bounded diagnostic collections and `full` preserves
-richer scalar/mapping metadata and context. Full is not raw: every profile
-externalizes spectra, wavelength grids, channel arrays, sample lists,
-optimization histories, sweep children, benchmark cases/trajectories, and full
-provenance. All three profiles keep the same unified `RUN_RESULT.json` entry
-and the same task/certificate identities.
+APIs. It targets 16 KiB and has a fixed 32 KiB hard limit. `standard` exposes
+bounded diagnostic collections and `full` preserves richer scalar/mapping
+metadata and context. Full is the full view of retained, bounded metadata,
+not raw data: every profile externalizes spectra,
+wavelength grids, channel arrays, sample lists, optimization histories, sweep
+children, benchmark cases/trajectories, and full provenance. All three profiles
+keep the same unified `RUN_RESULT.json` entry and the same task/certificate
+identities.
 
 The profile is additive protocol metadata under `summary.response`, versioned
 as `veritmm-response-v1`; the existing `veritmm-run-result-v1` envelope and
-task schemas remain valid for older consumers. Detailed data is never thrown
-away: read the relative, SHA-256-checked references in `RUN_RESULT.json` to
-open `SPECTRA.csv`, study result documents, candidate artifacts, or the full
-preflight/certificate context. Compact output deliberately contains no
-spectra, samples, history, sweep children, detailed provenance, or trajectory
-arrays. Counts and omission metadata are navigation hints, not replacements
-for the artifact. `artifact_backed` is false when the response carries no
-reachable artifact reference; `detail_available_via_profile` only describes
-richer non-array context available from another profile.
+task schemas remain valid for older consumers. Each run persists a bounded,
+unprojected `RESPONSE_CONTEXT.json`, versioned as
+`veritmm-response-context-v2`. It declares fixed retention limits and explicit
+omission/truncation accounting. `inspect --detail standard|full` reads that
+source and never re-projects an already compact `RUN_RESULT.json`; its entire
+v2 response has one outer profile. Legacy runs without a validated context
+return typed `response_detail_unavailable` for richer profiles. Detailed
+data is never thrown away: read the relative, SHA-256-checked references in
+`RUN_RESULT.json` to open `SPECTRA.csv`, study result documents, candidate
+artifacts, or the full preflight/certificate context. Compact output
+deliberately contains no spectra, samples, history, sweep children, detailed
+provenance, or trajectory arrays. Counts and omission metadata are navigation
+hints, not replacements for the artifact. `artifact_backed` is false when the
+response carries no reachable artifact reference; `detail_available_via_profile`
+only describes richer non-array context available from another profile.
 
 ## Typed failures and action safety
 

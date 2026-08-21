@@ -16,8 +16,14 @@ from .protocol.models import (
     SweepTaskPayload,
     ToleranceTaskPayload,
 )
-from .protocol.responses import DEFAULT_RESPONSE_DETAIL, project_response
-from .run_artifacts import file_sha256, stable_payload_sha256, write_json
+from .protocol.responses import (
+    DEFAULT_RESPONSE_DETAIL,
+    RESPONSE_CONTEXT_SCHEMA_VERSION,
+)
+from .run_artifacts import (
+    file_sha256,
+    stable_payload_sha256,
+)
 from .schemas import OptimizationTask, SimulationTask, dataclass_to_dict
 from .sweep import SweepExecutionSettings, execute_sweep
 
@@ -75,6 +81,7 @@ def _settings_payload(
     payload["mode"] = mode
     # Resume affects orchestration, not numerical identity.
     payload["study_protocol"] = "veritmm-study-v1"
+    payload["response_context_schema"] = RESPONSE_CONTEXT_SCHEMA_VERSION
     return payload
 
 
@@ -243,12 +250,12 @@ def execute_managed_task(
         source = store.find_cache_source(identity)
         if source is not None:
             new_run_id = store.new_run_id()
-            envelope = store.materialize_cache_hit(source, output, new_run_id=new_run_id)
-            # Cache materialization re-indexes every copied child artifact.  The
-            # requested response profile is applied after that re-index so a
-            # cache hit cannot reintroduce a linear child/provenance payload.
-            envelope = project_response(envelope, detail=detail)
-            write_json(output / "RUN_RESULT.json", envelope)
+            envelope = store.materialize_cache_hit(
+                source,
+                output,
+                new_run_id=new_run_id,
+                detail=detail,
+            )
             archived = store.archive_artifacts(output, new_run_id)
             _record_managed_group(
                 store,
@@ -296,9 +303,6 @@ def execute_managed_task(
     else:
         raise TypeError(f"unsupported managed task: {mode}/{type(task).__name__}")
 
-    envelope["cache_hit"] = False
-    envelope["source_run_id"] = None
-    write_json(output / "RUN_RESULT.json", envelope)
     if store is not None:
         archived = store.archive_artifacts(output, str(envelope["run_id"]))
         _record_managed_group(

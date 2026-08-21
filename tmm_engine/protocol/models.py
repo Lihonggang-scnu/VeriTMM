@@ -474,6 +474,7 @@ class ResponseMetadata(ProtocolModel):
     detail_available_via_profile: bool = False
     artifact_summary: dict[str, Any] = Field(default_factory=dict)
     context_budget: dict[str, Any] | None = None
+    source_retention: dict[str, Any] = Field(default_factory=dict)
     omitted_fields: dict[str, int] = Field(default_factory=dict)
     truncated_fields: dict[str, int] = Field(default_factory=dict)
 

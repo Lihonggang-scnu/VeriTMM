@@ -97,11 +97,22 @@ scientific preference judgment.
 ```bash
 veritmm history --store-dir .veritmm --json
 veritmm inspect run_<id> --store-dir .veritmm --json
+veritmm inspect run_<id> --store-dir .veritmm --json --detail standard
+veritmm inspect run_<id> --store-dir .veritmm --json --detail full
 veritmm lineage run_<id> --store-dir .veritmm --json
 veritmm compare run_<a> run_<b> --store-dir .veritmm --json
 ```
 
+`inspect` emits one `veritmm-inspect-v2` document with a single outer response
+profile. Compact applies the 32 KiB hard guard to the experiment record and run
+source together; standard/full are reconstructed only from validated
+`RESPONSE_CONTEXT.json` v2 retained metadata. Large operation arrays remain in
+their hashed artifacts.
+
 Each command emits one JSON object on stdout. Diagnostics belong on stderr.
+Compact lineage inlines only a bounded set of experiment-record identities and
+reports total/truncated counts; sweep child rows remain in `SWEEP_RESULT.json`
+and `SWEEP_TABLE.csv` behind artifact references.
 
 ## Cache provenance
 

@@ -47,15 +47,24 @@ default. Select a richer projection explicitly with
 certificate artifacts are still written.
 
 `RUN_RESULT.json` remains the single unified first-read entry. Its artifact
-references are relative, hashed, and size-checked. Compact responses keep
-decision-critical status, certificate identity, counts, typed failure actions,
-and bounded summaries. Standard and full add bounded/richer scalar and mapping
-context, but full is not raw: spectra, wavelength grids, channel arrays,
-samples, optimizer histories, sweep children, benchmark cases/trajectories,
-and detailed provenance are externalized for every profile. `artifact_backed`
-is true only when reachable references are present; `detail_available_via_profile`
+references are relative, hashed, and size-checked. Compact responses target
+16 KiB and have a fixed 32 KiB hard limit. They keep decision-critical status,
+certificate identity, counts, typed failure actions, and bounded summaries.
+Standard and full add bounded/richer scalar and mapping context. Full is the
+full view of retained, bounded metadata, not raw data: spectra, wavelength
+grids, channel arrays, samples, optimizer
+histories, sweep children, benchmark cases/trajectories, and detailed
+provenance are externalized for every profile. `artifact_backed` is true only
+when reachable references are present; `detail_available_via_profile`
 describes richer non-array context available from another profile. The nested
-`summary.response` object uses `veritmm-response-v1`; the existing
+`summary.response` object uses `veritmm-response-v1`; the bounded, unprojected
+`RESPONSE_CONTEXT.json` source uses `veritmm-response-context-v2` and records
+its retention limits plus omitted/truncated paths so
+`inspect --detail standard|full` can reconstruct richer profiles without
+re-projecting compact `RUN_RESULT.json`. The complete inspect document has one
+outer response profile and compact guard. A legacy run without a validated
+response context returns typed `response_detail_unavailable` for a richer
+request. The existing
 `veritmm-run-result-v1` envelope and task hashes remain backward compatible.
 
 For diagnostics or a legacy-style detailed read, use the artifact references
