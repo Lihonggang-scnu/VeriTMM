@@ -36,6 +36,32 @@ For every proposed task:
    `PHYSICS_ACCEPTANCE_CERTIFICATE.json` and independent validation.
 7. Robustness and nominal physics validity are separate claims.
 
+## Response profiles and context budget
+
+Machine-facing CLI and Python execution responses use the `compact` profile by
+default. Select a richer projection explicitly with
+`--detail standard` or `--detail full` (Python entry points accept the same
+`detail=` value). The profile applies to the response envelope only; the full
+`SIMULATION_RESULT.json`, `OPTIMIZATION_RESULT.json`, `SWEEP_RESULT.json`,
+`SENSITIVITY_RESULT.json`, `TOLERANCE_RESULT.json`, benchmark result, and
+certificate artifacts are still written.
+
+`RUN_RESULT.json` remains the single unified first-read entry. Its artifact
+references are relative, hashed, and size-checked. Compact responses keep
+decision-critical status, certificate identity, counts, typed failure actions,
+and bounded summaries. Standard and full add bounded/richer scalar and mapping
+context, but full is not raw: spectra, wavelength grids, channel arrays,
+samples, optimizer histories, sweep children, benchmark cases/trajectories,
+and detailed provenance are externalized for every profile. `artifact_backed`
+is true only when reachable references are present; `detail_available_via_profile`
+describes richer non-array context available from another profile. The nested
+`summary.response` object uses `veritmm-response-v1`; the existing
+`veritmm-run-result-v1` envelope and task hashes remain backward compatible.
+
+For diagnostics or a legacy-style detailed read, use the artifact references
+or request `--detail standard|full`. Never infer a missing large array from a
+compact count; open the referenced artifact instead.
+
 ## Hard boundaries
 
 Reject rather than approximate lateral gratings, metasurface unit cells,

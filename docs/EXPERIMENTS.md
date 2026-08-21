@@ -1,4 +1,4 @@
-# Experiments and run state (v0.3)
+# Experiments and run state (v0.5.1)
 
 VeriTMM v0.3 adds a local-first `ExperimentStore` around the existing
 deterministic TMM execution path. The store is an index, not a second physics
@@ -26,6 +26,27 @@ new invocation ID such as `run_<uuid>`. The SQLite record includes the
 experiment and parent IDs, normalized task hash, execution identity, operation
 and status, protocol/package versions, certificate and artifact roots, cache
 provenance, tags, hypothesis, change reason, and caller metadata.
+
+Run identities are append-only. A second insertion using an existing `run_id`
+raises `RunLedgerConflictError`, maps to the typed machine failure
+`provenance_conflict`, and leaves both the original row and artifacts unchanged.
+Canonical `.veritmm/runs/<run_id>/` directories and cache destinations must be
+empty before materialization; VeriTMM does not merge into them. Cache replay
+always receives a fresh `run_id`. Every copied top-level run-scoped JSON artifact
+is rewritten to that new identity and records the source run; scientific values
+remain unchanged.
+
+A cached sweep also rebases each copied child to a fresh child `run_id`, rewrites
+the child's run-scoped JSON, updates `SWEEP_RESULT.children` and `SWEEP_TABLE.csv`,
+and appends the new parent/child row group in one SQLite transaction.
+`source_run_id` and
+`source_child_run_id` retain the original lineage; cached children never appear as
+children of both parent invocations under the same identity.
+
+The only supported in-place lifecycle mutation is
+`update_run_status(run_id, status=..., completed_at=..., certificate_id=...)`.
+It cannot change task/execution hashes, lineage, experiment identity, research
+metadata, or the artifact root.
 
 ## Identity and metadata
 
@@ -98,4 +119,3 @@ arbitrary-dimensional, anisotropic, non-plane-wave, and time-domain requests
 remain typed preflight rejections. The store never routes them to RCWA, FDTD,
 FEM, or another external solver, and it never converts a rejected task into a
 physics certificate.
-

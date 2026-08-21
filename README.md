@@ -149,16 +149,50 @@ keeps an agent from having to ingest the full `SIMULATION_RESULT.json` or
 `SPECTRA.csv` before deciding what to do. Full artifacts remain available when
 the scientific question requires them.
 
+### Context-efficient response profiles
+
+Machine-facing CLI and Python responses use `compact` by default. The same
+unified `RUN_RESULT.json` entry supports richer additive projections:
+
+```bash
+veritmm run task.json --output-dir outputs/tmm_run --json --detail compact
+veritmm run task.json --output-dir outputs/tmm_run --json --detail standard
+veritmm run task.json --output-dir outputs/tmm_run --json --detail full
+```
+
+`compact` keeps decision-critical status, certificate identity, bounded metrics,
+typed actions, and valid relative artifact references. `standard` exposes
+bounded diagnostics; `full` keeps richer scalar/mapping metadata and context.
+Full is not raw: spectra, wavelength grids, R/T/A channel arrays, tolerance
+samples, optimizer histories, sweep children, benchmark cases/trajectories,
+and full provenance stay external to every response profile. Run responses
+expose them through hashed artifact references; a response without reachable
+references reports `artifact_backed: false`. The profile is recorded under
+`summary.response` as `veritmm-response-v1`, while the existing
+`veritmm-run-result-v1` envelope and task schemas remain compatible.
+
 ## Reproducible studies and robustness
 
 The same `run` entry point accepts sweep, sensitivity, and tolerance contracts.
 Examples are bundled under `examples/tmm_tasks/`. A sweep creates a parent run,
 stable child tasks, per-child artifacts, and a checkpoint that can be resumed.
 Sensitivity uses the differentiable backend but audits each derivative with an
-independent NumPy central difference. Tolerance studies preserve distributions,
-seeds, failed samples, requested-trial denominators, yield, and Wilson confidence
-intervals. Robust optimization uses stochastic training only to propose designs;
-final candidate roles come from a fresh independent Monte Carlo evaluation.
+independent NumPy central difference. Tolerance v2 reports conditional yield over
+completed samples separately from overall success over requested samples, with a
+typed computational-failure taxonomy. Robust optimization uses one declared
+uncertainty/boundary policy in training and final evaluation, but stochastic
+training only proposes designs; final roles come from a fresh independent Monte
+Carlo evaluation. An incomplete final ensemble can never win `best_robust`.
+
+The local `ExperimentStore` is append-only by `run_id`. Existing canonical run
+artifacts are never merged or overwritten, and cache replay creates a fresh run
+identity. Cached sweeps also create fresh identities for every copied child while
+retaining explicit links to the source parent and source child runs.
+
+If independent final robustness evaluation fails, the nominal portfolio remains
+inspectable but `best_robust`, `best_quantized`, and the compatibility alias
+`most_robust` remain null. A heuristic screening score is never promoted to a
+formal robust result.
 
 These are different claims. `PHYSICS_ACCEPTANCE_CERTIFICATE.json` answers
 whether the nominal TMM result passed its physical/numerical checks.
@@ -202,7 +236,7 @@ Use the command-line protocol for a deterministic machine handoff:
 ```bash
 veritmm preflight examples/tmm_tasks/periodic_dbr_simulation.json --json
 veritmm run examples/tmm_tasks/periodic_dbr_simulation.json \
-  --output-dir outputs/dbr --json
+  --output-dir outputs/dbr --json --detail compact
 ```
 
 The run writes `RUN_RESULT.json` and, depending on mode and settings,
@@ -260,9 +294,10 @@ execution service. It writes:
 - `RUN_MANIFEST.json`
 - `RUN_RESULT.json` and `RESULT_SUMMARY.json`
 
-For AI callers, prefer the `veritmm run ... --json` interface above so
-`RUN_RESULT.json` is the first entry point and `RESULT_SUMMARY.json` is
-available before the full spectrum.
+For AI callers, prefer the `veritmm run ... --json --detail compact` interface
+above so `RUN_RESULT.json` is the first entry point and the full spectrum is
+opened only through its artifact reference. Use `--detail standard|full` when
+an inline diagnostic read is explicitly needed.
 
 ### Search the bundled material catalog
 
@@ -356,8 +391,8 @@ constant datasets selected by your run—not only this software.
 
 ## Status
 
-`v0.5.0` is the current source release. It extends the deterministic,
-AI-facing protocol with reproducible studies, scientific uncertainty analysis,
-robust design, and AgentBench. The project remains pre-`v1.0`; public APIs and
-protocol details may still evolve while the documented physics boundary remains
-fail-closed.
+`v0.5.2` is the current local hardening candidate. It preserves the v0.5.0
+solver and verifier boundary, retains the v0.5.1 provenance and robustness
+hardening, and adds compact-by-default, artifact-backed response profiles. The
+project remains pre-`v1.0`; public APIs and protocol details may still evolve
+while the documented physics boundary remains fail-closed.

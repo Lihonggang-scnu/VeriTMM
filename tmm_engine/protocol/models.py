@@ -18,6 +18,7 @@ from ..capabilities import FailureCode as _RuntimeFailureCode
 PROTOCOL_VERSION = "veritmm-agent-v1"
 
 Mode: TypeAlias = Literal["simulate", "optimize", "sweep", "sensitivity", "tolerance"]
+ResponseProfile: TypeAlias = Literal["compact", "standard", "full"]
 Solver: TypeAlias = Literal["smatrix", "characteristic", "byrnes"]
 GeometryClass: TypeAlias = Literal[
     "layered_planar", "lateral_periodic", "arbitrary_2d", "arbitrary_3d"
@@ -183,6 +184,7 @@ class RobustnessContract(ProtocolModel):
     """Stochastic objective settings; never a physics-validity declaration."""
 
     enabled: bool = True
+    distribution: Literal["normal"] = "normal"
     objective: Literal["expected_loss", "worst_case_loss", "mean_plus_k_sigma"] = (
         "expected_loss"
     )
@@ -191,6 +193,8 @@ class RobustnessContract(ProtocolModel):
     seed: int = 42
     thickness_sigma_nm: PositiveFloat = 2.0
     k_sigma: NonNegativeFloat = 2.0
+    boundary_policy: Literal["truncate"] = "truncate"
+    min_thickness_physical_nm: PositiveFloat = 0.1
 
 
 class OptimizationTaskPayload(ProtocolModel):
@@ -399,6 +403,8 @@ class ToleranceTaskPayload(ProtocolModel):
     sample_count: Annotated[int, Field(ge=1, le=1_000_000)] = 200
     seed: int = 42
     global_correlated_bias_nm: NonNegativeFloat | None = None
+    boundary_policy: Literal["truncate"] = "truncate"
+    min_thickness_physical_nm: PositiveFloat = 0.1
 
     @model_validator(mode="after")
     def _unique_layers(self) -> "ToleranceTaskPayload":
@@ -458,6 +464,20 @@ class ArtifactRef(ProtocolModel):
     size_bytes: int
 
 
+class ResponseMetadata(ProtocolModel):
+    """Versioned profile metadata nested in a response summary."""
+
+    schema_version: Literal["veritmm-response-v1"] = "veritmm-response-v1"
+    profile: ResponseProfile
+    available_profiles: tuple[ResponseProfile, ...] = ("compact", "standard", "full")
+    artifact_backed: bool = False
+    detail_available_via_profile: bool = False
+    artifact_summary: dict[str, Any] = Field(default_factory=dict)
+    context_budget: dict[str, Any] | None = None
+    omitted_fields: dict[str, int] = Field(default_factory=dict)
+    truncated_fields: dict[str, int] = Field(default_factory=dict)
+
+
 class RunResultEnvelope(ProtocolModel):
     """Pydantic representation of :func:`tmm_engine.run_artifacts.write_run_result`."""
 
@@ -504,6 +524,8 @@ __all__ = [
     "PROTOCOL_VERSION",
     "ProtocolModel",
     "RequestedOutput",
+    "ResponseMetadata",
+    "ResponseProfile",
     "RunResultEnvelope",
     "SimulationTaskContract",
     "SimulationTaskPayload",

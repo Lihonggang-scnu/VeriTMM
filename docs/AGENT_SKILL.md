@@ -86,6 +86,38 @@ candidate must be independently recomputed before certification.
 11. Use `--resume` only for a sweep. A cache hit must carry a new invocation
     run ID and point back to its source run; never present it as a new solve.
 
+## Response profiles and progressive disclosure
+
+CLI and machine-facing Python responses default to `compact` so the first
+observation contains only decision-critical status, certificate identity,
+bounded metrics, artifact references, and typed next actions:
+
+```bash
+veritmm run task.json --output-dir outputs/tmm_run --json --detail compact
+veritmm run task.json --output-dir outputs/tmm_run --json --detail standard
+veritmm run task.json --output-dir outputs/tmm_run --json --detail full
+```
+
+`compact` is also the default when `detail` is omitted from execution response
+APIs. `standard` exposes bounded diagnostic collections and `full` preserves
+richer scalar/mapping metadata and context. Full is not raw: every profile
+externalizes spectra, wavelength grids, channel arrays, sample lists,
+optimization histories, sweep children, benchmark cases/trajectories, and full
+provenance. All three profiles keep the same unified `RUN_RESULT.json` entry
+and the same task/certificate identities.
+
+The profile is additive protocol metadata under `summary.response`, versioned
+as `veritmm-response-v1`; the existing `veritmm-run-result-v1` envelope and
+task schemas remain valid for older consumers. Detailed data is never thrown
+away: read the relative, SHA-256-checked references in `RUN_RESULT.json` to
+open `SPECTRA.csv`, study result documents, candidate artifacts, or the full
+preflight/certificate context. Compact output deliberately contains no
+spectra, samples, history, sweep children, detailed provenance, or trajectory
+arrays. Counts and omission metadata are navigation hints, not replacements
+for the artifact. `artifact_backed` is false when the response carries no
+reachable artifact reference; `detail_available_via_profile` only describes
+richer non-array context available from another profile.
+
 ## Typed failures and action safety
 
 Every typed failure may include `recoverable`, `requires_user_choice`, and
@@ -101,6 +133,11 @@ Recoverable does not mean safe to patch automatically. Never apply a
 scientific material, wavelength, geometry, solver-family, or target choice just
 because it appears in a failure message. In particular, a material-range
 failure never turns extrapolation on by itself.
+
+In compact responses, failure `code`, `message`, severity, choice requirement,
+and action-safety metadata remain inline; verbose failure context is
+artifact-backed. Follow the action safety field and request `standard` or
+`full` only when the detailed artifact context is needed.
 
 ## Material lookup when needed
 

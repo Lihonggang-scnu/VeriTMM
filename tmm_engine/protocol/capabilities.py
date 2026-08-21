@@ -154,7 +154,11 @@ class ScientificAnalysisManifest(ProtocolModel):
     sensitivity_audit: str = "independent_numpy_central_difference"
     uncertainty_parameters: tuple[str, ...] = ("layer_thickness_nm",)
     uncertainty_distributions: tuple[str, ...] = ("normal", "uniform")
+    uncertainty_boundary_policies: tuple[str, ...] = ("truncate",)
+    minimum_physical_thickness_nm: float = 0.1
     yield_interval: str = "wilson_score_interval"
+    yield_denominator: str = "completed_sample_count"
+    overall_success_denominator: str = "requested_sample_count"
     robust_objectives: tuple[str, ...] = (
         "expected_loss",
         "worst_case_loss",
@@ -293,7 +297,7 @@ def describe_capabilities() -> CapabilityManifest:
         try:
             package_version = version("veritmm")
         except PackageNotFoundError:
-            package_version = "0.5.0"
+            package_version = "0.5.2"
     return CapabilityManifest(
         package_version=package_version,
         modes=("simulate", "optimize", "sweep", "sensitivity", "tolerance"),

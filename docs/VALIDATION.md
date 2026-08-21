@@ -79,8 +79,10 @@ The regression suite contains tests for:
 - task serialization and command-line execution;
 - experiment identity, cache provenance, lineage, compare, sweep and resume;
 - autodiff sensitivity independently audited by NumPy finite differences;
-- seeded tolerance sampling, failed-sample accounting, yield and Wilson intervals;
-- robust candidate evaluation separated from nominal physics certificates;
+- seeded tolerance sampling with separate conditional-yield and operational-success
+  denominators, typed computational failures, and Wilson intervals over completed samples;
+- robust candidate evaluation separated from nominal physics certificates, including a
+  zero-failure completeness gate that prevents survivor-biased robust selection;
 - offline AgentBench case contracts, reproducibility and unsupported false-acceptance;
 - a published DBR/defect-cavity trend reproduction based on PMC9147317.
 

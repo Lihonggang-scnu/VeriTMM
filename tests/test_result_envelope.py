@@ -172,6 +172,8 @@ def test_portfolio_requires_independent_validation_and_preserves_zero_loss(
         3,
     )
     assert payload["selected_roles"]["best_performance"] == "zero"
+    assert payload["selected_roles"]["most_robust"] is None
+    assert payload["selected_roles"]["best_heuristic_robustness"] in {"zero", "worse"}
     invalid = next(item for item in payload["candidates"] if item["candidate_id"] == "invalid")
     assert invalid["independent_validation_status"] == "failed"
     assert payload["selected_roles"]["best_performance"] != "invalid"

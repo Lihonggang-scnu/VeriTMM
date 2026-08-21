@@ -73,10 +73,31 @@ def test_score_trajectories_preserves_unavailable_metrics_as_null() -> None:
             ),
         ]
     )
+    assert result["response"]["profile"] == "compact"
+    assert "trajectories" not in result
     assert result["arms"]["traditional"]["mean_input_tokens"] is None
     assert result["arms"]["agent_native"]["final_success_rate"] == 1.0
     assert result["arms"]["agent_native"]["certified_success_rate"] == 1.0
     assert result["arms"]["agent_native"]["unsupported_false_accept_rate"] == 0.0
+
+
+def test_full_scorer_profile_is_richer_but_externalizes_trajectory_arrays() -> None:
+    trajectory = AgentTrajectory(
+        benchmark_case="a",
+        exposure="agent_native",
+        prompt="task",
+        success=True,
+        steps=[{"index": index, "action": "observe"} for index in range(40)],
+    )
+    standard = score_trajectories([trajectory], detail="standard")
+    full = score_trajectories([trajectory], detail="full")
+
+    assert standard["response"]["profile"] == "standard"
+    assert full["response"]["profile"] == "full"
+    assert "trajectories" not in standard
+    assert "trajectories" not in full
+    assert full["arms"] == standard["arms"]
+    assert full["independent_audit_count"] == 1
 
 
 def test_framework_neutral_runner_executes_both_arms() -> None:
@@ -97,12 +118,16 @@ def test_framework_neutral_runner_executes_both_arms() -> None:
         }
 
     result = run_agent_ab([_case()], runner)
+    assert result["response"]["profile"] == "compact"
+    assert "trajectories" not in result
     assert calls == ["traditional", "agent_native"]
     assert result["arms"]["traditional"]["final_success_rate"] == 0.0
     assert result["arms"]["agent_native"]["final_success_rate"] == 1.0
 
 
-def test_case_aware_scoring_overrides_false_self_report_from_task_evidence() -> None:
+def test_case_aware_scoring_overrides_false_self_report_from_task_evidence(
+    tmp_path: Path,
+) -> None:
     case = _case()
     trajectory = AgentTrajectory(
         benchmark_case=case.case_id,
@@ -113,16 +138,24 @@ def test_case_aware_scoring_overrides_false_self_report_from_task_evidence() -> 
         correction_turns=99,
         task_attempts=[case.task],
     )
-    result = score_trajectories([trajectory], cases={case.case_id: case})
-    audited = result["trajectories"][0]
+    artifact = tmp_path / "agent_result.json"
+    result = score_trajectories(
+        [trajectory], cases={case.case_id: case}, output_path=artifact
+    )
+    assert result["response"]["profile"] == "compact"
+    audited = json.loads(artifact.read_text(encoding="utf-8"))["trajectories"][0]
     assert audited["success"] is True
     assert audited["first_task_valid"] is True
     assert audited["correction_turns"] == 0
-    provenance = result["independent_audit"][0]["metric_provenance"]
+    provenance = json.loads(artifact.read_text(encoding="utf-8"))["independent_audit"][0][
+        "metric_provenance"
+    ]
     assert provenance["success"] == "recomputed_from_case_and_evidence"
 
 
-def test_out_of_scope_case_counts_correct_rejection_as_success_not_certificate() -> None:
+def test_out_of_scope_case_counts_correct_rejection_as_success_not_certificate(
+    tmp_path: Path,
+) -> None:
     task = _case().task
     task["simulation"]["physics"] = {"geometry_class": "lateral_periodic"}
     case = BenchmarkCase.model_validate(
@@ -145,8 +178,11 @@ def test_out_of_scope_case_counts_correct_rejection_as_success_not_certificate()
         unsupported_false_accept=True,
         task_attempts=[task],
     )
-    result = score_trajectories([trajectory], cases={case.case_id: case})
-    audited = result["trajectories"][0]
+    artifact = tmp_path / "agent_result.json"
+    result = score_trajectories(
+        [trajectory], cases={case.case_id: case}, output_path=artifact
+    )
+    audited = json.loads(artifact.read_text(encoding="utf-8"))["trajectories"][0]
     assert audited["success"] is True
     assert audited["unsupported_false_accept"] is False
     assert audited["physics_certificate_expected"] is False
@@ -167,6 +203,7 @@ def test_agent_benchmark_cli_independently_audits_task_attempts(tmp_path: Path) 
     )
     trajectory_path = tmp_path / "trajectories.json"
     trajectory_path.write_text(json.dumps([trajectory.model_dump(mode="json")]), encoding="utf-8")
+    result_path = tmp_path / "agent_result.json"
     completed = subprocess.run(
         [
             sys.executable,
@@ -178,6 +215,8 @@ def test_agent_benchmark_cli_independently_audits_task_attempts(tmp_path: Path) 
             "--cases-dir",
             str(cases),
             "--json",
+            "--output",
+            str(result_path),
         ],
         capture_output=True,
         text=True,
@@ -186,8 +225,11 @@ def test_agent_benchmark_cli_independently_audits_task_attempts(tmp_path: Path) 
     )
     assert completed.returncode == 0, completed.stderr
     payload = json.loads(completed.stdout)
-    assert payload["trajectories"][0]["success"] is True
-    assert payload["independent_audit"][0]["task_attempt_count"] == 1
+    assert payload["response"]["profile"] == "compact"
+    assert payload["trajectories_count"] == 1
+    raw = json.loads(result_path.read_text(encoding="utf-8"))
+    assert raw["trajectories"][0]["success"] is True
+    assert raw["independent_audit"][0]["task_attempt_count"] == 1
 
 
 def test_loader_accepts_one_documented_trajectory_object(tmp_path: Path) -> None:
@@ -217,7 +259,7 @@ def test_scorer_rejects_empty_evidence() -> None:
         score_trajectories([])
 
 
-def test_run_case_rejects_fabricated_or_mismatched_run_envelope() -> None:
+def test_run_case_rejects_fabricated_or_mismatched_run_envelope(tmp_path: Path) -> None:
     case_payload = _case().model_dump(mode="json")
     case_payload["execution"] = "run"
     case_payload["expected_artifacts"] = ["physics_certificate"]
@@ -252,9 +294,11 @@ def test_run_case_rejects_fabricated_or_mismatched_run_envelope() -> None:
         task_attempts=[case.task],
         final_run_result=fabricated,
     )
-    result = score_trajectories([trajectory], cases={case.case_id: case})
-    assert result["trajectories"][0]["success"] is False
-    evidence = result["independent_audit"][0]["run_evidence"]
+    artifact = tmp_path / "agent_result.json"
+    score_trajectories([trajectory], cases={case.case_id: case}, output_path=artifact)
+    raw = json.loads(artifact.read_text(encoding="utf-8"))
+    assert raw["trajectories"][0]["success"] is False
+    evidence = raw["independent_audit"][0]["run_evidence"]
     assert evidence["schema_valid"] is True
     assert evidence["task_hash_match"] is False
     assert evidence["valid"] is False

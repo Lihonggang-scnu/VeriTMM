@@ -1,5 +1,44 @@
 # Changelog
 
+## 0.5.2 — Context-efficient response infrastructure
+
+- Added one protocol-level `compact`/`standard`/`full` response projection for
+  CLI and Python execution, study, optimization, and benchmark responses.
+- Kept `RUN_RESULT.json` as the unified first-read entry while externalizing
+  spectra, wavelength grids, channel arrays, samples, optimizer histories,
+  sweep children, benchmark cases/trajectories, and detailed provenance from
+  every response profile; persisted run details remain in hashed artifacts.
+- Added typed, actionable compact failures, deterministic context-budget
+  guards, bounded artifact-reference projections, and the additive
+  `veritmm-response-v1` metadata strategy with truthful artifact/profile
+  availability fields, without changing task or numerical schemas.
+- Added adversarial scaling and artifact-integrity regression tests, plus
+  `--detail compact|standard|full` CLI documentation in both languages.
+
+## 0.5.1 — Local hardening candidate
+
+- Made `ExperimentStore` append-only by `run_id`, added an explicit lifecycle-only
+  status update API, and rejected non-empty canonical/cache destinations instead of
+  merging or replacing provenance artifacts.
+- Versioned tolerance output as `veritmm-tolerance-result-v2`: `conditional_yield`
+  uses completed samples, `overall_success_fraction` uses requested samples, and
+  computational failures carry a four-class taxonomy. All-failed studies now report
+  null conditional statistics and a typed `insufficient_valid_samples` failure.
+- Prevented survivor bias in final robust selection. An incomplete or failed final
+  ensemble has a null robust objective and cannot become `best_robust`, although a
+  valid nominal design may remain `best_nominal`.
+- Unified robust training and final evaluation around a declared normal distribution,
+  `truncate` boundary policy, shared minimum physical thickness, deterministic
+  training seed, and a distinct deterministic proof seed.
+- Rejected non-finite, non-passive, or energy-invalid perturbation outputs before
+  statistical accounting; versioned compact result summaries as v2; rewrote every
+  run identity on cache replay, including sweep children and their ledger lineage;
+  and made the legacy `most_robust` alias obey the formal zero-failure robust gate.
+- Made formal robustness failure fail closed: nominal candidates remain available,
+  but all robust winner roles stay null instead of falling back to a heuristic score.
+- Split CI into core Python, real PyTorch science, lint, AgentBench, and isolated-wheel
+  build jobs.
+
 ## 0.5.0 — 2026-08-20
 
 - Added VeriTMM-AgentBench with 80+ deterministic valid, invalid, advanced,

@@ -16,7 +16,8 @@ from .protocol.models import (
     SweepTaskPayload,
     ToleranceTaskPayload,
 )
-from .run_artifacts import file_sha256, stable_payload_sha256
+from .protocol.responses import DEFAULT_RESPONSE_DETAIL, project_response
+from .run_artifacts import file_sha256, stable_payload_sha256, write_json
 from .schemas import OptimizationTask, SimulationTask, dataclass_to_dict
 from .sweep import SweepExecutionSettings, execute_sweep
 
@@ -77,27 +78,39 @@ def _settings_payload(
     return payload
 
 
-def _record_sweep_children(
+def _prepare_sweep_child_records(
     store: ExperimentStore,
     *,
     envelope: Mapping[str, Any],
     output_dir: Path,
     experiment_id: str,
     execution_identity_sha256: str,
-) -> None:
+) -> list[dict[str, Any]]:
     path = output_dir / "SWEEP_RESULT.json"
     if not path.is_file():
-        return
+        return []
     payload = json.loads(path.read_text(encoding="utf-8"))
     parent_run_id = str(envelope["run_id"])
+    records: list[dict[str, Any]] = []
     for child in payload.get("children", []):
         child_run_id = child.get("child_run_id")
         relative_root = child.get("artifact_root")
-        if not child_run_id or not relative_root:
-            continue
-        child_root = output_dir / str(relative_root)
+        if not child_run_id:
+            if relative_root and child.get("status") in {"failed", "pending"}:
+                continue
+            raise ValueError("sweep child without run_id must be explicitly failed or pending")
+        if not relative_root:
+            raise ValueError("sweep child with run_id requires artifact_root")
+        child_root = (output_dir / str(relative_root)).resolve()
+        children_root = (output_dir / "children").resolve()
+        try:
+            child_root.relative_to(children_root)
+        except ValueError as exc:
+            raise ValueError("sweep child artifact_root must stay under children/") from exc
+        if child_root == children_root or child_root.parent != children_root:
+            raise ValueError("sweep child artifact_root must name one direct child directory")
         if not child_root.is_dir():
-            continue
+            raise FileNotFoundError(f"sweep child artifact directory missing: {relative_root}")
         archived = store.archive_artifacts(child_root, str(child_run_id))
         child_result_path = child_root / "RUN_RESULT.json"
         if child_result_path.is_file():
@@ -111,20 +124,78 @@ def _record_sweep_children(
                 "protocol_version": PROTOCOL_VERSION,
                 "certificate_id": None,
             }
-        store.record_envelope(
-            child_envelope,
-            artifact_root=archived,
-            experiment_id=experiment_id,
-            parent_run_id=parent_run_id,
-            execution_identity_sha256=stable_payload_sha256(
-                {
-                    "parent_identity": execution_identity_sha256,
-                    "child_task_sha256": child.get("child_task_sha256"),
-                }
-            ),
-            tags=("sweep_child",),
-            user_metadata={"sweep_index": child.get("index")},
+        records.append(
+            store.envelope_record_fields(
+                child_envelope,
+                artifact_root=archived,
+                experiment_id=experiment_id,
+                parent_run_id=parent_run_id,
+                execution_identity_sha256=stable_payload_sha256(
+                    {
+                        "parent_identity": execution_identity_sha256,
+                        "child_task_sha256": child.get("child_task_sha256"),
+                    }
+                ),
+                tags=("sweep_child",),
+                user_metadata={"sweep_index": child.get("index")},
+            )
         )
+    return records
+
+
+def _record_managed_group(
+    store: ExperimentStore,
+    *,
+    mode: str,
+    envelope: Mapping[str, Any],
+    output_dir: Path,
+    archived_parent: Path,
+    experiment_id: str,
+    parent_run_id: str | None,
+    execution_identity_sha256: str,
+    tags: Iterable[str],
+    hypothesis: str | None,
+    change_reason: str | None,
+    user_metadata: Mapping[str, Any] | None,
+) -> None:
+    staged_run_ids = [str(envelope["run_id"])]
+    try:
+        if mode == "sweep":
+            sweep_path = output_dir / "SWEEP_RESULT.json"
+            if sweep_path.is_file():
+                sweep_payload = json.loads(sweep_path.read_text(encoding="utf-8"))
+                staged_run_ids.extend(
+                    str(child["child_run_id"])
+                    for child in sweep_payload.get("children", [])
+                    if isinstance(child, Mapping) and child.get("child_run_id")
+                )
+        records = [
+            store.envelope_record_fields(
+                envelope,
+                artifact_root=archived_parent,
+                experiment_id=experiment_id,
+                parent_run_id=parent_run_id,
+                execution_identity_sha256=execution_identity_sha256,
+                tags=tags,
+                hypothesis=hypothesis,
+                change_reason=change_reason,
+                user_metadata=user_metadata,
+            )
+        ]
+        if mode == "sweep":
+            records.extend(
+                _prepare_sweep_child_records(
+                    store,
+                    envelope=envelope,
+                    output_dir=output_dir,
+                    experiment_id=experiment_id,
+                    execution_identity_sha256=execution_identity_sha256,
+                )
+            )
+        store.record_run_batch(records)
+    except Exception:
+        store.discard_unindexed_artifacts(staged_run_ids)
+        raise
 
 
 def execute_managed_task(
@@ -147,13 +218,18 @@ def execute_managed_task(
     user_metadata: Mapping[str, Any] | None = None,
     cache: bool = True,
     resume: bool = False,
+    detail: str = DEFAULT_RESPONSE_DETAIL,
 ) -> dict[str, Any]:
     """Execute, cache, archive and index one public task invocation."""
 
     settings = execution_settings or ExecutionSettings()
     if resume and mode != "sweep":
         raise ValueError("--resume is currently supported only for sweep tasks")
-    output = Path(output_dir).resolve()
+    ExperimentStore.assert_no_path_redirection(output_dir)
+    output_path = Path(output_dir).absolute()
+    if output_path.is_dir():
+        ExperimentStore.assert_artifact_tree_no_links(output_path)
+    output = output_path.resolve()
     normalized = normalized_operation(mode, task)
     identity = ExperimentStore.execution_identity(
         normalized,
@@ -168,10 +244,18 @@ def execute_managed_task(
         if source is not None:
             new_run_id = store.new_run_id()
             envelope = store.materialize_cache_hit(source, output, new_run_id=new_run_id)
+            # Cache materialization re-indexes every copied child artifact.  The
+            # requested response profile is applied after that re-index so a
+            # cache hit cannot reintroduce a linear child/provenance payload.
+            envelope = project_response(envelope, detail=detail)
+            write_json(output / "RUN_RESULT.json", envelope)
             archived = store.archive_artifacts(output, new_run_id)
-            store.record_envelope(
-                envelope,
-                artifact_root=archived,
+            _record_managed_group(
+                store,
+                mode=mode,
+                envelope=envelope,
+                output_dir=output,
+                archived_parent=archived,
                 experiment_id=exp_id,
                 parent_run_id=parent_run_id,
                 execution_identity_sha256=identity,
@@ -189,6 +273,7 @@ def execute_managed_task(
             output,
             input_path=input_path,
             settings=settings,
+            detail=detail,
         )
     elif mode == "sweep" and isinstance(task, SweepTaskPayload):
         envelope = execute_sweep(
@@ -198,28 +283,30 @@ def execute_managed_task(
                 child_execution=settings,
                 resume=resume,
             ),
+            detail=detail,
         )
     elif mode == "sensitivity" and isinstance(task, SensitivityTaskPayload):
         from .scientific_analysis import execute_sensitivity
 
-        envelope = execute_sensitivity(task, output, device=settings.device)
+        envelope = execute_sensitivity(task, output, device=settings.device, detail=detail)
     elif mode == "tolerance" and isinstance(task, ToleranceTaskPayload):
         from .scientific_analysis import execute_tolerance
 
-        envelope = execute_tolerance(task, output)
+        envelope = execute_tolerance(task, output, detail=detail)
     else:
         raise TypeError(f"unsupported managed task: {mode}/{type(task).__name__}")
 
     envelope["cache_hit"] = False
     envelope["source_run_id"] = None
-    from .run_artifacts import write_json
-
     write_json(output / "RUN_RESULT.json", envelope)
     if store is not None:
         archived = store.archive_artifacts(output, str(envelope["run_id"]))
-        store.record_envelope(
-            envelope,
-            artifact_root=archived,
+        _record_managed_group(
+            store,
+            mode=mode,
+            envelope=envelope,
+            output_dir=output,
+            archived_parent=archived,
             experiment_id=exp_id,
             parent_run_id=parent_run_id,
             execution_identity_sha256=identity,
@@ -228,14 +315,6 @@ def execute_managed_task(
             change_reason=change_reason,
             user_metadata=user_metadata,
         )
-        if mode == "sweep":
-            _record_sweep_children(
-                store,
-                envelope=envelope,
-                output_dir=output,
-                experiment_id=exp_id,
-                execution_identity_sha256=identity,
-            )
     return envelope
 
 

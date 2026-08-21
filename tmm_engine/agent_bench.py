@@ -21,7 +21,8 @@ from .execution import ExecutionSettings
 from .experiment_store import ExperimentStore
 from .managed_execution import execute_managed_task
 from .preflight import preflight_path
-from .run_artifacts import stable_payload_sha256, write_json
+from .protocol.responses import DEFAULT_RESPONSE_DETAIL, project_response
+from .run_artifacts import file_sha256, stable_payload_sha256, write_json
 from .task_io import load_task
 
 BENCHMARK_SCHEMA_VERSION = "veritmm-agentbench-v1"
@@ -373,6 +374,7 @@ def run_offline_benchmark(
     output_path: str | Path | None = None,
     work_dir: str | Path | None = None,
     minimum_case_count: int = 80,
+    detail: str = DEFAULT_RESPONSE_DETAIL,
 ) -> dict[str, Any]:
     """Run deterministic protocol/physics checks without using an LLM or network."""
 
@@ -518,8 +520,22 @@ def run_offline_benchmark(
     }
     result["result_content_sha256"] = stable_payload_sha256(content_view)
     if output_path is not None:
-        write_json(output_path, result)
-    return result
+        # The benchmark result artifact remains the complete audit record.  A
+        # caller receives the shared compact projection unless it asks for a
+        # richer profile.
+        target = Path(output_path).resolve()
+        write_json(target, result)
+        result["artifact_root"] = str(target.parent)
+        result["artifacts"] = [
+            {
+                "kind": "benchmark_result",
+                "path": target.name,
+                "schema_version": BENCHMARK_SCHEMA_VERSION,
+                "sha256": file_sha256(target),
+                "size_bytes": int(target.stat().st_size),
+            }
+        ]
+    return project_response(result, detail=detail)
 
 
 __all__ = [

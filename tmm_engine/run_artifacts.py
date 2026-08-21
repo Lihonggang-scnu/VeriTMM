@@ -12,8 +12,13 @@ from typing import Any, Iterable, Mapping, Sequence
 import numpy as np
 
 from .protocol.models import PROTOCOL_VERSION
+from .protocol.responses import (
+    DEFAULT_RESPONSE_DETAIL,
+    project_response,
+    validate_artifact_references,
+)
 
-RESULT_SUMMARY_SCHEMA_VERSION = "veritmm-result-summary-v1"
+RESULT_SUMMARY_SCHEMA_VERSION = "veritmm-result-summary-v2"
 RUN_RESULT_SCHEMA_VERSION = "veritmm-run-result-v1"
 
 
@@ -42,8 +47,8 @@ _ARTIFACT_KINDS = {
         "sensitivity_result",
         "veritmm-sensitivity-result-v1",
     ),
-    "TOLERANCE_RESULT.json": ("tolerance_result", "veritmm-tolerance-result-v1"),
-    "ROBUSTNESS_REPORT.json": ("robustness_report", "veritmm-robustness-report-v1"),
+    "TOLERANCE_RESULT.json": ("tolerance_result", "veritmm-tolerance-result-v2"),
+    "ROBUSTNESS_REPORT.json": ("robustness_report", "veritmm-robustness-report-v2"),
 }
 
 
@@ -331,12 +336,21 @@ def write_run_result(
     certificate_id: str | None = None,
     run_id: str | None = None,
     input_sha256: str | None = None,
+    detail: str = DEFAULT_RESPONSE_DETAIL,
 ) -> dict[str, Any]:
-    """Write the single first-read artifact for an AI caller."""
+    """Write the single first-read artifact for an AI caller.
+
+    The operation-specific JSON artifacts are written by their execution
+    modules before this function is called.  ``RUN_RESULT.json`` is therefore
+    a projected index by default; requesting ``standard`` or ``full`` only
+    changes this envelope and never removes the detailed artifacts.
+    """
 
     root = Path(output_dir)
     root.mkdir(parents=True, exist_ok=True)
     failure_list = [dict(item) for item in failures]
+    artifacts = index_artifacts(root)
+    validate_artifact_references(artifacts, root=root)
     payload = {
         "schema_version": RUN_RESULT_SCHEMA_VERSION,
         "protocol_version": PROTOCOL_VERSION,
@@ -351,7 +365,7 @@ def write_run_result(
         "warnings": list(warnings),
         "failures": failure_list,
         "certificate_id": certificate_id,
-        "artifacts": index_artifacts(root),
+        "artifacts": artifacts,
         "next_machine_actions": [
             action
             for failure in failure_list
@@ -361,8 +375,9 @@ def write_run_result(
         "source_run_id": None,
         "artifact_provenance": None,
     }
-    write_json(root / "RUN_RESULT.json", payload)
-    return payload
+    projected = project_response(payload, detail=detail)
+    write_json(root / "RUN_RESULT.json", projected)
+    return projected
 
 
 __all__ = [

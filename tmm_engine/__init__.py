@@ -40,7 +40,7 @@ import numpy as np
 
 from .tmm_solver import TMM, TMMConfig
 
-__version__ = "0.5.0"
+__version__ = "0.5.2"
 
 PACKAGE_ROOT = Path(__file__).resolve().parent
 DEFAULT_MATERIALS_DIR = PACKAGE_ROOT / "materials"
@@ -424,13 +424,26 @@ from .material_registry import (  # noqa: E402
 )
 from .preflight import preflight_path, preflight_task  # noqa: E402
 from .protocol import (  # noqa: E402
+    COMPACT_MAX_BYTES,
+    DEFAULT_RESPONSE_DETAIL,
+    RESPONSE_DETAILS,
+    RESPONSE_SCHEMA_VERSION,
     CapabilityManifest,
+    ContextBudgetError,
     OptimizationTaskContract,
     PreflightReport,
+    ResponseDetail,
+    ResponseMetadata,
+    ResponseProfile,
     RunResultEnvelope,
     SimulationTaskContract,
+    compact_response,
     describe_capabilities,
     export_schema,
+    guard_context_budget,
+    normalize_response_detail,
+    project_response,
+    validate_artifact_references,
 )
 from .schemas import (  # noqa: E402
     IlluminationSpec,
@@ -455,6 +468,9 @@ __all__ = [
     "CertifiedSimulation",
     "CapabilityAssessment",
     "CapabilityManifest",
+    "COMPACT_MAX_BYTES",
+    "ContextBudgetError",
+    "DEFAULT_RESPONSE_DETAIL",
     "ExecutionSettings",
     "FailureAction",
     "FailureCode",
@@ -473,6 +489,11 @@ __all__ = [
     "PhysicsEngineError",
     "PhysicsRequirements",
     "PreflightReport",
+    "RESPONSE_DETAILS",
+    "RESPONSE_SCHEMA_VERSION",
+    "ResponseMetadata",
+    "ResponseProfile",
+    "ResponseDetail",
     "SimulationConfig",
     "SimulationResult",
     "SimulationTask",
@@ -505,11 +526,16 @@ __all__ = [
     "thickness_tolerance_monte_carlo",
     "with_finite_substrate",
     "certify_simulation",
+    "compact_response",
     "describe_capabilities",
     "enrich_failure_actions",
     "execute_task",
     "export_schema",
     "failure_from_exception",
+    "guard_context_budget",
+    "normalize_response_detail",
     "preflight_path",
     "preflight_task",
+    "project_response",
+    "validate_artifact_references",
 ]

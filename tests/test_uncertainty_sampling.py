@@ -9,11 +9,21 @@ from tmm_engine.protocol import ToleranceTaskContract
 from tmm_engine.scientific_analysis import execute_tolerance
 
 
-def _request(*, distribution: str, seed: int = 17):
+def _request(
+    *,
+    distribution: str,
+    seed: int = 17,
+    nominal_thickness_nm: float = 100.0,
+    spread_nm: float = 2.0,
+):
     uncertainty = (
-        {"layer_index": 0, "distribution": "normal", "sigma_nm": 2.0}
+        {"layer_index": 0, "distribution": "normal", "sigma_nm": spread_nm}
         if distribution == "normal"
-        else {"layer_index": 0, "distribution": "uniform", "half_width_nm": 2.0}
+        else {
+            "layer_index": 0,
+            "distribution": "uniform",
+            "half_width_nm": spread_nm,
+        }
     )
     document = {
         "schema_version": "tolerance-task-v1",
@@ -22,7 +32,11 @@ def _request(*, distribution: str, seed: int = 17):
             "simulation": {
                 "stack": {
                     "layers": [
-                        {"constant_n": 2.0, "thickness_nm": 100.0, "optimizable": False},
+                        {
+                            "constant_n": 2.0,
+                            "thickness_nm": nominal_thickness_nm,
+                            "optimizable": False,
+                        },
                         {"constant_n": 1.4, "thickness_nm": 80.0, "optimizable": False},
                     ],
                     "incident": {"constant_n": 1.0},
@@ -108,3 +122,26 @@ def test_different_seed_changes_sampled_draws(tmp_path: Path) -> None:
     execute_tolerance(_request(distribution="normal", seed=18), second_output)
     assert _sample_thicknesses(first_output) != _sample_thicknesses(second_output)
 
+
+def test_truncate_boundary_policy_prevents_silent_negative_thickness(
+    tmp_path: Path,
+) -> None:
+    output = tmp_path / "bounded"
+    execute_tolerance(
+        _request(
+            distribution="uniform",
+            nominal_thickness_nm=0.2,
+            spread_nm=2.0,
+        ),
+        output,
+    )
+    result = json.loads((output / "TOLERANCE_RESULT.json").read_text(encoding="utf-8"))
+    assert result["uncertainty_model"] == {
+        "boundary_policy": "truncate",
+        "min_thickness_physical_nm": 0.1,
+        "seed": 17,
+    }
+    assert any(sample["raw_thicknesses_nm"][0] < 0.1 for sample in result["samples"])
+    assert all(sample["thicknesses_nm"][0] >= 0.1 for sample in result["samples"])
+    assert any(sample["boundary_adjusted"] for sample in result["samples"])
+    assert result["failed_sample_count"] == 0

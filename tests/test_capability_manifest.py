@@ -20,7 +20,7 @@ def test_manifest_is_stable_and_machine_readable() -> None:
     assert first_payload == second.model_dump(mode="json")
     json.dumps(first_payload)
     assert first_payload["protocol_version"] == PROTOCOL_VERSION
-    assert first_payload["package_version"] == "0.5.0"
+    assert first_payload["package_version"] == "0.5.2"
 
 
 def test_manifest_declares_the_current_supported_surface() -> None:
@@ -64,6 +64,8 @@ def test_manifest_describes_mixed_coherence_and_optimization_without_overclaimin
     assert optimization.fixed_material_selection
     assert optimization.not_formally_supported == ()
     assert manifest.scientific_analysis.physics_validity_is_separate_from_robustness
+    assert manifest.scientific_analysis.uncertainty_boundary_policies == ("truncate",)
+    assert manifest.scientific_analysis.yield_denominator == "completed_sample_count"
 
 
 def test_manifest_artifact_types_are_explicit() -> None:

@@ -133,12 +133,17 @@ def optimization_task_from_dict(data: Mapping[str, Any]) -> OptimizationTask:
         if robustness_data is None
         else RobustnessSpec(
             enabled=robustness_data.get("enabled", True),
+            distribution=str(robustness_data.get("distribution", "normal")),
             objective=str(robustness_data.get("objective", "expected_loss")),
             samples_per_step=int(robustness_data.get("samples_per_step", 8)),
             final_samples=int(robustness_data.get("final_samples", 128)),
             seed=int(robustness_data.get("seed", 42)),
             thickness_sigma_nm=float(robustness_data.get("thickness_sigma_nm", 2.0)),
             k_sigma=float(robustness_data.get("k_sigma", 2.0)),
+            boundary_policy=str(robustness_data.get("boundary_policy", "truncate")),
+            min_thickness_physical_nm=float(
+                robustness_data.get("min_thickness_physical_nm", 0.1)
+            ),
         )
     )
     task = OptimizationTask(

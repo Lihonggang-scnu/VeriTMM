@@ -19,8 +19,9 @@ from .managed_execution import normalized_operation
 from .preflight import preflight_path
 from .protocol.capabilities import describe_capabilities
 from .protocol.models import RunResultEnvelope
+from .protocol.responses import DEFAULT_RESPONSE_DETAIL, project_response
 from .protocol.schema_export import export_schema
-from .run_artifacts import stable_payload_sha256, write_json
+from .run_artifacts import file_sha256, stable_payload_sha256, write_json
 from .task_io import load_task
 
 TRAJECTORY_SCHEMA_VERSION = "veritmm-agent-trajectory-v1"
@@ -122,6 +123,7 @@ def run_agent_ab(
     runner: AgentRunner,
     *,
     output_path: str | Path | None = None,
+    detail: str = DEFAULT_RESPONSE_DETAIL,
 ) -> dict[str, Any]:
     """Run the same cases with traditional and agent-native exposure."""
 
@@ -139,13 +141,12 @@ def run_agent_ab(
             if trajectory.wall_seconds is None:
                 trajectory.wall_seconds = float(time.perf_counter() - started)
             trajectories.append(trajectory)
-    result = score_trajectories(
+    return score_trajectories(
         trajectories,
         cases={case.case_id: case for case in ordered_cases},
+        output_path=output_path,
+        detail=detail,
     )
-    if output_path is not None:
-        write_json(output_path, result)
-    return result
 
 
 def _rate(values: list[bool]) -> float | None:
@@ -293,6 +294,8 @@ def score_trajectories(
     trajectories: Iterable[AgentTrajectory | Mapping[str, Any]],
     *,
     cases: Mapping[str, BenchmarkCase] | None = None,
+    output_path: str | Path | None = None,
+    detail: str = DEFAULT_RESPONSE_DETAIL,
 ) -> dict[str, Any]:
     """Score trajectories and independently audit supplied task/result evidence."""
 
@@ -363,7 +366,22 @@ def score_trajectories(
         "independent_audit": audit_records,
         "trajectories": [item.model_dump(mode="json") for item in parsed],
     }
-    return result
+    if output_path is not None:
+        # The optional file is the complete audit artifact.  The returned
+        # machine-facing mapping is projected separately below.
+        target = Path(output_path).resolve()
+        write_json(target, result)
+        result["artifact_root"] = str(target.parent)
+        result["artifacts"] = [
+            {
+                "kind": "agent_benchmark_result",
+                "path": target.name,
+                "schema_version": AGENT_AB_RESULT_SCHEMA_VERSION,
+                "sha256": file_sha256(target),
+                "size_bytes": int(target.stat().st_size),
+            }
+        ]
+    return project_response(result, detail=detail)
 
 
 def load_trajectories(path: str | Path) -> list[AgentTrajectory]:

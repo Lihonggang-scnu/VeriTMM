@@ -10,6 +10,7 @@ from .models import (
     FailureRecordModel,
     OptimizationTaskContract,
     PreflightReport,
+    ResponseMetadata,
     RunResultEnvelope,
     SensitivityTaskContract,
     SimulationTaskContract,
@@ -18,7 +19,15 @@ from .models import (
 )
 
 SchemaKind: TypeAlias = Literal[
-    "simulation", "optimization", "sweep", "sensitivity", "tolerance", "preflight", "failure", "run_result"
+    "simulation",
+    "optimization",
+    "sweep",
+    "sensitivity",
+    "tolerance",
+    "preflight",
+    "failure",
+    "run_result",
+    "response",
 ]
 
 _SCHEMA_MODELS: dict[str, type[BaseModel]] = {
@@ -30,6 +39,7 @@ _SCHEMA_MODELS: dict[str, type[BaseModel]] = {
     "preflight": PreflightReport,
     "failure": FailureRecordModel,
     "run_result": RunResultEnvelope,
+    "response": ResponseMetadata,
 }
 
 

@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 torch = pytest.importorskip("torch")
+pytestmark = pytest.mark.requires_torch
 
 from tmm_engine import (  # noqa: E402
     IlluminationSpec,

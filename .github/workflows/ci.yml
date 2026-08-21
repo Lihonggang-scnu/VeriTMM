@@ -5,7 +5,7 @@ on:
   pull_request:
 
 jobs:
-  test:
+  core:
     strategy:
       matrix:
         python-version: ["3.10", "3.11", "3.12"]
@@ -19,5 +19,93 @@ jobs:
       - run: python -m pip install --upgrade pip
       - run: python -m pip install -e ".[test]"
       - run: python -m pytest -q
-      - run: python -m pip install build && python -m build
 
+  torch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e ".[test,optimize]"
+      - run: python -c "import torch; print(torch.__version__)"
+      - run: python -m pytest -m requires_torch -q --junitxml=torch-junit.xml
+      - name: Require real Torch tests with zero skips
+        run: |
+          python - <<'PY'
+          import xml.etree.ElementTree as ET
+
+          root = ET.parse("torch-junit.xml").getroot()
+          suites = [root] if root.tag == "testsuite" else list(root.findall("testsuite"))
+          tests = sum(int(suite.attrib.get("tests", 0)) for suite in suites)
+          skipped = sum(int(suite.attrib.get("skipped", 0)) for suite in suites)
+          assert tests > 0, "requires_torch selected no tests"
+          assert skipped == 0, f"requires_torch skipped {skipped} tests"
+          PY
+      - run: python -m pytest tests/test_robust_optimization.py tests/test_robustness_report.py -q
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e ".[dev]"
+      - run: python -m ruff check .
+
+  agentbench:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e ".[test,optimize]"
+      - run: veritmm benchmark --offline --json --output BENCHMARK_RESULT.json > benchmark_stdout.json
+      - name: Verify AgentBench metrics
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          stdout = json.loads(Path("benchmark_stdout.json").read_text(encoding="utf-8"))
+          result = json.loads(Path("BENCHMARK_RESULT.json").read_text(encoding="utf-8"))
+          assert stdout["result_content_sha256"] == result["result_content_sha256"]
+          assert result["release_gate_passed"] is True
+          assert result["passed_case_count"] == result["case_count"]
+          assert result["failed_case_count"] == 0
+          assert result["metrics"]["unsupported_false_accept_rate"] == 0.0
+          PY
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: python -m pip install --upgrade pip build
+      - run: python -m build
+      - name: Wheel smoke in a fresh environment
+        run: |
+          python -m venv "$RUNNER_TEMP/veritmm-wheel-smoke"
+          "$RUNNER_TEMP/veritmm-wheel-smoke/bin/python" -m pip install --upgrade pip
+          "$RUNNER_TEMP/veritmm-wheel-smoke/bin/python" -m pip install dist/*.whl
+          "$RUNNER_TEMP/veritmm-wheel-smoke/bin/veritmm" describe --json > "$RUNNER_TEMP/describe.json"
+          "$RUNNER_TEMP/veritmm-wheel-smoke/bin/python" - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          payload = json.loads(Path(os.environ["RUNNER_TEMP"], "describe.json").read_text())
+          assert payload["package_version"] == "0.5.1"
+          assert payload["engine_id"] == "veritmm"
+          PY

@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 
 torch = pytest.importorskip("torch")
+pytestmark = pytest.mark.requires_torch
 
 from tmm_engine import MaterialRegistry, TMMWorkbench  # noqa: E402
 from tmm_engine.protocol import SensitivityTaskContract  # noqa: E402
@@ -115,4 +116,3 @@ def test_near_zero_gradient_uses_absolute_tolerance_without_fake_relative_error(
     assert row["relative_error"] is None
     assert row["absolute_error"] <= 1e-7
     assert row["audit_passed"] is True
-

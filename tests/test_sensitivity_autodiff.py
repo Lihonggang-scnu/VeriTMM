@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 torch = pytest.importorskip("torch")
+pytestmark = pytest.mark.requires_torch
 
 from tmm_engine.protocol import RunResultEnvelope, SensitivityTaskContract  # noqa: E402
 from tmm_engine.scientific_analysis import execute_sensitivity  # noqa: E402
@@ -97,4 +98,3 @@ def test_simple_uniform_medium_has_analytic_zero_reflection_gradient() -> None:
     assert torch.allclose(result.R, torch.zeros_like(result.R), atol=1e-12)
     assert torch.allclose(result.T, torch.ones_like(result.T), atol=1e-12)
     assert float(thickness_um.grad.abs().max()) <= 1e-12
-

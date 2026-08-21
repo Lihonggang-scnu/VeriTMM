@@ -126,13 +126,40 @@ veritmm benchmark --offline --json
 在决定下一步之前，不必先吞下完整的 `SIMULATION_RESULT.json` 或 `SPECTRA.csv`。
 需要深入科研分析时，再读取完整产物。
 
+### 面向上下文效率的响应档位
+
+面向机器的 CLI 和 Python 执行响应默认使用 `compact`。同一个统一的
+`RUN_RESULT.json` 入口支持显式请求更丰富的附加投影：
+
+```bash
+veritmm run task.json --output-dir outputs/tmm_run --json --detail compact
+veritmm run task.json --output-dir outputs/tmm_run --json --detail standard
+veritmm run task.json --output-dir outputs/tmm_run --json --detail full
+```
+
+`compact` 只保留决策所需的状态、证书身份、有界指标、typed action 和有效的
+相对产物引用；`standard` 提供有界诊断集合；`full` 保留更丰富的标量、映射和上下文。
+`full` 也不是 raw：光谱、波长网格、R/T/A 通道数组、容差样本、优化历史、扫描子项、
+benchmark case/trajectory 和完整 provenance 在所有档位都保持外置。运行响应通过带哈希的
+产物引用访问这些内容；没有可到达引用时会报告 `artifact_backed: false`。档位记录在
+`summary.response` 中，版本为 `veritmm-response-v1`；已有的 `veritmm-run-result-v1`
+信封和任务 schema 保持兼容。
+
 ## 可复现实验与稳健性
 
 同一个 `run` 入口可执行 sweep、sensitivity 和 tolerance 合同，示例位于
 `examples/tmm_tasks/`。参数扫描会生成父运行、稳定的子任务、逐项产物和可恢复
-检查点；灵敏度由可微后端计算，再用独立 NumPy 中心差分复核；容差研究完整保存
-分布、随机种子、失败样本、试验总数、良率和 Wilson 置信区间。稳健优化中的随机
-训练只负责提出方案，正式候选角色由新的独立蒙特卡洛评估决定。
+检查点；灵敏度由可微后端计算，再用独立 NumPy 中心差分复核；容差 v2 将“已完成
+样本中的条件良率”与“全部请求样本中的总体成功比例”分开，并记录计算失败分类。
+稳健优化的训练与终验使用同一扰动边界语义，但随机训练只负责提出方案，正式候选
+角色由新的独立蒙特卡洛评估决定；终验不完整的候选不能成为 `best_robust`。
+
+本地 `ExperimentStore` 按 `run_id` 只追加记录；已有规范运行目录不会被合并或
+覆盖，缓存复用也会创建新的运行身份。缓存复用参数扫描时，每个复制的子运行同样
+获得新身份，同时明确保留来源父运行和来源子运行的追溯关系。
+
+若独立稳健终验失败，标称候选仍可供检查，但 `best_robust`、`best_quantized`
+以及兼容字段 `most_robust` 均保持为空，启发式筛选分数不会冒充正式稳健结论。
 
 这些产物回答不同问题：`PHYSICS_ACCEPTANCE_CERTIFICATE.json` 只证明标称 TMM
 结果通过物理和数值验收；`SENSITIVITY_RESULT.json`、`TOLERANCE_RESULT.json` 与
@@ -173,7 +200,7 @@ python -m pip install -e ".[optimize,plot]"
 ```bash
 veritmm preflight examples/tmm_tasks/periodic_dbr_simulation.json --json
 veritmm run examples/tmm_tasks/periodic_dbr_simulation.json \
-  --output-dir outputs/dbr --json
+  --output-dir outputs/dbr --json --detail compact
 ```
 
 运行会根据模式和设置写出 `RUN_RESULT.json`，以及可能的
@@ -196,8 +223,9 @@ python scripts/run_tmm_task.py \
 仿真结果、CSV 光谱、运行清单、`RUN_RESULT.json`、`RESULT_SUMMARY.json`，以及
 `PHYSICS_ACCEPTANCE_CERTIFICATE.json`。安装 Matplotlib 后还会生成光谱图。
 
-对于 AI 调用，优先使用上面的 `veritmm run ... --json` 接口：
-`RUN_RESULT.json` 是第一入口，`RESULT_SUMMARY.json` 会在完整光谱之前提供摘要。
+对于 AI 调用，优先使用上面的 `veritmm run ... --json --detail compact` 接口：
+`RUN_RESULT.json` 是第一入口，需要时再通过产物引用打开完整光谱。确实需要内嵌
+诊断内容时，再显式使用 `--detail standard|full`。
 
 ### 检索本地材料数据库
 
@@ -280,6 +308,7 @@ python -m pytest -q
 
 ## 当前状态
 
-`v0.5.0` 是当前源码发布版，在确定性 AI 协议上增加了可复现实验、科学不确定度
-分析、稳健设计和 AgentBench。项目仍处于 `v1.0` 之前；公共 API 与协议细节仍可能
-继续演进，但已经声明的物理适用边界会继续采用失败关闭原则。
+`v0.5.2` 是当前本地加固候选版。它保持 v0.5.0 的求解器与验证边界，保留 v0.5.1
+的来源与稳健性加固，并新增默认紧凑、由工件承载详细内容的响应档案。项目仍处于
+`v1.0` 之前；公共 API 与协议细节仍可能继续演进，但已经声明的物理适用边界会继续
+采用失败关闭原则。

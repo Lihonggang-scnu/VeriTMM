@@ -14,6 +14,7 @@ from typing import Any
 from .capabilities import failure_from_exception
 from .execution import ExecutionSettings, execute_task
 from .protocol.models import PROTOCOL_VERSION, SweepTaskPayload
+from .protocol.responses import DEFAULT_RESPONSE_DETAIL
 from .run_artifacts import (
     build_result_summary,
     prepare_output_directory,
@@ -115,6 +116,7 @@ def execute_sweep(
     *,
     settings: SweepExecutionSettings | None = None,
     run_id: str | None = None,
+    detail: str = DEFAULT_RESPONSE_DETAIL,
 ) -> dict[str, Any]:
     """Run or resume a finite sweep while preserving every child outcome."""
 
@@ -165,6 +167,7 @@ def execute_sweep(
                 simulation,
                 child_dir,
                 settings=config.child_execution,
+                detail=detail,
             )
             result_path = child_dir / "SIMULATION_RESULT.json"
             metrics: dict[str, float] = {}
@@ -278,6 +281,7 @@ def execute_sweep(
         summary=summary,
         failures=failures,
         run_id=parent_run_id,
+        detail=detail,
     )
 
 

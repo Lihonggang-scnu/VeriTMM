@@ -17,6 +17,7 @@ from .execution import ExecutionSettings
 from .experiment_store import ExperimentStore, compare_runs, default_store_root
 from .managed_execution import execute_managed_task
 from .preflight import preflight_path
+from .protocol.responses import DEFAULT_RESPONSE_DETAIL, project_response
 from .run_artifacts import (
     build_result_summary,
     file_sha256,
@@ -31,12 +32,23 @@ from .task_io import load_task
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def _emit(payload: Any) -> None:
-    """Emit exactly one JSON object to stdout."""
+def _emit(
+    payload: Any,
+    *,
+    detail: str = DEFAULT_RESPONSE_DETAIL,
+    project: bool = True,
+) -> None:
+    """Emit exactly one JSON object to stdout.
+
+    All machine-facing commands use the shared response projection.  Schema
+    documents opt out because their arrays are part of the contract itself.
+    """
+
+    rendered = project_response(payload, detail=detail) if project else payload
 
     print(
         json.dumps(
-            payload,
+            rendered,
             ensure_ascii=False,
             sort_keys=True,
             separators=(",", ":"),
@@ -69,8 +81,21 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
+    def add_detail(
+        command: argparse.ArgumentParser,
+        *,
+        default: str = DEFAULT_RESPONSE_DETAIL,
+    ) -> None:
+        command.add_argument(
+            "--detail",
+            choices=("compact", "standard", "full"),
+            default=default,
+            help=f"Response profile for machine-facing output (default: {default})",
+        )
+
     describe = subparsers.add_parser("describe", help="Describe supported physics and protocol")
     describe.add_argument("--json", action="store_true", help="Emit compact machine JSON")
+    add_detail(describe)
 
     schema = subparsers.add_parser("schema", help="Export a public JSON Schema")
     schema.add_argument(
@@ -84,19 +109,24 @@ def _build_parser() -> argparse.ArgumentParser:
             "preflight",
             "failure",
             "run_result",
+            "response",
         ),
     )
+    add_detail(schema)
 
-    subparsers.add_parser("examples", help="List bundled task examples")
+    examples = subparsers.add_parser("examples", help="List bundled task examples")
+    add_detail(examples)
 
     preflight = subparsers.add_parser("preflight", help="Validate without running a spectrum")
     preflight.add_argument("task")
     preflight.add_argument("--json", action="store_true", help="Emit compact machine JSON")
+    add_detail(preflight)
 
     run = subparsers.add_parser("run", help="Execute and certify one task")
     run.add_argument("task")
     run.add_argument("--output-dir", required=True)
     run.add_argument("--json", action="store_true", help="Emit compact machine JSON")
+    add_detail(run)
     run.add_argument("--device", default="cpu")
     run.add_argument("--physics-python", default=None)
     run.add_argument("--skip-certificate", action="store_true")
@@ -122,6 +152,7 @@ def _build_parser() -> argparse.ArgumentParser:
     history.add_argument("--experiment", default=None)
     history.add_argument("--limit", type=int, default=100)
     history.add_argument("--json", action="store_true")
+    add_detail(history)
 
     for name, help_text in (
         ("inspect", "Inspect one persisted run"),
@@ -131,12 +162,14 @@ def _build_parser() -> argparse.ArgumentParser:
         command.add_argument("run_id")
         command.add_argument("--store-dir", default=None)
         command.add_argument("--json", action="store_true")
+        add_detail(command)
 
     compare = subparsers.add_parser("compare", help="Compare two persisted runs")
     compare.add_argument("run_a")
     compare.add_argument("run_b")
     compare.add_argument("--store-dir", default=None)
     compare.add_argument("--json", action="store_true")
+    add_detail(compare)
 
     benchmark = subparsers.add_parser(
         "benchmark", help="Run the deterministic offline AgentBench suite"
@@ -146,6 +179,7 @@ def _build_parser() -> argparse.ArgumentParser:
     benchmark.add_argument("--output", default="BENCHMARK_RESULT.json")
     benchmark.add_argument("--work-dir", default=None)
     benchmark.add_argument("--json", action="store_true")
+    add_detail(benchmark)
 
     agent_benchmark = subparsers.add_parser(
         "agent-benchmark", help="Score framework-neutral agent A/B trajectories"
@@ -154,6 +188,7 @@ def _build_parser() -> argparse.ArgumentParser:
     agent_benchmark.add_argument("--cases-dir", default=None)
     agent_benchmark.add_argument("--output", default=None)
     agent_benchmark.add_argument("--json", action="store_true")
+    add_detail(agent_benchmark)
     return parser
 
 
@@ -241,7 +276,12 @@ def _examples() -> dict[str, Any]:
     return {"ok": all(item["mode"] != "invalid" for item in examples), "examples": examples}
 
 
-def _failed_load_result(task_path: str | Path, output_dir: str | Path) -> dict[str, Any]:
+def _failed_load_result(
+    task_path: str | Path,
+    output_dir: str | Path,
+    *,
+    detail: str = DEFAULT_RESPONSE_DETAIL,
+) -> dict[str, Any]:
     report = preflight_path(task_path)
     root = prepare_output_directory(output_dir)
     run_id = f"run_{uuid.uuid4().hex}"
@@ -282,6 +322,7 @@ def _failed_load_result(task_path: str | Path, output_dir: str | Path) -> dict[s
         failures=report.get("failures", []),
         run_id=run_id,
         input_sha256=input_sha256,
+        detail=detail,
     )
 
 
@@ -333,6 +374,7 @@ def _child_runtime_failure(
         failures=[failure_payload],
         run_id=run_id,
         input_sha256=file_sha256(args.task) if Path(args.task).is_file() else None,
+        detail=str(getattr(args, "detail", DEFAULT_RESPONSE_DETAIL)),
     )
 
 
@@ -365,6 +407,8 @@ def _optimization_child_command(args: argparse.Namespace) -> list[str] | None:
         "--convergence-integral-tolerance",
         str(args.convergence_integral_tolerance),
         "--json",
+        "--detail",
+        str(args.detail),
         "--portfolio-max-candidates",
         str(args.portfolio_max_candidates),
     ]
@@ -398,7 +442,7 @@ def _run(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
     try:
         mode, task = load_task(args.task)
     except Exception:
-        payload = _failed_load_result(args.task, args.output_dir)
+        payload = _failed_load_result(args.task, args.output_dir, detail=args.detail)
         _record_failed_load(args, payload, store)
         return 2, payload
 
@@ -464,6 +508,7 @@ def _run(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
         user_metadata=_user_metadata(args),
         cache=bool(args.cache),
         resume=bool(args.resume),
+        detail=args.detail,
     )
     return (0 if payload["ok"] else 3), payload
 
@@ -472,22 +517,22 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = _build_parser().parse_args(argv)
     try:
         if args.command == "describe":
-            _emit(_describe())
+            _emit(_describe(), detail=args.detail)
             return 0
         if args.command == "schema":
-            _emit(_schema(args.kind))
+            _emit(_schema(args.kind), project=False)
             return 0
         if args.command == "examples":
             payload = _examples()
-            _emit(payload)
+            _emit(payload, detail=args.detail)
             return 0 if payload["ok"] else 2
         if args.command == "preflight":
             payload = preflight_path(args.task)
-            _emit(payload)
+            _emit(payload, detail=args.detail)
             return 0 if payload["ok"] else 2
         if args.command == "run":
             code, payload = _run(args)
-            _emit(payload)
+            _emit(payload, detail=args.detail)
             return code
         if args.command == "history":
             store = ExperimentStore(args.store_dir or default_store_root())
@@ -498,20 +543,21 @@ def main(argv: Sequence[str] | None = None) -> int:
                     "ok": True,
                     "store_root": str(store.root),
                     "runs": [record.to_dict() for record in runs],
-                }
+                },
+                detail=args.detail,
             )
             return 0
         if args.command == "inspect":
             store = ExperimentStore(args.store_dir or default_store_root())
-            _emit({"ok": True, **store.inspect(args.run_id)})
+            _emit({"ok": True, **store.inspect(args.run_id)}, detail=args.detail)
             return 0
         if args.command == "lineage":
             store = ExperimentStore(args.store_dir or default_store_root())
-            _emit({"ok": True, **store.get_lineage(args.run_id)})
+            _emit({"ok": True, **store.get_lineage(args.run_id)}, detail=args.detail)
             return 0
         if args.command == "compare":
             store = ExperimentStore(args.store_dir or default_store_root())
-            _emit({"ok": True, **compare_runs(store, args.run_a, args.run_b)})
+            _emit({"ok": True, **compare_runs(store, args.run_a, args.run_b)}, detail=args.detail)
             return 0
         if args.command == "benchmark":
             from .agent_bench import (
@@ -525,8 +571,9 @@ def main(argv: Sequence[str] | None = None) -> int:
                 load_benchmark_cases(case_root),
                 output_path=args.output,
                 work_dir=args.work_dir,
+                detail=args.detail,
             )
-            _emit(payload)
+            _emit(payload, detail=args.detail)
             return 0 if payload["release_gate_passed"] else 3
         if args.command == "agent-benchmark":
             from .agent_harness import load_trajectories, score_trajectories
@@ -541,10 +588,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             payload = score_trajectories(
                 load_trajectories(args.trajectories),
                 cases=cases,
+                output_path=args.output,
+                detail=args.detail,
             )
-            if args.output:
-                write_json(args.output, payload)
-            _emit(payload)
+            _emit(payload, detail=args.detail)
             return 0
     except Exception as exc:
         failure = failure_from_exception(exc)
@@ -554,7 +601,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                 "operation": str(args.command),
                 "status": "failed",
                 "error": failure.to_dict(),
-            }
+            },
+            detail=str(getattr(args, "detail", DEFAULT_RESPONSE_DETAIL)),
         )
         return 2
     return 2

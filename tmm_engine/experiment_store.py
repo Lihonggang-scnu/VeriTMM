@@ -7,7 +7,9 @@ the capability gate or physics certificate.
 
 from __future__ import annotations
 
+import csv
 import json
+import os
 import shutil
 import sqlite3
 import uuid
@@ -19,6 +21,22 @@ from typing import Any, Iterable, Mapping
 from .run_artifacts import stable_payload_sha256, write_json
 
 EXPERIMENT_STORE_SCHEMA_VERSION = "veritmm-experiment-store-v1"
+_RUN_SCOPED_CACHE_ARTIFACTS: tuple[str, ...] = (
+    "RESULT_SUMMARY.json",
+    "RUN_MANIFEST.json",
+    "SWEEP_RESULT.json",
+    "SENSITIVITY_RESULT.json",
+    "TOLERANCE_RESULT.json",
+    "ROBUSTNESS_REPORT.json",
+)
+
+
+class RunLedgerConflictError(RuntimeError):
+    """Raised when an operation would overwrite immutable run provenance."""
+
+    def __init__(self, run_id: str, message: str) -> None:
+        super().__init__(message)
+        self.run_id = run_id
 
 
 def _utc_now() -> str:
@@ -136,21 +154,74 @@ class ExperimentStore:
             raise ValueError("invalid run_id")
         return self.runs_root / run_id
 
+    @staticmethod
+    def assert_no_path_redirection(path: str | Path) -> None:
+        """Reject symlink/junction components before resolving an output path."""
+
+        absolute = Path(path).absolute()
+        for candidate in (absolute, *absolute.parents):
+            if not candidate.exists() and not candidate.is_symlink():
+                continue
+            candidate_stat = candidate.lstat()
+            if candidate.is_symlink() or getattr(candidate_stat, "st_reparse_tag", 0):
+                raise ValueError(
+                    f"artifact paths must not traverse links or reparse points: {candidate}"
+                )
+
     def archive_artifacts(self, source: str | Path, run_id: str) -> Path:
         """Copy one completed invocation into the store's canonical run tree."""
 
-        source_root = Path(source).resolve()
-        target = self.artifact_dir(run_id).resolve()
+        source_path = Path(source)
+        if source_path.is_symlink():
+            raise ValueError("artifact source root must not be a symbolic link")
+        source_root = source_path.resolve()
+        target_path = self.artifact_dir(run_id)
+        if target_path.is_symlink():
+            raise ValueError("canonical artifact directory must not be a symbolic link")
+        target = target_path.resolve()
+        if target.parent != self.runs_root.resolve():
+            raise ValueError("canonical artifact directory escapes the runs root")
         if source_root == target:
             return target
-        target.mkdir(parents=True, exist_ok=True)
-        for path in sorted(source_root.iterdir()):
-            destination = target / path.name
-            if path.is_dir():
-                shutil.copytree(path, destination, dirs_exist_ok=True)
-            else:
-                shutil.copy2(path, destination)
+        if target.exists() and (
+            not target.is_dir() or any(target.iterdir())
+        ):
+            raise RunLedgerConflictError(
+                run_id,
+                f"canonical artifact directory is already non-empty for run_id: {run_id}",
+            )
+        self.assert_artifact_tree_no_links(source_root)
+        staging = self.runs_root / f".stage-{uuid.uuid4().hex[:8]}"
+        staging.mkdir()
+        try:
+            for path in sorted(source_root.iterdir()):
+                destination = staging / path.name
+                if path.is_dir():
+                    shutil.copytree(path, destination, symlinks=True)
+                else:
+                    shutil.copy2(path, destination)
+            self.assert_artifact_tree_no_links(staging)
+            if target.exists():
+                target.rmdir()
+            staging.replace(target)
+        except Exception:
+            if staging.is_dir():
+                shutil.rmtree(staging)
+            raise
         return target
+
+    def discard_unindexed_artifacts(self, run_ids: Iterable[str]) -> None:
+        """Rollback staged canonical directories that have no committed ledger row."""
+
+        for raw_run_id in run_ids:
+            run_id = str(raw_run_id)
+            if self.get_run(run_id) is not None:
+                continue
+            target = self.artifact_dir(run_id).resolve()
+            if target.parent != self.runs_root.resolve():  # pragma: no cover - guard
+                raise ValueError("refusing to clean artifacts outside canonical runs root")
+            if target.is_dir():
+                shutil.rmtree(target)
 
     def record_run(
         self,
@@ -175,60 +246,171 @@ class ExperimentStore:
         created_at: str | None = None,
         completed_at: str | None = None,
     ) -> RunRecord:
-        """Insert or replace one auditable run record.
+        """Append one immutable run identity to the ledger.
 
         Research metadata is stored verbatim but never inspected by the solver.
+        An existing ``run_id`` is a provenance conflict and is never replaced.
         """
-
-        root = Path(artifact_root).resolve()
-        normalized_tags = tuple(sorted({str(tag) for tag in tags if str(tag)}))
-        metadata = dict(user_metadata or {})
-        created = created_at or _utc_now()
-        completed = completed_at or _utc_now()
-        with self._connect() as conn:
-            if parent_run_id is not None and conn.execute(
-                "SELECT 1 FROM runs WHERE run_id=?", (parent_run_id,)
-            ).fetchone() is None:
-                raise KeyError(f"unknown parent_run_id: {parent_run_id}")
-            if source_run_id is not None and conn.execute(
-                "SELECT 1 FROM runs WHERE run_id=?", (source_run_id,)
-            ).fetchone() is None:
-                raise KeyError(f"unknown source_run_id: {source_run_id}")
-            conn.execute(
-                """
-                INSERT OR REPLACE INTO runs(
-                    run_id, experiment_id, parent_run_id, task_sha256,
-                    execution_identity_sha256, operation, status, created_at,
-                    completed_at, protocol_version, package_version, certificate_id,
-                    artifact_root, cache_hit, source_run_id, tags_json, hypothesis,
-                    change_reason, user_metadata_json
-                ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-                """,
-                (
-                    run_id,
-                    experiment_id,
-                    parent_run_id,
-                    task_sha256,
-                    execution_identity_sha256,
-                    operation,
-                    status,
-                    created,
-                    completed,
-                    protocol_version,
-                    package_version,
-                    certificate_id,
-                    str(root),
-                    int(bool(cache_hit)),
-                    source_run_id,
-                    _json(normalized_tags),
-                    hypothesis,
-                    change_reason,
-                    _json(metadata),
-                ),
+        return self.record_run_batch(
+            (
+                {
+                    "run_id": run_id,
+                    "experiment_id": experiment_id,
+                    "task_sha256": task_sha256,
+                    "execution_identity_sha256": execution_identity_sha256,
+                    "operation": operation,
+                    "status": status,
+                    "protocol_version": protocol_version,
+                    "package_version": package_version,
+                    "artifact_root": artifact_root,
+                    "parent_run_id": parent_run_id,
+                    "certificate_id": certificate_id,
+                    "cache_hit": cache_hit,
+                    "source_run_id": source_run_id,
+                    "tags": tuple(tags),
+                    "hypothesis": hypothesis,
+                    "change_reason": change_reason,
+                    "user_metadata": dict(user_metadata or {}),
+                    "created_at": created_at,
+                    "completed_at": completed_at,
+                },
             )
+        )[0]
+
+    def record_run_batch(
+        self,
+        records: Iterable[Mapping[str, Any]],
+    ) -> list[RunRecord]:
+        """Append a parent/child run group in one SQLite transaction."""
+
+        prepared: list[dict[str, Any]] = []
+        for record in records:
+            run_id = str(record["run_id"])
+            tags = record.get("tags") or ()
+            prepared.append(
+                {
+                    **dict(record),
+                    "run_id": run_id,
+                    "artifact_root": str(Path(record["artifact_root"]).resolve()),
+                    "cache_hit": int(bool(record.get("cache_hit", False))),
+                    "tags_json": _json(
+                        tuple(sorted({str(tag) for tag in tags if str(tag)}))
+                    ),
+                    "user_metadata_json": _json(
+                        dict(record.get("user_metadata") or {})
+                    ),
+                    "created_at": record.get("created_at") or _utc_now(),
+                    "completed_at": record.get("completed_at") or _utc_now(),
+                }
+            )
+        if not prepared:
+            return []
+        ids = [record["run_id"] for record in prepared]
+        if len(ids) != len(set(ids)):
+            raise RunLedgerConflictError(
+                next(run_id for run_id in ids if ids.count(run_id) > 1),
+                "duplicate run_id within append-only batch",
+            )
+
+        with self._connect() as conn:
+            for record in prepared:
+                run_id = record["run_id"]
+                if conn.execute(
+                    "SELECT 1 FROM runs WHERE run_id=?", (run_id,)
+                ).fetchone() is not None:
+                    raise RunLedgerConflictError(
+                        run_id,
+                        f"run_id already exists in append-only ledger: {run_id}",
+                    )
+                parent_run_id = record.get("parent_run_id")
+                if parent_run_id is not None and conn.execute(
+                    "SELECT 1 FROM runs WHERE run_id=?", (parent_run_id,)
+                ).fetchone() is None:
+                    raise KeyError(f"unknown parent_run_id: {parent_run_id}")
+                source_run_id = record.get("source_run_id")
+                if source_run_id is not None and conn.execute(
+                    "SELECT 1 FROM runs WHERE run_id=?", (source_run_id,)
+                ).fetchone() is None:
+                    raise KeyError(f"unknown source_run_id: {source_run_id}")
+                try:
+                    conn.execute(
+                        """
+                        INSERT INTO runs(
+                            run_id, experiment_id, parent_run_id, task_sha256,
+                            execution_identity_sha256, operation, status, created_at,
+                            completed_at, protocol_version, package_version, certificate_id,
+                            artifact_root, cache_hit, source_run_id, tags_json, hypothesis,
+                            change_reason, user_metadata_json
+                        ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                        """,
+                        (
+                            run_id,
+                            record["experiment_id"],
+                            parent_run_id,
+                            record.get("task_sha256"),
+                            record.get("execution_identity_sha256"),
+                            record["operation"],
+                            record["status"],
+                            record["created_at"],
+                            record["completed_at"],
+                            record["protocol_version"],
+                            record["package_version"],
+                            record.get("certificate_id"),
+                            record["artifact_root"],
+                            record["cache_hit"],
+                            source_run_id,
+                            record["tags_json"],
+                            record.get("hypothesis"),
+                            record.get("change_reason"),
+                            record["user_metadata_json"],
+                        ),
+                    )
+                except sqlite3.IntegrityError as exc:
+                    if conn.execute(
+                        "SELECT 1 FROM runs WHERE run_id=?", (run_id,)
+                    ).fetchone() is not None:
+                        raise RunLedgerConflictError(
+                            run_id,
+                            f"run_id already exists in append-only ledger: {run_id}",
+                        ) from exc
+                    raise
+        inserted = [self.get_run(run_id) for run_id in ids]
+        if any(record is None for record in inserted):  # pragma: no cover
+            raise RuntimeError("run record disappeared after batch insertion")
+        return [record for record in inserted if record is not None]
+
+    def update_run_status(
+        self,
+        run_id: str,
+        *,
+        status: str,
+        completed_at: str | None = None,
+        certificate_id: str | None = None,
+    ) -> RunRecord:
+        """Update only lifecycle fields; identity and research provenance stay immutable."""
+
+        normalized_status = str(status).strip()
+        if not normalized_status:
+            raise ValueError("status must be a non-empty string")
+        assignments = ["status=?"]
+        values: list[Any] = [normalized_status]
+        if completed_at is not None:
+            assignments.append("completed_at=?")
+            values.append(str(completed_at))
+        if certificate_id is not None:
+            assignments.append("certificate_id=?")
+            values.append(str(certificate_id))
+        values.append(run_id)
+        with self._connect() as conn:
+            cursor = conn.execute(
+                f"UPDATE runs SET {', '.join(assignments)} WHERE run_id=?",
+                tuple(values),
+            )
+            if cursor.rowcount != 1:
+                raise KeyError(f"unknown run_id: {run_id}")
         record = self.get_run(run_id)
         if record is None:  # pragma: no cover - SQLite contract guard
-            raise RuntimeError("run record disappeared after insertion")
+            raise RuntimeError("run record disappeared after lifecycle update")
         return record
 
     def record_envelope(
@@ -244,28 +426,56 @@ class ExperimentStore:
         change_reason: str | None = None,
         user_metadata: Mapping[str, Any] | None = None,
     ) -> RunRecord:
-        from . import __version__
-
-        run_id = str(envelope["run_id"])
-        return self.record_run(
-            run_id=run_id,
-            experiment_id=experiment_id or self.new_experiment_id(),
-            parent_run_id=parent_run_id,
-            task_sha256=envelope.get("task_sha256"),
-            execution_identity_sha256=execution_identity_sha256,
-            operation=str(envelope.get("operation", "unknown")),
-            status=str(envelope.get("status", "unknown")),
-            protocol_version=str(envelope.get("protocol_version", "unknown")),
-            package_version=__version__,
-            certificate_id=envelope.get("certificate_id"),
+        fields = self.envelope_record_fields(
+            envelope,
             artifact_root=artifact_root,
-            cache_hit=bool(envelope.get("cache_hit", False)),
-            source_run_id=envelope.get("source_run_id"),
+            experiment_id=experiment_id,
+            parent_run_id=parent_run_id,
+            execution_identity_sha256=execution_identity_sha256,
             tags=tags,
             hypothesis=hypothesis,
             change_reason=change_reason,
             user_metadata=user_metadata,
         )
+        return self.record_run(**fields)
+
+    def envelope_record_fields(
+        self,
+        envelope: Mapping[str, Any],
+        *,
+        artifact_root: str | Path,
+        experiment_id: str | None = None,
+        parent_run_id: str | None = None,
+        execution_identity_sha256: str | None = None,
+        tags: Iterable[str] = (),
+        hypothesis: str | None = None,
+        change_reason: str | None = None,
+        user_metadata: Mapping[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Normalize an envelope into one append-only ledger row request."""
+
+        from . import __version__
+
+        run_id = str(envelope["run_id"])
+        return {
+            "run_id": run_id,
+            "experiment_id": experiment_id or self.new_experiment_id(),
+            "parent_run_id": parent_run_id,
+            "task_sha256": envelope.get("task_sha256"),
+            "execution_identity_sha256": execution_identity_sha256,
+            "operation": str(envelope.get("operation", "unknown")),
+            "status": str(envelope.get("status", "unknown")),
+            "protocol_version": str(envelope.get("protocol_version", "unknown")),
+            "package_version": __version__,
+            "certificate_id": envelope.get("certificate_id"),
+            "artifact_root": artifact_root,
+            "cache_hit": bool(envelope.get("cache_hit", False)),
+            "source_run_id": envelope.get("source_run_id"),
+            "tags": tuple(tags),
+            "hypothesis": hypothesis,
+            "change_reason": change_reason,
+            "user_metadata": dict(user_metadata or {}),
+        }
 
     @staticmethod
     def _from_row(row: sqlite3.Row) -> RunRecord:
@@ -357,7 +567,14 @@ class ExperimentStore:
         if row is None:
             return None
         record = self._from_row(row)
-        return record if Path(record.artifact_root, "RUN_RESULT.json").is_file() else None
+        result_path = Path(record.artifact_root, "RUN_RESULT.json")
+        if not result_path.is_file():
+            return None
+        try:
+            result = json.loads(result_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return None
+        return record if isinstance(result, dict) and result.get("ok") is True else None
 
     @staticmethod
     def execution_identity(
@@ -388,19 +605,101 @@ class ExperimentStore:
         """Copy immutable artifacts while preserving source provenance."""
 
         source_root = Path(source.artifact_root)
+        self.assert_no_path_redirection(destination)
         target = Path(destination).resolve()
         if source_root.resolve() == target:
             raise ValueError("cache destination must differ from source artifact root")
-        target.mkdir(parents=True, exist_ok=True)
+        if target.exists() and (
+            not target.is_dir() or any(target.iterdir())
+        ):
+            raise RunLedgerConflictError(
+                new_run_id,
+                "cache destination must be empty; existing artifacts are immutable",
+            )
+        self.assert_artifact_tree_no_links(source_root)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        staging = target.with_name(f".stage-{uuid.uuid4().hex[:8]}")
+        staging.mkdir()
+        try:
+            result = self._materialize_cache_hit_into(
+                source,
+                staging,
+                new_run_id=new_run_id,
+            )
+            if target.exists():
+                target.rmdir()
+            staging.replace(target)
+            return result
+        except Exception:
+            if staging.is_dir():
+                shutil.rmtree(staging)
+            raise
+
+    @staticmethod
+    def assert_artifact_tree_no_links(root: Path) -> None:
+        root_stat = root.lstat()
+        if root.is_symlink() or getattr(root_stat, "st_reparse_tag", 0):
+            raise ValueError("artifact root must not be a symbolic link")
+        pending = [root]
+        while pending:
+            current = pending.pop()
+            with os.scandir(current) as entries:
+                for entry in entries:
+                    entry_stat = entry.stat(follow_symlinks=False)
+                    if entry.is_symlink() or getattr(entry_stat, "st_reparse_tag", 0):
+                        raise ValueError(
+                            f"artifact trees must not contain links: {entry.name}"
+                        )
+                    if entry.is_dir(follow_symlinks=False):
+                        pending.append(Path(entry.path))
+
+    def _materialize_cache_hit_into(
+        self,
+        source: RunRecord,
+        target: Path,
+        *,
+        new_run_id: str,
+    ) -> dict[str, Any]:
+        source_root = Path(source.artifact_root)
         for path in sorted(source_root.iterdir()):
             if path.name == "RUN_RESULT.json":
                 continue
             destination_path = target / path.name
             if path.is_dir():
-                shutil.copytree(path, destination_path, dirs_exist_ok=True)
+                shutil.copytree(path, destination_path, symlinks=True)
             else:
                 shutil.copy2(path, destination_path)
+        self.assert_artifact_tree_no_links(target)
         result = json.loads((source_root / "RUN_RESULT.json").read_text(encoding="utf-8"))
+        if not isinstance(result, dict):
+            raise ValueError("cached RUN_RESULT.json must contain a JSON object")
+        if str(result.get("run_id") or "") != source.run_id:
+            raise ValueError("cached RUN_RESULT.run_id does not match source ledger")
+        if result.get("ok") is not True:
+            raise ValueError("only a successful source run can be materialized from cache")
+        artifact_payloads: dict[str, dict[str, Any]] = {}
+        for name in _RUN_SCOPED_CACHE_ARTIFACTS:
+            artifact_path = target / name
+            if not artifact_path.is_file():
+                continue
+            artifact = json.loads(artifact_path.read_text(encoding="utf-8"))
+            if not isinstance(artifact, dict):
+                raise ValueError(f"cache artifact must contain a JSON object: {name}")
+            artifact_run_id = artifact.get("run_id")
+            if artifact_run_id is not None and str(artifact_run_id) != source.run_id:
+                raise ValueError(
+                    f"cache artifact run_id does not match source ledger: {name}"
+                )
+            artifact_payloads[name] = artifact
+        if source.operation == "sweep" and "SWEEP_RESULT.json" not in artifact_payloads:
+            raise ValueError("a cached sweep source must contain SWEEP_RESULT.json")
+        if source.operation != "sweep" and "SWEEP_RESULT.json" in artifact_payloads:
+            raise ValueError("SWEEP_RESULT.json is inconsistent with the source operation")
+        self._validate_cached_sweep_children(
+            target,
+            artifact_payloads.get("SWEEP_RESULT.json"),
+            source_parent_run_id=source.run_id,
+        )
         result["run_id"] = new_run_id
         result["cache_hit"] = True
         result["source_run_id"] = source.run_id
@@ -408,26 +707,230 @@ class ExperimentStore:
             "mode": "cache_copy",
             "source_run_id": source.run_id,
         }
-        summary_path = target / "RESULT_SUMMARY.json"
-        if summary_path.is_file():
-            summary = json.loads(summary_path.read_text(encoding="utf-8"))
-            summary["run_id"] = new_run_id
-            summary["cache_hit"] = True
-            summary["source_run_id"] = source.run_id
-            write_json(summary_path, summary)
-        manifest_path = target / "RUN_MANIFEST.json"
-        if manifest_path.is_file():
-            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-            manifest["run_id"] = new_run_id
-            manifest["cache_hit"] = True
-            manifest["source_run_id"] = source.run_id
-            write_json(manifest_path, manifest)
+        for name in _RUN_SCOPED_CACHE_ARTIFACTS:
+            artifact_path = target / name
+            artifact = artifact_payloads.get(name)
+            if artifact is None:
+                continue
+            artifact["run_id"] = new_run_id
+            artifact["cache_hit"] = True
+            artifact["source_run_id"] = source.run_id
+            artifact["artifact_provenance"] = {
+                "mode": "cache_copy",
+                "source_run_id": source.run_id,
+            }
+            write_json(artifact_path, artifact)
+        self._rebase_cached_sweep_children(
+            target,
+            source_parent_run_id=source.run_id,
+        )
         # Refresh hashes because RESULT_SUMMARY changed.
         from .run_artifacts import index_artifacts
 
         result["artifacts"] = index_artifacts(target)
         write_json(target / "RUN_RESULT.json", result)
         return result
+
+    def _validate_cached_sweep_children(
+        self,
+        target: Path,
+        sweep: Mapping[str, Any] | None,
+        *,
+        source_parent_run_id: str,
+    ) -> None:
+        if sweep is None:
+            return
+        children = sweep.get("children")
+        if not isinstance(children, list):
+            raise ValueError("cached SWEEP_RESULT.children must be a list")
+        if not children:
+            raise ValueError("a successful cached sweep must contain at least one child")
+        children_root = (target / "children").resolve()
+        seen_roots: set[Path] = set()
+        seen_ids: set[str] = set()
+        for child in children:
+            if not isinstance(child, Mapping):
+                raise ValueError("cached sweep child must be a JSON object")
+            source_child_run_id = child.get("child_run_id")
+            relative_root = child.get("artifact_root")
+            if not source_child_run_id or not relative_root:
+                raise ValueError(
+                    "cached sweep child requires child_run_id and artifact_root"
+                )
+            source_id = str(source_child_run_id)
+            if source_id in seen_ids:
+                raise ValueError("cached sweep child_run_id values must be unique")
+            seen_ids.add(source_id)
+            source_record = self.get_run(source_id)
+            if source_record is None or source_record.parent_run_id != source_parent_run_id:
+                raise ValueError(
+                    "cached sweep child identity is not linked to the source parent ledger"
+                )
+            if source_record.status not in {
+                "completed",
+                "physically_valid",
+                "physically_valid_with_limits",
+            }:
+                raise ValueError("cached sweep child ledger status is not successful")
+            child_root = (target / str(relative_root)).resolve()
+            try:
+                child_root.relative_to(children_root)
+            except ValueError as exc:
+                raise ValueError(
+                    "cached sweep child artifact_root must stay under children/"
+                ) from exc
+            if child_root == children_root or child_root.parent != children_root:
+                raise ValueError(
+                    "cached sweep child artifact_root must name one direct child directory"
+                )
+            if child_root in seen_roots:
+                raise ValueError("cached sweep child artifact roots must be unique")
+            seen_roots.add(child_root)
+            if not child_root.is_dir():
+                raise ValueError(
+                    f"cached sweep child artifact directory is missing: {relative_root}"
+                )
+            for name in ("RUN_RESULT.json", "RESULT_SUMMARY.json", "RUN_MANIFEST.json"):
+                artifact_path = child_root / name
+                if name == "RUN_RESULT.json" and not artifact_path.is_file():
+                    raise ValueError(
+                        f"cached sweep child RUN_RESULT.json is missing: {relative_root}"
+                    )
+                if not artifact_path.is_file():
+                    continue
+                payload = json.loads(artifact_path.read_text(encoding="utf-8"))
+                if not isinstance(payload, dict):
+                    raise ValueError(
+                        f"cached sweep child artifact must be a JSON object: {name}"
+                    )
+                artifact_run_id = payload.get("run_id")
+                if name == "RUN_RESULT.json" and artifact_run_id is None:
+                    raise ValueError("cached sweep child RUN_RESULT.json requires run_id")
+                if artifact_run_id is not None and str(artifact_run_id) != source_id:
+                    raise ValueError(
+                        f"cached sweep child artifact has inconsistent run_id: {name}"
+                    )
+                if name == "RUN_RESULT.json" and payload.get("ok") is not True:
+                    raise ValueError(
+                        "cached sweep child RUN_RESULT.json must describe a successful run"
+                    )
+        table_path = target / "SWEEP_TABLE.csv"
+        if not table_path.is_file():
+            raise ValueError("cached sweep is missing SWEEP_TABLE.csv")
+        if seen_ids:
+            with table_path.open(newline="", encoding="utf-8") as handle:
+                reader = csv.DictReader(handle)
+                if "child_run_id" not in list(reader.fieldnames or []):
+                    raise ValueError("cached SWEEP_TABLE.csv lacks child_run_id")
+                table_id_list = [
+                    str(row.get("child_run_id") or "").strip() for row in reader
+                ]
+            if any(not run_id for run_id in table_id_list):
+                raise ValueError("cached SWEEP_TABLE.csv contains a blank child ID")
+            if len(table_id_list) != len(set(table_id_list)):
+                raise ValueError("cached SWEEP_TABLE.csv contains duplicate child IDs")
+            if set(table_id_list) != seen_ids or len(table_id_list) != len(seen_ids):
+                raise ValueError(
+                    "cached SWEEP_TABLE.csv child IDs must exactly match SWEEP_RESULT"
+                )
+
+    def _rebase_cached_sweep_children(
+        self,
+        target: Path,
+        *,
+        source_parent_run_id: str,
+    ) -> None:
+        """Give every copied sweep child a fresh invocation identity.
+
+        A cached sweep is a new parent invocation, not an alias of the source
+        sweep.  Its child invocations therefore need fresh ``run_id`` values as
+        well.  The original child identities remain explicit provenance links.
+        """
+
+        sweep_path = target / "SWEEP_RESULT.json"
+        if not sweep_path.is_file():
+            return
+        sweep = json.loads(sweep_path.read_text(encoding="utf-8"))
+        if not isinstance(sweep, dict):
+            raise ValueError("SWEEP_RESULT.json must contain a JSON object")
+        children = sweep.get("children")
+        if not isinstance(children, list):
+            return
+
+        from .run_artifacts import index_artifacts
+
+        child_id_map: dict[str, str] = {}
+        for child in children:
+            if not isinstance(child, dict):
+                continue
+            source_child_run_id = child.get("child_run_id")
+            relative_root = child.get("artifact_root")
+            if not source_child_run_id or not relative_root:
+                continue
+            child_root = (target / str(relative_root)).resolve()
+
+            new_child_run_id = self.new_run_id()
+            child_id_map[str(source_child_run_id)] = new_child_run_id
+            provenance = {
+                "mode": "cache_copy",
+                "source_run_id": str(source_child_run_id),
+                "source_parent_run_id": source_parent_run_id,
+            }
+            for name in ("RESULT_SUMMARY.json", "RUN_MANIFEST.json"):
+                artifact_path = child_root / name
+                if not artifact_path.is_file():
+                    continue
+                artifact = json.loads(artifact_path.read_text(encoding="utf-8"))
+                if not isinstance(artifact, dict):
+                    raise ValueError(
+                        f"cached sweep child artifact must be a JSON object: {name}"
+                    )
+                artifact["run_id"] = new_child_run_id
+                artifact["cache_hit"] = True
+                artifact["source_run_id"] = str(source_child_run_id)
+                artifact["artifact_provenance"] = provenance
+                write_json(artifact_path, artifact)
+
+            result_path = child_root / "RUN_RESULT.json"
+            if not result_path.is_file():
+                raise ValueError(
+                    f"cached sweep child RUN_RESULT.json is missing: {relative_root}"
+                )
+            result = json.loads(result_path.read_text(encoding="utf-8"))
+            if not isinstance(result, dict):
+                raise ValueError("cached sweep child RUN_RESULT.json must be an object")
+            result["run_id"] = new_child_run_id
+            result["cache_hit"] = True
+            result["source_run_id"] = str(source_child_run_id)
+            result["artifact_provenance"] = provenance
+            result["artifacts"] = index_artifacts(child_root)
+            write_json(result_path, result)
+
+            child["source_child_run_id"] = str(source_child_run_id)
+            child["child_run_id"] = new_child_run_id
+            child["cache_hit"] = True
+            child["artifact_provenance"] = provenance
+
+        write_json(sweep_path, sweep)
+        table_path = target / "SWEEP_TABLE.csv"
+        if table_path.is_file() and child_id_map:
+            with table_path.open(newline="", encoding="utf-8") as handle:
+                reader = csv.DictReader(handle)
+                fieldnames = list(reader.fieldnames or [])
+                if "child_run_id" not in fieldnames:
+                    raise ValueError("cached SWEEP_TABLE.csv lacks child_run_id")
+                rows = [dict(row) for row in reader]
+            for row in rows:
+                source_child_id = str(row.get("child_run_id") or "")
+                if source_child_id not in child_id_map:
+                    raise ValueError("cached SWEEP_TABLE.csv contains an unknown child ID")
+                row["child_run_id"] = child_id_map[source_child_id]
+            temporary = table_path.with_suffix(".csv.tmp")
+            with temporary.open("w", newline="", encoding="utf-8") as handle:
+                writer = csv.DictWriter(handle, fieldnames=fieldnames)
+                writer.writeheader()
+                writer.writerows(rows)
+            temporary.replace(table_path)
 
     def inspect(self, run_id: str) -> dict[str, Any]:
         record = self.get_run(run_id)
@@ -549,6 +1052,7 @@ def compare_runs(store: ExperimentStore, run_a: str, run_b: str) -> dict[str, An
 __all__ = [
     "EXPERIMENT_STORE_SCHEMA_VERSION",
     "ExperimentStore",
+    "RunLedgerConflictError",
     "RunRecord",
     "compare_runs",
     "default_store_root",

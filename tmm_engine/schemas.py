@@ -286,6 +286,7 @@ class OptimizerSpec:
 @dataclass(frozen=True)
 class RobustnessSpec:
     enabled: bool = True
+    distribution: Literal["normal"] = "normal"
     objective: Literal["expected_loss", "worst_case_loss", "mean_plus_k_sigma"] = (
         "expected_loss"
     )
@@ -294,8 +295,12 @@ class RobustnessSpec:
     seed: int = 42
     thickness_sigma_nm: float = 2.0
     k_sigma: float = 2.0
+    boundary_policy: Literal["truncate"] = "truncate"
+    min_thickness_physical_nm: float = 0.1
 
     def validate(self) -> None:
+        if self.distribution != "normal":
+            raise ValueError("unsupported robustness distribution")
         if self.objective not in (
             "expected_loss",
             "worst_case_loss",
@@ -308,6 +313,12 @@ class RobustnessSpec:
             raise ValueError("thickness_sigma_nm must be positive")
         if _finite_float(self.k_sigma, "k_sigma") < 0:
             raise ValueError("k_sigma must be non-negative")
+        if self.boundary_policy != "truncate":
+            raise ValueError("unsupported robustness boundary_policy")
+        if _finite_float(
+            self.min_thickness_physical_nm, "min_thickness_physical_nm"
+        ) <= 0:
+            raise ValueError("min_thickness_physical_nm must be positive")
 
 
 @dataclass(frozen=True)

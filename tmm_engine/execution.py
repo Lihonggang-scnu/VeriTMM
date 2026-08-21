@@ -22,6 +22,7 @@ from .capabilities import (
 from .convergence import SpectralConvergenceSettings
 from .material_registry import MaterialRegistry
 from .preflight import preflight_task
+from .protocol.responses import DEFAULT_RESPONSE_DETAIL
 from .run_artifacts import (
     PROTOCOL_VERSION,
     build_result_summary,
@@ -330,9 +331,10 @@ def _write_optimization_portfolio(
                         else float("inf")
                     ),
                 )["candidate_id"],
-                "most_robust": max(
+                "best_heuristic_robustness": max(
                     admissible, key=lambda row: float(row["robustness_score"])
                 )["candidate_id"],
+                "most_robust": None,
                 "easiest_to_manufacture": max(
                     admissible, key=lambda row: float(row["simplicity_score"])
                 )["candidate_id"],
@@ -353,8 +355,13 @@ def execute_task(
     input_path: str | Path | None = None,
     settings: ExecutionSettings | None = None,
     registry: MaterialRegistry | None = None,
+    detail: str = DEFAULT_RESPONSE_DETAIL,
 ) -> dict[str, Any]:
-    """Execute one validated task and always return/write ``RUN_RESULT.json``."""
+    """Execute one validated task and return a profiled ``RUN_RESULT``.
+
+    Detailed simulation, optimization, certificate, and spectrum documents
+    remain in the existing artifact files regardless of ``detail``.
+    """
 
     settings = settings or ExecutionSettings()
     output = prepare_output_directory(output_dir)
@@ -430,6 +437,7 @@ def execute_task(
             failures=[failure],
             run_id=run_id,
             input_sha256=input_sha256,
+            detail=detail,
         )
     if not preflight["ok"]:
         failures = list(preflight["failures"])
@@ -462,6 +470,7 @@ def execute_task(
             failures=failures,
             run_id=run_id,
             input_sha256=input_sha256,
+            detail=detail,
         )
 
     workbench = TMMWorkbench(registry)
@@ -514,18 +523,6 @@ def execute_task(
                             certificate_settings,
                             settings.portfolio_max_candidates,
                         )
-                        if task.robustness is not None and task.robustness.enabled:
-                            from .robust_optimization import evaluate_robust_portfolio
-
-                            portfolio, robustness_report = evaluate_robust_portfolio(
-                                task,
-                                workbench,
-                                portfolio,
-                            )
-                            write_json(output / "DESIGN_PORTFOLIO.json", portfolio)
-                            write_json(
-                                output / "ROBUSTNESS_REPORT.json", robustness_report
-                            )
                     except Exception as exc:
                         preflight["warnings"].append(
                             {
@@ -540,6 +537,53 @@ def execute_task(
                                 },
                             }
                         )
+                    if (
+                        portfolio is not None
+                        and task.robustness is not None
+                        and task.robustness.enabled
+                    ):
+                        from .robust_optimization import (
+                            evaluate_robust_portfolio,
+                            invalidate_unverified_robust_roles,
+                        )
+
+                        portfolio = invalidate_unverified_robust_roles(portfolio)
+                        write_json(output / "DESIGN_PORTFOLIO.json", portfolio)
+                        try:
+                            evaluated_portfolio, evaluated_report = evaluate_robust_portfolio(
+                                task,
+                                workbench,
+                                portfolio,
+                            )
+                            write_json(
+                                output / "DESIGN_PORTFOLIO.json", evaluated_portfolio
+                            )
+                            write_json(
+                                output / "ROBUSTNESS_REPORT.json", evaluated_report
+                            )
+                            portfolio = evaluated_portfolio
+                            robustness_report = evaluated_report
+                        except Exception as exc:
+                            diagnostic = failure_from_exception(exc).to_dict()
+                            robustness_report = None
+                            portfolio = invalidate_unverified_robust_roles(
+                                portfolio,
+                                status="formal_evaluation_failed",
+                                failure=diagnostic,
+                            )
+                            write_json(output / "DESIGN_PORTFOLIO.json", portfolio)
+                            preflight["warnings"].append(
+                                {
+                                    "code": "formal_robustness_unavailable",
+                                    "severity": "warning",
+                                    "message": (
+                                        "The nominal candidate portfolio remains available, "
+                                        "but no candidate is labelled most robust because the "
+                                        "independent final ensemble did not complete."
+                                    ),
+                                    "context": {"diagnostic": diagnostic},
+                                }
+                            )
         else:
             raise ValueError("mode must be simulate or optimize")
 
@@ -618,6 +662,7 @@ def execute_task(
         certificate_id=None if certificate is None else certificate.get("certificate_id"),
         run_id=run_id,
         input_sha256=input_sha256,
+        detail=detail,
     )
 
 

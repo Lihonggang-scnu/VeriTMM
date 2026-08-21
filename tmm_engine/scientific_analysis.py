@@ -12,13 +12,14 @@ from typing import Any
 import numpy as np
 
 from .acceptance import AcceptanceSettings, certify_simulation
-from .capabilities import failure_from_exception
+from .capabilities import FailureCode, FailureRecord, failure_from_exception
 from .material_registry import MaterialRegistry
 from .protocol.models import (
     PROTOCOL_VERSION,
     SensitivityTaskPayload,
     ToleranceTaskPayload,
 )
+from .protocol.responses import DEFAULT_RESPONSE_DETAIL
 from .run_artifacts import (
     build_result_summary,
     prepare_output_directory,
@@ -28,24 +29,19 @@ from .run_artifacts import (
 )
 from .study_metrics import evaluate_metric, metric_constraint_passes
 from .task_io import simulation_task_from_dict
+from .uncertainty import (
+    apply_thickness_boundary_policy,
+    classify_sample_failure,
+    empty_failure_taxonomy,
+    validate_uncertainty_forward,
+    wilson_interval,
+    yield_accounting,
+)
 from .workbench import TMMWorkbench
 
 SENSITIVITY_RESULT_SCHEMA_VERSION = "veritmm-sensitivity-result-v1"
-TOLERANCE_RESULT_SCHEMA_VERSION = "veritmm-tolerance-result-v1"
-ROBUSTNESS_REPORT_SCHEMA_VERSION = "veritmm-robustness-report-v1"
-
-
-def wilson_interval(successes: int, trials: int, z: float = 1.959963984540054) -> list[float]:
-    """Return a two-sided Wilson score interval for a binomial proportion."""
-
-    if trials < 1 or successes < 0 or successes > trials:
-        raise ValueError("Wilson interval requires 0 <= successes <= trials and trials > 0")
-    n = float(trials)
-    p = float(successes) / n
-    denominator = 1.0 + z * z / n
-    center = (p + z * z / (2.0 * n)) / denominator
-    margin = z * math.sqrt(p * (1.0 - p) / n + z * z / (4.0 * n * n)) / denominator
-    return [max(0.0, center - margin), min(1.0, center + margin)]
+TOLERANCE_RESULT_SCHEMA_VERSION = "veritmm-tolerance-result-v2"
+ROBUSTNESS_REPORT_SCHEMA_VERSION = "veritmm-robustness-report-v2"
 
 
 def _metric_tensor(optimizer: Any, simulation: Any, metric: Any, thicknesses_nm: Any) -> Any:
@@ -117,6 +113,7 @@ def execute_sensitivity(
     *,
     device: str = "cpu",
     registry: MaterialRegistry | None = None,
+    detail: str = DEFAULT_RESPONSE_DETAIL,
 ) -> dict[str, Any]:
     """Calculate autograd thickness sensitivities and audit each by NumPy FD."""
 
@@ -297,7 +294,27 @@ def execute_sensitivity(
         failures=failures,
         certificate_id=None if certificate is None else certificate.get("certificate_id"),
         run_id=run_id,
+        detail=detail,
     )
+
+
+def _evaluate_tolerance_sample(
+    workbench: TMMWorkbench,
+    simulation: Any,
+    request: ToleranceTaskPayload,
+) -> tuple[float, bool]:
+    """Evaluate one bounded perturbation; isolated for deterministic fault tests."""
+
+    forward = workbench.simulate(simulation)
+    validate_uncertainty_forward(forward)
+    metric_value = float(evaluate_metric(forward, request.metric))
+    if not np.isfinite(metric_value):
+        raise FloatingPointError("perturbed tolerance metric is non-finite")
+    passed = metric_constraint_passes(
+        metric_value,
+        {"constraint": request.target.constraint, "value": request.target.value},
+    )
+    return metric_value, bool(passed)
 
 
 def execute_tolerance(
@@ -305,8 +322,9 @@ def execute_tolerance(
     output_dir: str | Path,
     *,
     registry: MaterialRegistry | None = None,
+    detail: str = DEFAULT_RESPONSE_DETAIL,
 ) -> dict[str, Any]:
-    """Run a seeded thickness uncertainty study and report statistical yield."""
+    """Run seeded thickness uncertainty with failure-aware yield accounting."""
 
     started = time.perf_counter()
     output = prepare_output_directory(output_dir)
@@ -344,7 +362,7 @@ def execute_tolerance(
         values: list[float] = []
         samples: list[dict[str, Any]] = []
         pass_count = 0
-        failed_count = 0
+        failure_taxonomy = empty_failure_taxonomy()
         uncertainties = {item.layer_index: item for item in request.uncertainties}
         for sample_index in range(int(request.sample_count)):
             global_bias = (
@@ -352,8 +370,8 @@ def execute_tolerance(
                 if request.global_correlated_bias_nm is None
                 else float(rng.normal(0.0, float(request.global_correlated_bias_nm)))
             )
-            draws: list[float] = []
-            layers = []
+            raw_draws: list[float] = []
+            bounded_draws: list[float] = []
             try:
                 for index, layer in enumerate(simulation.stack.layers):
                     delta = global_bias
@@ -368,26 +386,36 @@ def execute_tolerance(
                             )
                         )
                     thickness = float(layer.thickness_nm) + delta
-                    draws.append(thickness)
-                    layers.append(
-                        replace(
-                            layer,
-                            thickness_nm=thickness,
-                            optimizable=False,
-                            min_thickness_nm=None,
-                            max_thickness_nm=None,
-                        )
+                    raw_draws.append(thickness)
+                bounded = apply_thickness_boundary_policy(
+                    raw_draws,
+                    boundary_policy=request.boundary_policy,
+                    min_thickness_physical_nm=float(
+                        request.min_thickness_physical_nm
+                    ),
+                )
+                bounded_draws = bounded.tolist()
+                layers = tuple(
+                    replace(
+                        layer,
+                        thickness_nm=float(thickness),
+                        optimizable=False,
+                        min_thickness_nm=None,
+                        max_thickness_nm=None,
                     )
+                    for layer, thickness in zip(
+                        simulation.stack.layers, bounded_draws, strict=True
+                    )
+                )
                 perturbed = replace(
                     simulation,
-                    stack=replace(simulation.stack, layers=tuple(layers)),
+                    stack=replace(simulation.stack, layers=layers),
                 )
                 perturbed.validate()
-                forward = workbench.simulate(perturbed)
-                metric_value = evaluate_metric(forward, request.metric)
-                passed = metric_constraint_passes(
-                    metric_value,
-                    {"constraint": request.target.constraint, "value": request.target.value},
+                metric_value, passed = _evaluate_tolerance_sample(
+                    workbench,
+                    perturbed,
+                    request,
                 )
                 values.append(float(metric_value))
                 pass_count += int(passed)
@@ -395,61 +423,108 @@ def execute_tolerance(
                     {
                         "sample_index": sample_index,
                         "status": "completed",
-                        "thicknesses_nm": draws,
+                        "raw_thicknesses_nm": raw_draws,
+                        "thicknesses_nm": bounded_draws,
+                        "boundary_adjusted": bool(
+                            not np.array_equal(
+                                np.asarray(raw_draws, dtype=np.float64), bounded
+                            )
+                        ),
                         "metric_value": float(metric_value),
                         "target_passed": bool(passed),
                     }
                 )
             except Exception as exc:
-                failed_count += 1
+                category = classify_sample_failure(exc)
+                failure_taxonomy[category] += 1
                 samples.append(
                     {
                         "sample_index": sample_index,
                         "status": "failed",
-                        "thicknesses_nm": draws,
+                        "raw_thicknesses_nm": raw_draws,
+                        "thicknesses_nm": bounded_draws,
+                        "boundary_adjusted": None
+                        if not bounded_draws
+                        else bounded_draws != raw_draws,
                         "metric_value": None,
-                        "target_passed": False,
+                        "target_passed": None,
+                        "failure_category": category,
                         "failure": failure_from_exception(exc).to_dict(),
                     }
                 )
-        if not values:
-            raise RuntimeError("all tolerance samples failed")
-        array = np.asarray(values, dtype=np.float64)
         total = int(request.sample_count)
-        yield_value = float(pass_count / total)
-        ci = wilson_interval(pass_count, total)
-        stats = {
-            "mean": float(np.mean(array)),
-            "std": float(np.std(array)),
-            "p01": float(np.quantile(array, 0.01)),
-            "p05": float(np.quantile(array, 0.05)),
-            "p50": float(np.quantile(array, 0.50)),
-            "p95": float(np.quantile(array, 0.95)),
-            "p99": float(np.quantile(array, 0.99)),
-            "worst_case": (
-                float(np.min(array))
-                if request.target.constraint == "at_least"
-                else float(np.max(array))
-            ),
-        }
+        accounting = yield_accounting(pass_count, len(values), total)
+        if values:
+            array = np.asarray(values, dtype=np.float64)
+            stats = {
+                "mean": float(np.mean(array)),
+                "std": float(np.std(array)),
+                "p01": float(np.quantile(array, 0.01)),
+                "p05": float(np.quantile(array, 0.05)),
+                "p50": float(np.quantile(array, 0.50)),
+                "p95": float(np.quantile(array, 0.95)),
+                "p99": float(np.quantile(array, 0.99)),
+                "worst_case": (
+                    float(np.min(array))
+                    if request.target.constraint == "at_least"
+                    else float(np.max(array))
+                ),
+            }
+            tolerance_status = "completed"
+        else:
+            stats = {
+                name: None
+                for name in (
+                    "mean",
+                    "std",
+                    "p01",
+                    "p05",
+                    "p50",
+                    "p95",
+                    "p99",
+                    "worst_case",
+                )
+            }
+            tolerance_status = "insufficient_valid_samples"
+            failures.append(
+                FailureRecord(
+                    FailureCode.INSUFFICIENT_VALID_SAMPLES,
+                    "all requested tolerance samples failed computationally",
+                    True,
+                    context={
+                        "requested_sample_count": total,
+                        "failure_taxonomy": failure_taxonomy,
+                    },
+                ).to_dict()
+            )
+        conditional_yield = accounting["conditional_yield"]
+        conditional_ci = accounting["conditional_yield_ci95"]
         tolerance_result = {
             "schema_version": TOLERANCE_RESULT_SCHEMA_VERSION,
             "protocol_version": PROTOCOL_VERSION,
             "run_id": run_id,
             "task_sha256": task_sha256,
-            "status": "completed",
+            "status": tolerance_status,
             "metric": request.metric.model_dump(mode="json"),
             "target": request.target.model_dump(mode="json"),
             "uncertainties": [item.model_dump(mode="json") for item in request.uncertainties],
+            "uncertainty_model": {
+                "boundary_policy": request.boundary_policy,
+                "min_thickness_physical_nm": float(
+                    request.min_thickness_physical_nm
+                ),
+                "seed": int(request.seed),
+            },
             "sample_count": total,
-            "completed_sample_count": len(values),
-            "failed_sample_count": failed_count,
+            **accounting,
+            "failure_taxonomy": failure_taxonomy,
             "seed": int(request.seed),
             "statistics": stats,
-            "target_pass_probability": yield_value,
-            "yield": yield_value,
-            "yield_ci95": ci,
+            "target_pass_probability": conditional_yield,
+            "yield": conditional_yield,
+            "yield_ci95": conditional_ci,
             "yield_ci_method": "wilson_score_interval",
+            "overall_success_fraction": accounting["overall_success_fraction"],
             "samples": samples,
         }
         write_json(output / "TOLERANCE_RESULT.json", tolerance_result)
@@ -458,16 +533,32 @@ def execute_tolerance(
             "protocol_version": PROTOCOL_VERSION,
             "run_id": run_id,
             "task_sha256": task_sha256,
-            "status": "evaluated",
+            "status": "evaluated"
+            if tolerance_status == "completed"
+            else tolerance_status,
             "physics_validity_is_separate": True,
             "nominal_physics_certificate_id": certificate.get("certificate_id"),
             "nominal_physics_accepted": bool(certificate.get("accepted")),
-            "yield": yield_value,
-            "yield_ci95": ci,
+            "conditional_yield": conditional_yield,
+            "conditional_yield_ci95": conditional_ci,
+            "conditional_yield_ci_method": "wilson_score_interval",
+            "overall_success_fraction": accounting["overall_success_fraction"],
+            "yield": conditional_yield,
+            "yield_ci95": conditional_ci,
             "yield_ci_method": "wilson_score_interval",
             "worst_case_metric": stats["worst_case"],
             "sample_count": total,
-            "failed_sample_count": failed_count,
+            **{
+                key: accounting[key]
+                for key in (
+                    "requested_sample_count",
+                    "completed_sample_count",
+                    "failed_sample_count",
+                    "target_pass_count",
+                )
+            },
+            "failure_taxonomy": failure_taxonomy,
+            "uncertainty_model": tolerance_result["uncertainty_model"],
             "seed": int(request.seed),
         }
         write_json(output / "ROBUSTNESS_REPORT.json", robustness_report)
@@ -476,7 +567,11 @@ def execute_tolerance(
         if failure not in failures:
             failures.append(failure)
 
-    status = "completed" if tolerance_result is not None else "failed"
+    status = (
+        "completed"
+        if tolerance_result is not None and tolerance_result["status"] == "completed"
+        else "failed"
+    )
     summary = build_result_summary(
         mode="tolerance",
         forward=None,
@@ -488,11 +583,24 @@ def execute_tolerance(
     )
     if tolerance_result is not None:
         summary["robustness"] = {
+            "conditional_yield": tolerance_result["conditional_yield"],
+            "conditional_yield_ci95": tolerance_result[
+                "conditional_yield_ci95"
+            ],
+            "overall_success_fraction": tolerance_result[
+                "overall_success_fraction"
+            ],
             "yield": tolerance_result["yield"],
             "yield_ci95": tolerance_result["yield_ci95"],
             "statistics": tolerance_result["statistics"],
-            "sample_count": tolerance_result["sample_count"],
+            "requested_sample_count": tolerance_result[
+                "requested_sample_count"
+            ],
+            "completed_sample_count": tolerance_result[
+                "completed_sample_count"
+            ],
             "failed_sample_count": tolerance_result["failed_sample_count"],
+            "failure_taxonomy": tolerance_result["failure_taxonomy"],
         }
     write_json(output / "RESULT_SUMMARY.json", summary)
     write_json(
@@ -520,6 +628,7 @@ def execute_tolerance(
         failures=failures,
         certificate_id=None if certificate is None else certificate.get("certificate_id"),
         run_id=run_id,
+        detail=detail,
     )
 
 

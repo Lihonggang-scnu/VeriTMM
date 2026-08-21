@@ -10,6 +10,11 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 import numpy as np
 
 from .schemas import LayerSpec, MediumSpec, OptimizationTask, SimulationTask
+from .uncertainty import (
+    apply_thickness_boundary_policy_torch,
+    final_robustness_seed,
+    sample_normal_offsets,
+)
 
 
 @dataclass
@@ -254,10 +259,14 @@ class DifferentiableThicknessOptimizer:
             return self._loss_for_thicknesses(task, thicknesses_nm, nk_stack)[0]
         batch, layers = thicknesses_nm.shape
         samples = int(perturbations_nm.shape[0])
-        expanded = (
+        expanded = apply_thickness_boundary_policy_torch(
             thicknesses_nm.reshape(batch, 1, layers)
-            + perturbations_nm.reshape(1, samples, layers)
-        ).clamp_min(0.1)
+            + perturbations_nm.reshape(1, samples, layers),
+            boundary_policy=task.robustness.boundary_policy,
+            min_thickness_physical_nm=float(
+                task.robustness.min_thickness_physical_nm
+            ),
+        )
         losses, _ = self._loss_for_thicknesses(
             task,
             expanded.reshape(batch * samples, layers),
@@ -320,16 +329,12 @@ class DifferentiableThicknessOptimizer:
         nk_stack, provenance = self._build_nk_stack(task.simulation)
         robustness_offsets = None
         if task.robustness is not None and task.robustness.enabled:
-            rng = np.random.default_rng(int(task.robustness.seed))
-            offsets = rng.normal(
-                0.0,
-                float(task.robustness.thickness_sigma_nm),
-                size=(int(task.robustness.samples_per_step), initial.size),
+            offsets = sample_normal_offsets(
+                seed=int(task.robustness.seed),
+                sample_count=int(task.robustness.samples_per_step),
+                layer_count=initial.size,
+                sigma_nm=float(task.robustness.thickness_sigma_nm),
             )
-            # Antithetic centering reduces gradient noise while keeping a fixed,
-            # reproducible training ensemble. Final robustness uses fresh NumPy
-            # simulations and a distinct seed.
-            offsets = offsets - np.mean(offsets, axis=0, keepdims=True)
             robustness_offsets = torch.tensor(
                 offsets,
                 dtype=self.real_dtype,
@@ -548,6 +553,11 @@ class DifferentiableThicknessOptimizer:
                     if task.robustness is None
                     else {
                         **task.robustness.__dict__,
+                        "distribution": task.robustness.distribution,
+                        "training_seed": int(task.robustness.seed),
+                        "final_seed": final_robustness_seed(
+                            int(task.robustness.seed)
+                        ),
                         "final_validation_is_independent": True,
                     }
                 ),

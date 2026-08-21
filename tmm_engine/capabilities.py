@@ -28,6 +28,8 @@ class FailureCode(str, Enum):
     SOLVER_DISAGREEMENT = "solver_disagreement"
     OPTIMIZER_FAILURE = "optimizer_failure"
     BUDGET_EXHAUSTED = "budget_exhausted"
+    PROVENANCE_CONFLICT = "provenance_conflict"
+    INSUFFICIENT_VALID_SAMPLES = "insufficient_valid_samples"
 
 
 ActionSafety = Literal[
@@ -187,6 +189,28 @@ def enrich_failure_actions(failure: FailureRecord) -> FailureRecord:
             ),
             context=dict(failure.context),
         )
+    elif code == FailureCode.PROVENANCE_CONFLICT:
+        action = FailureAction(
+            action_id="use_fresh_run_identity",
+            action_type="provenance_safe_retry",
+            safety="safe",
+            description=(
+                "Keep the existing ledger row and artifacts unchanged. Retry only with "
+                "a fresh run_id and an empty destination directory."
+            ),
+            context=dict(failure.context),
+        )
+    elif code == FailureCode.INSUFFICIENT_VALID_SAMPLES:
+        action = FailureAction(
+            action_id="inspect_sample_failure_taxonomy",
+            action_type="diagnostic_review",
+            safety="requires_scientific_judgment",
+            description=(
+                "Inspect the sample failure taxonomy and numerical/material diagnostics "
+                "before deciding whether a scientifically unchanged retry is justified."
+            ),
+            context=dict(failure.context),
+        )
 
     if action is None:
         return failure
@@ -211,13 +235,21 @@ def failure_from_exception(exc: Exception) -> FailureRecord:
 
     # Imported lazily so the capability vocabulary remains usable without
     # constructing a material registry.
+    from .experiment_store import RunLedgerConflictError
     from .material_registry import (
         MaterialAmbiguityError,
         MaterialNotFoundError,
         MaterialRangeError,
     )
 
-    if isinstance(exc, MaterialRangeError):
+    if isinstance(exc, RunLedgerConflictError):
+        failure = FailureRecord(
+            FailureCode.PROVENANCE_CONFLICT,
+            str(exc),
+            True,
+            context={"run_id": exc.run_id},
+        )
+    elif isinstance(exc, MaterialRangeError):
         failure = FailureRecord(
             FailureCode.MATERIAL_RANGE_ERROR,
             str(exc),

@@ -10,6 +10,14 @@ import numpy as np
 from .capabilities import failure_from_exception
 from .protocol.models import PROTOCOL_VERSION
 from .schemas import OptimizationTask
+from .uncertainty import (
+    apply_thickness_boundary_policy,
+    classify_sample_failure,
+    empty_failure_taxonomy,
+    final_robustness_seed,
+    sample_normal_offsets,
+    validate_uncertainty_forward,
+)
 
 
 def _objective_and_attainment(task: OptimizationTask, forward: Any) -> tuple[float, bool | None]:
@@ -24,6 +32,10 @@ def _objective_and_attainment(task: OptimizationTask, forward: Any) -> tuple[flo
             wavelengths <= float(target.wavelength_max_nm)
         )
         values = np.asarray(channel[target.observable], dtype=np.float64)[mask]
+        if values.size == 0 or not np.all(np.isfinite(values)):
+            raise FloatingPointError(
+                "perturbed robust objective received empty or non-finite observables"
+            )
         if target.constraint == "match":
             errors = (values - float(target.target)) ** 2
         elif target.constraint == "at_least":
@@ -63,32 +75,48 @@ def _objective_and_attainment(task: OptimizationTask, forward: Any) -> tuple[flo
             all_defined = False
             passed = True
         all_passed = all_passed and bool(passed)
-    return weighted / max(total_weight, 1e-12), (all_passed if all_defined else None)
+    objective = weighted / max(total_weight, 1e-12)
+    if not np.isfinite(objective):
+        raise FloatingPointError("perturbed robust objective is non-finite")
+    return objective, (all_passed if all_defined else None)
 
 
 def select_robust_roles(candidates: list[dict[str, Any]]) -> dict[str, str | None]:
     """Select interpretable roles without collapsing them into one opaque score."""
 
-    admissible = [
+    nominal_admissible = [
         item
         for item in candidates
         if item.get("independent_validation_status") == "passed"
         and item.get("physics_status") in {"physically_valid", "physically_valid_with_limits"}
-        and isinstance(item.get("formal_robustness"), dict)
-        and item["formal_robustness"].get("robust_objective") is not None
     ]
-    if not admissible:
+    robust_admissible = [
+        item
+        for item in nominal_admissible
+        if isinstance(item.get("formal_robustness"), dict)
+        and item["formal_robustness"].get("robust_objective") is not None
+        and item["formal_robustness"].get("robustness_complete") is True
+        and item["formal_robustness"].get("failed_sample_count") == 0
+        and item["formal_robustness"].get("eligible_for_robust_selection") is True
+    ]
+    if not nominal_admissible:
         return {"best_nominal": None, "best_robust": None, "best_quantized": None}
     best_nominal = min(
-        admissible,
+        nominal_admissible,
         key=lambda item: float(item["metadata"].get("objective_loss", float("inf"))),
     )["candidate_id"]
-    best_robust = min(
-        admissible,
-        key=lambda item: float(item["formal_robustness"]["robust_objective"]),
-    )["candidate_id"]
+    best_robust = (
+        None
+        if not robust_admissible
+        else min(
+            robust_admissible,
+            key=lambda item: float(item["formal_robustness"]["robust_objective"]),
+        )["candidate_id"]
+    )
     quantized = [
-        item for item in admissible if item.get("metadata", {}).get("source") == "quantized_best"
+        item
+        for item in robust_admissible
+        if item.get("metadata", {}).get("source") == "quantized_best"
     ]
     best_quantized = (
         None
@@ -100,9 +128,45 @@ def select_robust_roles(candidates: list[dict[str, Any]]) -> dict[str, str | Non
     )
     return {
         "best_nominal": str(best_nominal),
-        "best_robust": str(best_robust),
+        "best_robust": None if best_robust is None else str(best_robust),
         "best_quantized": None if best_quantized is None else str(best_quantized),
     }
+
+
+def invalidate_unverified_robust_roles(
+    portfolio: dict[str, Any],
+    *,
+    status: str = "pending_formal_evaluation",
+    failure: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Prevent heuristic robustness scores from masquerading as formal results."""
+
+    original_roles = dict(portfolio.get("selected_roles", {}))
+    roles = {
+        key: value
+        for key, value in original_roles.items()
+        if key not in {"most_robust", "best_robust", "best_quantized"}
+    }
+    roles["best_nominal"] = original_roles.get(
+        "best_nominal", original_roles.get("best_performance")
+    )
+    roles["best_robust"] = None
+    roles["best_quantized"] = None
+    roles["most_robust"] = None
+    updated = {
+        **portfolio,
+        "selected_roles": roles,
+        "robust_selection_status": status,
+        "robust_selection_policy": (
+            "Robust roles remain null until an independent final ensemble completes "
+            "without failed samples; heuristic screening scores are never promoted."
+        ),
+    }
+    if failure is not None:
+        updated["robust_selection_failure"] = failure
+    else:
+        updated.pop("robust_selection_failure", None)
+    return updated
 
 
 def evaluate_robust_portfolio(
@@ -115,11 +179,12 @@ def evaluate_robust_portfolio(
     if task.robustness is None or not task.robustness.enabled:
         raise ValueError("formal robust portfolio requires enabled robustness settings")
     cfg = task.robustness
-    rng = np.random.default_rng(int(cfg.seed) + 1_000_003)
-    offsets = rng.normal(
-        0.0,
-        float(cfg.thickness_sigma_nm),
-        size=(int(cfg.final_samples), len(task.simulation.stack.layers)),
+    final_seed = final_robustness_seed(int(cfg.seed))
+    offsets = sample_normal_offsets(
+        seed=final_seed,
+        sample_count=int(cfg.final_samples),
+        layer_count=len(task.simulation.stack.layers),
+        sigma_nm=float(cfg.thickness_sigma_nm),
     )
     records: list[dict[str, Any]] = []
     for candidate in portfolio.get("candidates", []):
@@ -134,9 +199,17 @@ def evaluate_robust_portfolio(
         losses: list[float] = []
         passes: list[bool] = []
         failed_samples: list[dict[str, Any]] = []
+        failure_taxonomy = empty_failure_taxonomy()
         for sample_index, delta in enumerate(offsets):
             try:
-                thicknesses = nominal + delta
+                raw_thicknesses = nominal + delta
+                thicknesses = apply_thickness_boundary_policy(
+                    raw_thicknesses,
+                    boundary_policy=cfg.boundary_policy,
+                    min_thickness_physical_nm=float(
+                        cfg.min_thickness_physical_nm
+                    ),
+                )
                 layers = tuple(
                     replace(
                         layer,
@@ -156,19 +229,29 @@ def evaluate_robust_portfolio(
                 )
                 simulation.validate()
                 forward = workbench.simulate(simulation)
+                validate_uncertainty_forward(forward)
                 loss, passed = _objective_and_attainment(task, forward)
                 losses.append(float(loss))
                 if passed is not None:
                     passes.append(bool(passed))
             except Exception as exc:
+                category = classify_sample_failure(exc)
+                failure_taxonomy[category] += 1
                 failed_samples.append(
                     {
                         "sample_index": sample_index,
+                        "failure_category": category,
                         "failure": failure_from_exception(exc).to_dict(),
                     }
                 )
+        requested_sample_count = int(cfg.final_samples)
+        completed_sample_count = len(losses)
+        failed_sample_count = len(failed_samples)
+        robustness_complete = (
+            completed_sample_count == requested_sample_count
+            and failed_sample_count == 0
+        )
         if not losses:
-            robust_objective = None
             mean_loss = None
             std_loss = None
             worst_loss = None
@@ -177,26 +260,52 @@ def evaluate_robust_portfolio(
             mean_loss = float(np.mean(values))
             std_loss = float(np.std(values))
             worst_loss = float(np.max(values))
-            if cfg.objective == "expected_loss":
-                robust_objective = mean_loss
-            elif cfg.objective == "worst_case_loss":
-                robust_objective = worst_loss
-            else:
-                robust_objective = mean_loss + float(cfg.k_sigma) * std_loss
+        if not robustness_complete or mean_loss is None:
+            robust_objective = None
+        elif cfg.objective == "expected_loss":
+            robust_objective = mean_loss
+        elif cfg.objective == "worst_case_loss":
+            robust_objective = worst_loss
+        else:
+            robust_objective = mean_loss + float(cfg.k_sigma) * float(std_loss)
+        conditional_yield = (
+            None if not passes else float(sum(passes) / len(passes))
+        )
+        overall_success_fraction = (
+            None
+            if not passes
+            else float(sum(passes) / requested_sample_count)
+        )
         row["formal_robustness"] = {
             "objective": cfg.objective,
             "robust_objective": robust_objective,
             "expected_loss": mean_loss,
             "loss_std": std_loss,
             "worst_case_loss": worst_loss,
-            "yield": None if not passes else float(sum(passes) / int(cfg.final_samples)),
+            "yield": conditional_yield,
+            "conditional_yield": conditional_yield,
+            "overall_success_fraction": overall_success_fraction,
             "yield_is_defined": bool(passes),
-            "sample_count": int(cfg.final_samples),
-            "completed_sample_count": len(losses),
-            "failed_sample_count": len(failed_samples),
+            "sample_count": requested_sample_count,
+            "requested_sample_count": requested_sample_count,
+            "completed_sample_count": completed_sample_count,
+            "failed_sample_count": failed_sample_count,
+            "completion_fraction": float(
+                completed_sample_count / requested_sample_count
+            ),
+            "robustness_complete": robustness_complete,
+            "eligible_for_robust_selection": robustness_complete,
+            "failure_taxonomy": failure_taxonomy,
             "failed_samples": failed_samples,
-            "seed": int(cfg.seed) + 1_000_003,
+            "seed": final_seed,
+            "training_seed": int(cfg.seed),
+            "final_seed": final_seed,
+            "distribution": cfg.distribution,
             "thickness_sigma_nm": float(cfg.thickness_sigma_nm),
+            "boundary_policy": cfg.boundary_policy,
+            "min_thickness_physical_nm": float(
+                cfg.min_thickness_physical_nm
+            ),
             "backend": "independent_numpy_smatrix",
         }
         records.append(row)
@@ -204,19 +313,35 @@ def evaluate_robust_portfolio(
     updated_portfolio = {
         **portfolio,
         "candidates": records,
-        "selected_roles": {**portfolio.get("selected_roles", {}), **roles},
+        "selected_roles": {
+            **{
+                key: value
+                for key, value in portfolio.get("selected_roles", {}).items()
+                if key != "most_robust"
+            },
+            **roles,
+            # Backward-compatible alias, now governed by the formal zero-failure gate.
+            "most_robust": roles["best_robust"],
+        },
         "robust_selection_policy": (
-            "Only independently validated and physics-certified candidates are eligible. "
-            "Nominal and robustness roles remain separate."
+            "Nominal selection requires independent validation and accepted physics. "
+            "Robust selection additionally requires a complete zero-failure final ensemble; "
+            "survivor-only statistics are ineligible."
         ),
+        "robust_selection_status": "evaluated",
     }
     report = {
-        "schema_version": "veritmm-robustness-report-v1",
+        "schema_version": "veritmm-robustness-report-v2",
         "protocol_version": PROTOCOL_VERSION,
         "status": "evaluated",
         "physics_validity_is_separate": True,
         "training_monte_carlo_is_not_final_proof": True,
-        "settings": cfg.__dict__,
+        "settings": {
+            **cfg.__dict__,
+            "distribution": cfg.distribution,
+            "training_seed": int(cfg.seed),
+            "final_seed": final_seed,
+        },
         "selected_roles": roles,
         "candidates": [
             {
@@ -232,4 +357,8 @@ def evaluate_robust_portfolio(
     return updated_portfolio, report
 
 
-__all__ = ["evaluate_robust_portfolio", "select_robust_roles"]
+__all__ = [
+    "evaluate_robust_portfolio",
+    "invalidate_unverified_robust_roles",
+    "select_robust_roles",
+]

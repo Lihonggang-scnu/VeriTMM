@@ -176,11 +176,15 @@ def test_runtime_scenarios_prove_cache_and_resume(case_id: str, tmp_path: Path) 
         if case.case_id == case_id
     ]
     assert len(selected) == 1
+    artifact_path = tmp_path / f"{case_id}_BENCHMARK_RESULT.json"
     result = run_offline_benchmark(
         selected,
+        output_path=artifact_path,
         work_dir=tmp_path / case_id,
         minimum_case_count=1,
     )
     assert result["failed_case_count"] == 0
-    assert result["cases"][0]["passed"] is True
-    assert all(item["passed"] for item in result["cases"][0]["assertions"])
+    assert "cases" not in result
+    detailed = json.loads(artifact_path.read_text(encoding="utf-8"))
+    assert detailed["cases"][0]["passed"] is True
+    assert all(item["passed"] for item in detailed["cases"][0]["assertions"])

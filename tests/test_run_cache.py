@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import csv
 import json
 from pathlib import Path
 
@@ -14,7 +15,7 @@ from tmm_engine import (
 )
 from tmm_engine.experiment_store import ExperimentStore
 from tmm_engine.managed_execution import execute_managed_task
-from tmm_engine.protocol import RunResultEnvelope
+from tmm_engine.protocol import RunResultEnvelope, SweepTaskContract
 
 
 def _task() -> SimulationTask:
@@ -36,6 +37,38 @@ def _settings(**overrides: object) -> ExecutionSettings:
     }
     values.update(overrides)
     return ExecutionSettings(**values)
+
+
+def _sweep_task():
+    return SweepTaskContract.model_validate(
+        {
+            "schema_version": "sweep-task-v1",
+            "mode": "sweep",
+            "sweep": {
+                "base_simulation": {
+                    "stack": {
+                        "layers": [{"constant_n": 2.0, "thickness_nm": 100.0}],
+                        "incident": {"constant_n": 1.0},
+                        "exit": {"constant_n": 1.5},
+                    },
+                    "spectrum": {"start_nm": 500.0, "stop_nm": 600.0, "points": 7},
+                    "illumination": {
+                        "angles_deg": [0.0],
+                        "polarizations": ["unpolarized"],
+                    },
+                },
+                "parameters": [
+                    {
+                        "path": "/stack/layers/0/thickness_nm",
+                        "values": [90.0, 110.0],
+                    }
+                ],
+                "metrics": [
+                    {"name": "mean_R", "observable": "R", "aggregation": "mean"}
+                ],
+            },
+        }
+    ).sweep
 
 
 def test_cache_hit_creates_new_run_and_preserves_source_provenance(tmp_path: Path) -> None:
@@ -113,6 +146,63 @@ def test_execution_setting_change_invalidates_cache(tmp_path: Path) -> None:
     assert store.get_run(second["run_id"]).cache_hit is False  # type: ignore[union-attr]
 
 
+def test_cached_sweep_rebases_child_run_ids_and_records_lineage(tmp_path: Path) -> None:
+    store = ExperimentStore(tmp_path / ".veritmm")
+    sweep = _sweep_task()
+    first = execute_managed_task(
+        "sweep",
+        sweep,
+        tmp_path / "first_sweep",
+        store=store,
+        experiment_id="exp_sweep_cache",
+        execution_settings=_settings(),
+        cache=False,
+    )
+    second = execute_managed_task(
+        "sweep",
+        sweep,
+        tmp_path / "second_sweep",
+        store=store,
+        experiment_id="exp_sweep_cache",
+        execution_settings=_settings(),
+        cache=True,
+    )
+
+    first_sweep = json.loads(
+        (tmp_path / "first_sweep" / "SWEEP_RESULT.json").read_text(encoding="utf-8")
+    )
+    second_sweep = json.loads(
+        (tmp_path / "second_sweep" / "SWEEP_RESULT.json").read_text(encoding="utf-8")
+    )
+    source_ids = [child["child_run_id"] for child in first_sweep["children"]]
+    replay_ids = [child["child_run_id"] for child in second_sweep["children"]]
+
+    assert second["cache_hit"] is True
+    assert set(source_ids).isdisjoint(replay_ids)
+    assert [child["source_child_run_id"] for child in second_sweep["children"]] == source_ids
+    replay_records = store.list_children(second["run_id"])
+    assert {record.run_id for record in replay_records} == set(replay_ids)
+    assert {record.source_run_id for record in replay_records} == set(source_ids)
+    assert all(record.cache_hit for record in replay_records)
+    with (tmp_path / "second_sweep" / "SWEEP_TABLE.csv").open(
+        newline="", encoding="utf-8"
+    ) as handle:
+        table_ids = {row["child_run_id"] for row in csv.DictReader(handle)}
+    assert table_ids == set(replay_ids)
+    for child, source_id in zip(second_sweep["children"], source_ids, strict=True):
+        child_result = json.loads(
+            (
+                tmp_path
+                / "second_sweep"
+                / child["artifact_root"]
+                / "RUN_RESULT.json"
+            ).read_text(encoding="utf-8")
+        )
+        assert child_result["run_id"] == child["child_run_id"]
+        assert child_result["source_run_id"] == source_id
+        assert child_result["artifact_provenance"]["source_parent_run_id"] == first["run_id"]
+
+
 def test_material_catalog_identity_change_invalidates_cache(tmp_path: Path, monkeypatch) -> None:
     import tmm_engine.managed_execution as managed_execution
 
@@ -142,4 +232,3 @@ def test_material_catalog_identity_change_invalidates_cache(tmp_path: Path, monk
     assert first["run_id"] != second["run_id"]
     assert second["cache_hit"] is False
     assert second["source_run_id"] is None
-
