@@ -173,6 +173,80 @@ def _compute_tightest_margin(
     }
 
 
+def _maybe_run_referee(
+    *,
+    workbench: "TMMWorkbench",
+    task: SimulationTask,
+    result: Any,
+    cross_solver: Dict[str, Any],
+    tightest_margin: Optional[Dict[str, Any]],
+) -> Optional[Dict[str, Any]]:
+    """Return a high-precision referee report or None if not triggered."""
+    from .high_precision import TRIGGER_THRESHOLD, is_available, run_referee
+
+    # Determine whether to trigger
+    solver_disagreement = cross_solver.get("status") == "failed"
+    barely_passed = (
+        tightest_margin is not None
+        and float(tightest_margin.get("normalized_margin", 1.0)) < TRIGGER_THRESHOLD
+    )
+    if not (solver_disagreement or barely_passed):
+        return {"status": "not_triggered", "reason": "all checks comfortably passed"}
+
+    if not is_available():
+        return {
+            "status": "unavailable",
+            "reason": "mpmath not installed; install with: pip install mpmath>=1.3",
+        }
+
+    # Pick the first channel: first angle, first polarisation
+    illumination = task.illumination
+    angle_deg = float(illumination.angles_deg[0])
+    pol = str(illumination.polarizations[0])
+    if pol == "unpolarized":
+        pol = "s"  # use s as proxy; referee is per-channel
+
+    channel_key = "angle=%g|pol=%s" % (angle_deg, pol)
+    if channel_key not in result.channels:
+        return {"status": "error", "reason": "channel not found: %s" % channel_key}
+
+    # Resolve nk arrays — same call the workbench already made internally
+    try:
+        media_list, wavelengths_nm, _ = workbench._resolve_stack(task)
+    except Exception as exc:
+        return {"status": "error", "reason": "stack resolution failed: %s" % exc}
+
+    n_all = [complex(float(np.real(nk[0])), float(np.imag(nk[0]))) for nk in media_list]
+    d_nm = [float(layer.thickness_nm) for layer in task.stack.layers]
+
+    ch = result.channels[channel_key]
+    primary_R = list(ch.get("R", []))
+    primary_T = list(ch.get("T", []))
+
+    # Secondary solver result (from cross_solver check) — extract per-channel
+    secondary_R: Optional[list] = None
+    secondary_T: Optional[list] = None
+    # We don't store secondary R/T values in cross_solver (only differences)
+    # so secondary comparison isn't available from stored data.
+
+    report = run_referee(
+        n_all=n_all,
+        d_nm=d_nm,
+        wavelengths_nm=wavelengths_nm.tolist(),
+        angle_deg=angle_deg,
+        polarization=pol,
+        primary_R=primary_R,
+        primary_T=primary_T,
+        secondary_R=secondary_R,
+        secondary_T=secondary_T,
+    )
+    report["triggered_by"] = (
+        "solver_disagreement" if solver_disagreement else "tightest_margin"
+    )
+    report["channel"] = channel_key
+    return report
+
+
 def certify_simulation(
     workbench: TMMWorkbench,
     task: SimulationTask,
@@ -269,6 +343,20 @@ def certify_simulation(
         tightest_margin = _compute_tightest_margin(
             result.audit, cross_solver, settings
         )
+
+        # ------------------------------------------------------------------
+        # High-precision referee (optional, purely informational)
+        # Triggered when: solvers disagree OR result barely passed.
+        # Result is added to the certificate but NEVER changes ``accepted``.
+        # ------------------------------------------------------------------
+        high_precision_referee = _maybe_run_referee(
+            workbench=workbench,
+            task=task,
+            result=result,
+            cross_solver=cross_solver,
+            tightest_margin=tightest_margin,
+        )
+
         accepted = not failures
         limited = bool(settings.require_independent_solver and cross_solver["status"] == "unavailable")
         certificate = {
@@ -284,6 +372,7 @@ def certify_simulation(
             "spectral_convergence": convergence_report,
             "independent_solver_check": cross_solver,
             "tightest_margin": tightest_margin,
+            "high_precision_referee": high_precision_referee,
             "material_provenance_sha256": _stable_hash(result.material_provenance),
             "material_catalog": workbench.registry.catalog_status(),
             "runtime": {

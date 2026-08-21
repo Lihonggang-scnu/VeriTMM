@@ -36,9 +36,10 @@ veritmm = "tmm_engine.cli:main"
 [project.optional-dependencies]
 optimize = ["torch>=2.1"]
 plot = ["matplotlib>=3.7"]
+high_precision = ["mpmath>=1.3"]
 test = ["pytest>=8", "jsonschema>=4.23"]
 dev = ["pytest>=8", "jsonschema>=4.23", "build>=1.2", "ruff>=0.6"]
-all = ["torch>=2.1", "matplotlib>=3.7", "pytest>=8", "jsonschema>=4.23"]
+all = ["torch>=2.1", "matplotlib>=3.7", "mpmath>=1.3", "pytest>=8", "jsonschema>=4.23"]
 
 [project.urls]
 Homepage = "https://github.com/Lihonggang-scnu/VeriTMM"
