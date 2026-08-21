@@ -106,6 +106,6 @@ jobs:
           from pathlib import Path
 
           payload = json.loads(Path(os.environ["RUNNER_TEMP"], "describe.json").read_text())
-          assert payload["package_version"] == "0.5.1"
+          assert payload["package_version"] == "0.5.2"
           assert payload["engine_id"] == "veritmm"
           PY
