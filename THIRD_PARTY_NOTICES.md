@@ -1,6 +1,6 @@
 # Third-party notices and data provenance
 
-VeriTMM is distributed under the MIT License. The transfer-matrix method
+VeriTMM is distributed under the Apache License 2.0. The transfer-matrix method
 itself is established scientific knowledge; this project does not claim
 invention of the underlying TMM equations.
 
@@ -14,7 +14,7 @@ recomputation, convergence audits, and acceptance certificates.
 - Repository: https://github.com/Lihonggang-scnu/SpecFormer
 
 Both projects are maintained by the same project owner; the code included in
-this repository is released under this repository's MIT License.
+this repository is released under this repository's Apache License 2.0.
 
 ## refractiveindex.info database
 

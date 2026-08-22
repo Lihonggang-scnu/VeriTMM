@@ -8,7 +8,7 @@
 
 [![CI](https://github.com/Lihonggang-scnu/VeriTMM/actions/workflows/ci.yml/badge.svg)](https://github.com/Lihonggang-scnu/VeriTMM/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-0b7285.svg)](LICENSE)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
 **[English](README.md) · [架构](docs/ARCHITECTURE.md) · [科研接口](docs/RESEARCH_INTERFACE.md) · [验证](docs/VALIDATION.md) · [示例](examples)**
 
@@ -466,7 +466,7 @@ VeriTMM 从一件很普通的事情开始：
 
 ## License
 
-MIT License
+Apache License 2.0
 
 ## Citation
 

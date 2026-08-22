@@ -6,7 +6,7 @@
 
 [![CI](https://github.com/Lihonggang-scnu/VeriTMM/actions/workflows/ci.yml/badge.svg)](https://github.com/Lihonggang-scnu/VeriTMM/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-0b7285.svg)](LICENSE)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Optical data: CC0](https://img.shields.io/badge/optical%20data-CC0-5c940d.svg)](THIRD_PARTY_NOTICES.md)
 
 **[中文说明](README.zh-CN.md) · [Architecture](docs/ARCHITECTURE.md) · [Research API](docs/RESEARCH_INTERFACE.md) · [Validation](docs/VALIDATION.md) · [AgentBench](docs/AGENTBENCH.md) · [Examples](examples)**
@@ -416,7 +416,7 @@ dependency is absent.
 
 ## Data, citation and license
 
-Project code is MIT-licensed. The bundled refractiveindex.info data are CC0;
+Project code is Apache-2.0-licensed. The bundled refractiveindex.info data are CC0;
 the runtime Byrnes `tmm` dependency is MIT-licensed. See
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for attribution and citation
 requirements. When publishing scientific results, cite the original optical-
