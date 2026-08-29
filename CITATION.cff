@@ -1,0 +1,28 @@
+cff-version: 1.2.0
+message: "If you use VeriTMM, please cite this software and the optical-constants datasets used by your simulation."
+title: "VeriTMM: A verifier-first workbench for multilayer optics"
+abstract: >-
+  VeriTMM is a verifier-first transfer-matrix workbench for passive, isotropic,
+  planar multilayer optics. Simulation, sensitivity, tolerance, robust
+  optimisation, and inverse-design results are only reported alongside an
+  independent physics acceptance certificate: energy conservation, passivity,
+  convergence, cross-solver agreement, and a high-precision referee are checked
+  before a result is accepted. Neither an optimiser nor an autonomous agent may
+  certify its own output. Results carry typed evidence coverage, a structured
+  uncertainty budget that keeps model applicability limits separate from
+  numerical uncertainty, and versioned provenance suitable for archival.
+type: software
+authors:
+  - name: "VeriTMM contributors"
+repository-code: "https://github.com/Lihonggang-scnu/VeriTMM"
+url: "https://github.com/Lihonggang-scnu/VeriTMM"
+license: Apache-2.0
+keywords:
+  - multilayer optics
+  - transfer matrix method
+  - thin films
+  - inverse design
+  - differentiable physics
+  - reproducible research
+  - uncertainty quantification
+  - scientific software verification

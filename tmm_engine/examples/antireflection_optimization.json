@@ -1,0 +1,47 @@
+{
+  "mode": "optimize",
+  "optimization": {
+    "simulation": {
+      "stack": {
+        "name": "single_layer_antireflection",
+        "incident": {"constant_n": 1.0},
+        "layers": [
+          {
+            "constant_n": 1.2247448714,
+            "thickness_nm": 200,
+            "min_thickness_nm": 40,
+            "max_thickness_nm": 250,
+            "optimizable": true
+          }
+        ],
+        "exit": {"constant_n": 1.5}
+      },
+      "spectrum": {"start_nm": 450, "stop_nm": 650, "points": 201},
+      "illumination": {"angles_deg": [0], "polarizations": ["unpolarized"]},
+      "solver": "smatrix"
+    },
+    "targets": [
+      {
+        "observable": "R",
+        "target": 0.01,
+        "wavelength_min_nm": 530,
+        "wavelength_max_nm": 570,
+        "constraint": "at_most",
+        "aggregation": "worst_case",
+        "weight": 1.0,
+        "angle_deg": 0,
+        "polarization": "unpolarized",
+        "name": "low_reflectance_center_band"
+      }
+    ],
+    "optimizer": {
+      "method": "adam_lbfgs",
+      "max_steps": 100,
+      "learning_rate": 0.08,
+      "starts": 4,
+      "seed": 42,
+      "early_stop_patience": 30,
+      "quantization_nm": 1.0
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "challenge_spec": {
+    "seed": 42,
+    "budget": 100,
+    "objective": "min_margin"
+  },
+  "expected_outcome": {
+    "candidates_evaluated": 100,
+    "worst_margin_below": 0.5,
+    "accepted": true
+  }
+}

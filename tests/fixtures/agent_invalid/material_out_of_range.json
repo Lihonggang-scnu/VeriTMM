@@ -1,0 +1,11 @@
+{
+  "mode": "simulate",
+  "simulation": {
+    "stack": {
+      "incident": {"constant_n": 1.0},
+      "layers": [{"material": "sio2", "provider": "local", "thickness_nm": 1000.0}],
+      "exit": {"constant_n": 1.0}
+    },
+    "spectrum": {"start_nm": 26000.0, "stop_nm": 27000.0, "points": 21}
+  }
+}

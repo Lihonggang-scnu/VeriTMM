@@ -1,0 +1,50 @@
+{
+  "schema_version": "veritmm-interactive-case-v1",
+  "case_id": "invalid_then_repair",
+  "natural_language_task": "Simulate one isotropic film and repair any typed preflight failure.",
+  "scenario": "invalid_then_repair",
+  "initial_task": {
+    "mode": "simulate",
+    "simulation": {
+      "stack": {
+        "incident": {"constant_n": 1.0},
+        "layers": [{"constant_n": 1.45, "thickness_nm": 100.0}],
+        "exit": {"constant_n": 1.5}
+      },
+      "illumination": {"angles_deg": [0.0], "polarizations": ["unpolarized"]},
+      "requested_outputs": ["R", "T", "A"]
+    }
+  },
+  "repair_task": {
+    "mode": "simulate",
+    "simulation": {
+      "stack": {
+        "incident": {"constant_n": 1.0},
+        "layers": [{"constant_n": 1.45, "thickness_nm": 100.0}],
+        "exit": {"constant_n": 1.5}
+      },
+      "spectrum": {"start_nm": 500.0, "stop_nm": 600.0, "points": 7},
+      "illumination": {"angles_deg": [0.0], "polarizations": ["unpolarized"]},
+      "requested_outputs": ["R", "T", "A"]
+    }
+  },
+  "run_observation": {
+    "status": "completed",
+    "ok": true,
+    "physics": {"accepted": true},
+    "evidence_coverage": {"numerical_convergence": "verified", "independent_solver": "verified"},
+    "uncertainty_budget": {"applicability_gaps": []},
+    "tightest_margin": {"normalized_margin": 0.5}
+  },
+  "ground_truth": {"expected_decision": "accept"},
+  "reference_actions": [
+    {"action": "submit_task", "task": {"mode": "simulate", "simulation": {"stack": {"incident": {"constant_n": 1.0}, "layers": [{"constant_n": 1.45, "thickness_nm": 100.0}], "exit": {"constant_n": 1.5}}, "illumination": {"angles_deg": [0.0], "polarizations": ["unpolarized"]}, "requested_outputs": ["R", "T", "A"]}}},
+    "repair_task",
+    {"action": "submit_task", "task": {"mode": "simulate", "simulation": {"stack": {"incident": {"constant_n": 1.0}, "layers": [{"constant_n": 1.45, "thickness_nm": 100.0}], "exit": {"constant_n": 1.5}}, "spectrum": {"start_nm": 500.0, "stop_nm": 600.0, "points": 7}, "illumination": {"angles_deg": [0.0], "polarizations": ["unpolarized"]}, "requested_outputs": ["R", "T", "A"]}}},
+    "run",
+    "execute",
+    "inspect_evidence",
+    "decide_accept",
+    "confirm_accept"
+  ]
+}

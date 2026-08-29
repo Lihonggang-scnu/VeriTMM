@@ -1,0 +1,45 @@
+{
+  "schema_version": "veritmm-agentbench-case-v1",
+  "case_id": "invalid_material_not_found",
+  "category": "invalid_or_unresolved_input",
+  "natural_language_task": "Diagnose the material not found input without guessing a replacement.",
+  "task": {
+    "mode": "simulate",
+    "simulation": {
+      "stack": {
+        "incident": {
+          "constant_n": 1.0
+        },
+        "layers": [
+          {
+            "material": "definitely_not_a_real_material",
+            "thickness_nm": 100.0
+          }
+        ],
+        "exit": {
+          "constant_n": 1.5
+        }
+      },
+      "spectrum": {
+        "start_nm": 500.0,
+        "stop_nm": 600.0,
+        "points": 21
+      }
+    }
+  },
+  "expected_mode": "simulate",
+  "expected_capability": "invalid",
+  "expected_failure_codes": [
+    "material_not_found"
+  ],
+  "expected_artifacts": [],
+  "physics_assertions": [],
+  "difficulty": "adversarial",
+  "tags": [
+    "typed_failure",
+    "material_not_found"
+  ],
+  "execution": "preflight_only",
+  "scenario": "standard",
+  "reproducibility_runs": 2
+}

@@ -1,0 +1,24 @@
+{
+  "schema_version": "veritmm-interactive-case-v1",
+  "case_id": "material_unavailable",
+  "natural_language_task": "Handle a requested material that is unavailable without silently substituting it.",
+  "scenario": "material_unavailable",
+  "initial_task": {
+    "mode": "simulate",
+    "simulation": {
+      "stack": {
+        "incident": {"constant_n": 1.0},
+        "layers": [{"material": "unobtainium", "thickness_nm": 100.0}],
+        "exit": {"constant_n": 1.5}
+      },
+      "spectrum": {"start_nm": 500.0, "stop_nm": 600.0, "points": 7},
+      "illumination": {"angles_deg": [0.0], "polarizations": ["unpolarized"]},
+      "requested_outputs": ["R", "T", "A"]
+    }
+  },
+  "ground_truth": {"expected_decision": "reject"},
+  "reference_actions": [
+    {"action": "submit_task", "task": {"mode": "simulate", "simulation": {"stack": {"incident": {"constant_n": 1.0}, "layers": [{"material": "unobtainium", "thickness_nm": 100.0}], "exit": {"constant_n": 1.5}}, "spectrum": {"start_nm": 500.0, "stop_nm": 600.0, "points": 7}, "illumination": {"angles_deg": [0.0], "polarizations": ["unpolarized"]}, "requested_outputs": ["R", "T", "A"]}}},
+    {"action": "reject_unsupported", "explanation": "The requested material is unavailable; no silent substitute is allowed."}
+  ]
+}

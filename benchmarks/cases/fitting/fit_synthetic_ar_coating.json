@@ -1,0 +1,18 @@
+{
+  "structure": {
+    "materials": ["SiO2"],
+    "thicknesses_nm": [100.0],
+    "substrate": "Si"
+  },
+  "measurements": [
+    {"wavelength_nm": 500, "measurement_type": "R", "value": 0.05},
+    {"wavelength_nm": 550, "measurement_type": "R", "value": 0.02},
+    {"wavelength_nm": 600, "measurement_type": "R", "value": 0.05}
+  ],
+  "fit_parameters": [
+    {"name": "thickness_layer_0", "layer_index": 0, "bounds": [80, 120], "initial_guess": 100}
+  ],
+  "method": "least_squares",
+  "max_iterations": 100,
+  "tolerance": 1e-8
+}

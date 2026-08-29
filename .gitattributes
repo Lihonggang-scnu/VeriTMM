@@ -1,0 +1,12 @@
+*.db binary
+*.png binary
+*.jpg binary
+*.pdf binary
+* text=auto
+*.py text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.csv text eol=lf
+

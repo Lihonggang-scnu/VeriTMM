@@ -1,0 +1,9 @@
+{
+  "schema_version": "sensitivity-task-v1",
+  "mode": "sensitivity",
+  "sensitivity": {
+    "simulation": {"stack": {"name": "single-film-sensitivity", "incident": {"constant_n": 1.0}, "exit": {"constant_n": 1.52}, "layers": [{"constant_n": 1.38, "thickness_nm": 110.0, "optimizable": true, "min_thickness_nm": 50.0, "max_thickness_nm": 180.0}]}, "spectrum": {"start_nm": 500.0, "stop_nm": 650.0, "points": 101}, "illumination": {"angles_deg": [0.0], "polarizations": ["unpolarized"]}, "solver": "smatrix", "requested_outputs": ["R", "T", "A"]},
+    "metric": {"name": "mean_R", "observable": "R", "wavelength_min_nm": 520.0, "wavelength_max_nm": 620.0, "aggregation": "mean"},
+    "parameters": "optimizable_thicknesses"
+  }
+}

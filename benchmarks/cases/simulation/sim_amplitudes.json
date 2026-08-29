@@ -1,0 +1,76 @@
+{
+  "schema_version": "veritmm-agentbench-case-v1",
+  "case_id": "sim_amplitudes",
+  "category": "valid_simulation",
+  "natural_language_task": "Return coherent complex amplitude observables.",
+  "task": {
+    "mode": "simulate",
+    "simulation": {
+      "stack": {
+        "name": "agentbench-stack",
+        "incident": {
+          "constant_n": 1.0
+        },
+        "layers": [
+          {
+            "constant_n": 1.38,
+            "thickness_nm": 105.0,
+            "optimizable": false
+          }
+        ],
+        "exit": {
+          "constant_n": 1.52
+        }
+      },
+      "spectrum": {
+        "start_nm": 450.0,
+        "stop_nm": 750.0,
+        "points": 61
+      },
+      "illumination": {
+        "angles_deg": [
+          0.0
+        ],
+        "polarizations": [
+          "unpolarized"
+        ]
+      },
+      "solver": "smatrix",
+      "requested_outputs": [
+        "R",
+        "T",
+        "A",
+        "amplitudes"
+      ],
+      "physics": {}
+    }
+  },
+  "expected_mode": "simulate",
+  "expected_capability": "supported",
+  "expected_failure_codes": [],
+  "expected_artifacts": [
+    "physics_certificate",
+    "result_summary",
+    "spectrum_table"
+  ],
+  "physics_assertions": [
+    {
+      "source": "run_result",
+      "path": "ok",
+      "operator": "eq",
+      "expected": true,
+      "minimum": null,
+      "maximum": null,
+      "tolerance": 0.0
+    }
+  ],
+  "difficulty": "intermediate",
+  "tags": [
+    "planar",
+    "simulation",
+    "amplitudes"
+  ],
+  "execution": "run",
+  "scenario": "standard",
+  "reproducibility_runs": 2
+}

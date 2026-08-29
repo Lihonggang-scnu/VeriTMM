@@ -1,0 +1,17 @@
+{
+  "mode": "simulate",
+  "simulation": {
+    "stack": {
+      "incident": {"constant_n": 1.0},
+      "layers": [
+        {
+          "material": "alumina",
+          "provider": "rii",
+          "thickness_nm": 100.0
+        }
+      ],
+      "exit": {"constant_n": 1.5}
+    },
+    "spectrum": {"start_nm": 400.0, "stop_nm": 700.0, "points": 31}
+  }
+}

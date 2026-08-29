@@ -1,0 +1,243 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  version-identity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Check version consistency
+        run: |
+          PYPROJECT_VER=$(grep '^version = ' pyproject.toml | cut -d'"' -f2)
+          CITATION_VER=$(grep '^version: ' CITATION.cff | cut -d'"' -f2)
+          python -c "
+          import sys
+          sys.path.insert(0, 'tmm_engine')
+          from _version import __version__
+          runtime_ver = __version__
+          pyproject_ver = '$PYPROJECT_VER'
+          citation_ver = '$CITATION_VER'
+
+          if runtime_ver != pyproject_ver:
+              print(f'ERROR: runtime {runtime_ver} != pyproject {pyproject_ver}')
+              sys.exit(1)
+          if runtime_ver != citation_ver:
+              print(f'ERROR: runtime {runtime_ver} != CITATION {citation_ver}')
+              sys.exit(1)
+          print(f'All versions consistent: {runtime_ver}')
+          "
+
+  core:
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e ".[test]"
+      - run: python -m pytest -q
+
+  torch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e ".[test,optimize]"
+      - run: python -c "import torch; print(torch.__version__)"
+      - run: python -m pytest -m requires_torch -q --junitxml=torch-junit.xml
+      - name: Require real Torch tests with zero skips
+        run: |
+          python - <<'PY'
+          import xml.etree.ElementTree as ET
+
+          root = ET.parse("torch-junit.xml").getroot()
+          suites = [root] if root.tag == "testsuite" else list(root.findall("testsuite"))
+          tests = sum(int(suite.attrib.get("tests", 0)) for suite in suites)
+          skipped = sum(int(suite.attrib.get("skipped", 0)) for suite in suites)
+          assert tests > 0, "requires_torch selected no tests"
+          assert skipped == 0, f"requires_torch skipped {skipped} tests"
+          PY
+      - run: python -m pytest tests/test_robust_optimization.py tests/test_robustness_report.py -q
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e ".[dev]"
+      - run: python -m ruff check .
+
+  agentbench:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e ".[test,optimize]"
+      - run: veritmm benchmark --offline --json --output BENCHMARK_RESULT.json > benchmark_stdout.json
+      - name: Verify AgentBench metrics
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          stdout = json.loads(Path("benchmark_stdout.json").read_text(encoding="utf-8"))
+          result = json.loads(Path("BENCHMARK_RESULT.json").read_text(encoding="utf-8"))
+          assert stdout["result_content_sha256"] == result["result_content_sha256"]
+          assert result["release_gate_passed"] is True
+          assert result["passed_case_count"] == result["case_count"]
+          assert result["failed_case_count"] == 0
+          assert result["metrics"]["unsupported_false_accept_rate"] == 0.0
+          PY
+
+  agentbench-interactive:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e ".[test]"
+      - run: python -m pytest tests/test_agent_bench_interactive.py -v
+      - run: python -m tmm_engine.agent_bench.run_interactive --cases-dir benchmarks/cases/interactive --output interactive_bench_results.json
+      - name: Release gate
+        run: |
+          python -c "
+          import json
+          results = json.load(open('interactive_bench_results.json'))
+          assert results['unsupported_false_accept_rate'] == 0.0
+          assert results['safe_reject_rate'] >= 0.8
+          print('Interactive AgentBench PASS')
+          "
+
+  challengebench:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e ".[test]"
+      - run: veritmm challenge --seed 42 --budget 50 --objective min_margin --output challenge_result.json
+      - run: python -c "import json; r=json.load(open('challenge_result.json')); assert r['candidates_evaluated']==50; assert r['worst_margin'] is not None; assert r['certificate'] is not None"
+
+  fitbench:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e ".[test]"
+      - run: veritmm fit benchmarks/cases/fitting/fit_synthetic_ar_coating.json --output fit_result.json
+      - run: python -c "import json; r=json.load(open('fit_result.json')); assert r['converged']; assert r['identifiability']['identifiability_status'] == 'well_determined'; print('FitBench PASS')"
+
+  batch-throughput:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e ".[test]"
+      - name: Measure raw and verified throughput
+        run: python benchmarks/perf/batch_throughput.py --candidates 20 --output batch_throughput.json
+      - name: Upload informational throughput artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: batch-throughput
+          path: batch_throughput.json
+
+  high_precision:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e ".[test,high_precision]"
+      - run: python -c "import mpmath; print('mpmath', mpmath.__version__)"
+      - run: python -m pytest tests/test_high_precision_referee.py -v
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: python -m pip install --upgrade pip build
+      - run: python -m build
+      - name: Wheel smoke in a fresh environment
+        run: |
+          python -m venv "$RUNNER_TEMP/veritmm-wheel-smoke"
+          "$RUNNER_TEMP/veritmm-wheel-smoke/bin/python" -m pip install --upgrade pip
+          "$RUNNER_TEMP/veritmm-wheel-smoke/bin/python" -m pip install dist/*.whl
+          "$RUNNER_TEMP/veritmm-wheel-smoke/bin/veritmm" describe --json > "$RUNNER_TEMP/describe.json"
+          "$RUNNER_TEMP/veritmm-wheel-smoke/bin/python" - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          payload = json.loads(Path(os.environ["RUNNER_TEMP"], "describe.json").read_text())
+          assert payload["package_version"] == "1.0.0"
+          assert payload["engine_id"] == "veritmm"
+          assert payload["research_interface"]["version"] == "1.0.0"
+
+          from tmm_engine.research import (
+              DatasetFactory,
+              DesignSpace,
+              ObjectiveSet,
+              RandomSearchAdapter,
+              ResearchEvaluator,
+              SamplingPlan,
+              VerifiedTorchDataset,
+          )
+
+          assert all(
+              item is not None
+              for item in (
+                  DatasetFactory,
+                  DesignSpace,
+                  ObjectiveSet,
+                  RandomSearchAdapter,
+                  ResearchEvaluator,
+                  SamplingPlan,
+                  VerifiedTorchDataset,
+              )
+          )
+          PY

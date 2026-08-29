@@ -1,0 +1,27 @@
+{
+  "mode": "simulate",
+  "simulation": {
+    "stack": {
+      "name": "coating_on_finite_glass",
+      "incident": {"constant_n": 1.0},
+      "layers": [
+        {"material": "tio2", "thickness_nm": 95, "coherence": "coherent"},
+        {
+          "material": "sio2",
+          "thickness_nm": 1000000,
+          "coherence": "incoherent",
+          "optimizable": false,
+          "label": "finite_glass_substrate"
+        }
+      ],
+      "exit": {"constant_n": 1.0}
+    },
+    "spectrum": {"start_nm": 400, "stop_nm": 900, "points": 251},
+    "illumination": {
+      "angles_deg": [0, 45],
+      "polarizations": ["s", "p", "unpolarized"]
+    },
+    "solver": "byrnes",
+    "requested_outputs": ["R", "T", "A"]
+  }
+}

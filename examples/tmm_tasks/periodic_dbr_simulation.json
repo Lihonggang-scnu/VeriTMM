@@ -1,0 +1,31 @@
+{
+  "mode": "simulate",
+  "simulation": {
+    "stack": {
+      "name": "six_period_visible_dbr",
+      "incident": {"constant_n": 1.0},
+      "layers": [
+        {"constant_n": 2.2, "thickness_nm": 68.1818},
+        {"constant_n": 1.45, "thickness_nm": 103.4483},
+        {"constant_n": 2.2, "thickness_nm": 68.1818},
+        {"constant_n": 1.45, "thickness_nm": 103.4483},
+        {"constant_n": 2.2, "thickness_nm": 68.1818},
+        {"constant_n": 1.45, "thickness_nm": 103.4483},
+        {"constant_n": 2.2, "thickness_nm": 68.1818},
+        {"constant_n": 1.45, "thickness_nm": 103.4483},
+        {"constant_n": 2.2, "thickness_nm": 68.1818},
+        {"constant_n": 1.45, "thickness_nm": 103.4483},
+        {"constant_n": 2.2, "thickness_nm": 68.1818},
+        {"constant_n": 1.45, "thickness_nm": 103.4483}
+      ],
+      "exit": {"constant_n": 1.45}
+    },
+    "spectrum": {"start_nm": 350, "stop_nm": 900, "points": 551},
+    "illumination": {
+      "angles_deg": [0, 30, 60],
+      "polarizations": ["s", "p", "unpolarized"]
+    },
+    "solver": "smatrix",
+    "requested_outputs": ["R", "T", "A"]
+  }
+}

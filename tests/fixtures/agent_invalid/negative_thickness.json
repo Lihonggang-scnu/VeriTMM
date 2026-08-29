@@ -1,0 +1,11 @@
+{
+  "mode": "simulate",
+  "simulation": {
+    "stack": {
+      "incident": {"constant_n": 1.0},
+      "layers": [{"constant_n": 2.0, "thickness_nm": -10.0}],
+      "exit": {"constant_n": 1.5}
+    },
+    "spectrum": {"start_nm": 500.0, "stop_nm": 600.0, "points": 21}
+  }
+}

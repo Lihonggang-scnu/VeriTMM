@@ -1,0 +1,78 @@
+{
+  "schema_version": "veritmm-agentbench-case-v1",
+  "case_id": "invalid_sensitivity_metric_outside_grid",
+  "category": "invalid_contract",
+  "natural_language_task": "Reject and diagnose the malformed sensitivity metric outside grid task.",
+  "task": {
+    "schema_version": "sensitivity-task-v1",
+    "mode": "sensitivity",
+    "sensitivity": {
+      "simulation": {
+        "stack": {
+          "name": "agentbench-stack",
+          "incident": {
+            "constant_n": 1.0
+          },
+          "layers": [
+            {
+              "constant_n": 1.38,
+              "thickness_nm": 100.0,
+              "optimizable": true,
+              "min_thickness_nm": 30.0,
+              "max_thickness_nm": 180.0
+            }
+          ],
+          "exit": {
+            "constant_n": 1.52
+          }
+        },
+        "spectrum": {
+          "start_nm": 500.0,
+          "stop_nm": 650.0,
+          "points": 41
+        },
+        "illumination": {
+          "angles_deg": [
+            0.0
+          ],
+          "polarizations": [
+            "unpolarized"
+          ]
+        },
+        "solver": "smatrix",
+        "requested_outputs": [
+          "R",
+          "T",
+          "A"
+        ],
+        "physics": {}
+      },
+      "metric": {
+        "name": "mean_R",
+        "observable": "R",
+        "wavelength_min_nm": 800.0,
+        "wavelength_max_nm": 900.0,
+        "aggregation": "mean"
+      },
+      "parameters": "optimizable_thicknesses",
+      "finite_difference_step_nm": 0.01,
+      "relative_error_tolerance": 0.001,
+      "absolute_error_tolerance": 1e-07
+    }
+  },
+  "expected_mode": "sensitivity",
+  "expected_capability": "invalid",
+  "expected_failure_codes": [
+    "invalid_task"
+  ],
+  "expected_artifacts": [],
+  "physics_assertions": [],
+  "difficulty": "adversarial",
+  "tags": [
+    "typed_failure",
+    "invalid_contract"
+  ],
+  "execution": "preflight_only",
+  "scenario": "standard",
+  "reproducibility_runs": 2
+}

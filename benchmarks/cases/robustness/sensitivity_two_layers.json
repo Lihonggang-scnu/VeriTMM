@@ -1,0 +1,83 @@
+{
+  "schema_version": "veritmm-agentbench-case-v1",
+  "case_id": "sensitivity_two_layers",
+  "category": "valid_study",
+  "natural_language_task": "Execute or validate the sensitivity two layers workflow.",
+  "task": {
+    "schema_version": "sensitivity-task-v1",
+    "mode": "sensitivity",
+    "sensitivity": {
+      "simulation": {
+        "stack": {
+          "name": "agentbench-stack",
+          "incident": {
+            "constant_n": 1.0
+          },
+          "layers": [
+            {
+              "constant_n": 1.38,
+              "thickness_nm": 100.0,
+              "optimizable": true,
+              "min_thickness_nm": 30.0,
+              "max_thickness_nm": 180.0
+            },
+            {
+              "constant_n": 2.05,
+              "thickness_nm": 70.0,
+              "optimizable": true,
+              "min_thickness_nm": 30.0,
+              "max_thickness_nm": 180.0
+            }
+          ],
+          "exit": {
+            "constant_n": 1.52
+          }
+        },
+        "spectrum": {
+          "start_nm": 500.0,
+          "stop_nm": 650.0,
+          "points": 41
+        },
+        "illumination": {
+          "angles_deg": [
+            0.0
+          ],
+          "polarizations": [
+            "unpolarized"
+          ]
+        },
+        "solver": "smatrix",
+        "requested_outputs": [
+          "R",
+          "T",
+          "A"
+        ],
+        "physics": {}
+      },
+      "metric": {
+        "name": "mean_R",
+        "observable": "R",
+        "wavelength_min_nm": 520.0,
+        "wavelength_max_nm": 620.0,
+        "aggregation": "mean"
+      },
+      "parameters": "optimizable_thicknesses",
+      "finite_difference_step_nm": 0.01,
+      "relative_error_tolerance": 0.001,
+      "absolute_error_tolerance": 1e-07
+    }
+  },
+  "expected_mode": "sensitivity",
+  "expected_capability": "supported",
+  "expected_failure_codes": [],
+  "expected_artifacts": [],
+  "physics_assertions": [],
+  "difficulty": "advanced",
+  "tags": [
+    "sensitivity",
+    "standard"
+  ],
+  "execution": "preflight_only",
+  "scenario": "standard",
+  "reproducibility_runs": 2
+}

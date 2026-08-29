@@ -1,0 +1,64 @@
+{
+  "schema_version": "veritmm-agentbench-case-v1",
+  "case_id": "reject_amplitudes_with_ellipsometry",
+  "category": "unsupported_output_combination",
+  "natural_language_task": "Reject the incompatible output request amplitudes with ellipsometry.",
+  "task": {
+    "mode": "simulate",
+    "simulation": {
+      "stack": {
+        "name": "agentbench-stack",
+        "incident": {
+          "constant_n": 1.0
+        },
+        "layers": [
+          {
+            "constant_n": 1.38,
+            "thickness_nm": 105.0,
+            "optimizable": false
+          }
+        ],
+        "exit": {
+          "constant_n": 1.52
+        }
+      },
+      "spectrum": {
+        "start_nm": 450.0,
+        "stop_nm": 750.0,
+        "points": 61
+      },
+      "illumination": {
+        "angles_deg": [
+          0.0
+        ],
+        "polarizations": [
+          "unpolarized"
+        ]
+      },
+      "solver": "smatrix",
+      "requested_outputs": [
+        "R",
+        "T",
+        "A",
+        "amplitudes",
+        "ellipsometry"
+      ],
+      "physics": {}
+    }
+  },
+  "expected_mode": "simulate",
+  "expected_capability": "unsupported",
+  "expected_failure_codes": [
+    "unsupported_output_combination"
+  ],
+  "expected_artifacts": [],
+  "physics_assertions": [],
+  "difficulty": "adversarial",
+  "tags": [
+    "fail_closed",
+    "output_contract"
+  ],
+  "execution": "preflight_only",
+  "scenario": "standard",
+  "reproducibility_runs": 2
+}

@@ -1,0 +1,46 @@
+{
+  "schema_version": "veritmm-agentbench-case-v1",
+  "case_id": "invalid_material_ambiguity",
+  "category": "invalid_or_unresolved_input",
+  "natural_language_task": "Diagnose the material ambiguity input without guessing a replacement.",
+  "task": {
+    "mode": "simulate",
+    "simulation": {
+      "stack": {
+        "incident": {
+          "constant_n": 1.0
+        },
+        "layers": [
+          {
+            "material": "alumina",
+            "provider": "rii",
+            "thickness_nm": 100.0
+          }
+        ],
+        "exit": {
+          "constant_n": 1.5
+        }
+      },
+      "spectrum": {
+        "start_nm": 400.0,
+        "stop_nm": 700.0,
+        "points": 31
+      }
+    }
+  },
+  "expected_mode": "simulate",
+  "expected_capability": "invalid",
+  "expected_failure_codes": [
+    "material_ambiguity"
+  ],
+  "expected_artifacts": [],
+  "physics_assertions": [],
+  "difficulty": "adversarial",
+  "tags": [
+    "typed_failure",
+    "material_ambiguity"
+  ],
+  "execution": "preflight_only",
+  "scenario": "standard",
+  "reproducibility_runs": 2
+}
