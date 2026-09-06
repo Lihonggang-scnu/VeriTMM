@@ -59,10 +59,10 @@ comparison, and offline benchmark workflows remain available.
   nonlinear optics, finite beams, and other out-of-scope physics are rejected
   explicitly.
 
-### Evidence from `OptoMind-Article-2`
+### Evidence from `OptoMind-Article`
 
 The 2.0.0 engine has been used as the optical execution and verification
-component in `OptoMind-Article-2`, a companion research workflow for auditable
+component in `OptoMind-Article`, a companion research workflow for auditable
 thin-film design. That workflow exercises managed simulation, independent
 verification, gradient/sensitivity guidance, declarative design problems,
 scientific-intent compilation, evidence summaries, and energy accounting.
