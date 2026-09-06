@@ -148,6 +148,7 @@ def _resolve_materials(
                         message=failure.message,
                         recoverable=failure.recoverable,
                         suggested_solver_family=failure.suggested_solver_family,
+                        handoff_hints=failure.handoff_hints,
                         context=context,
                         severity=failure.severity,
                         requires_user_choice=failure.requires_user_choice,

@@ -1,0 +1,17 @@
+{
+  "mode": "simulate",
+  "simulation": {
+    "stack": {
+      "layers": [
+        {"material": "tio2", "thickness_nm": 60.0},
+        {"material": "sio2", "thickness_nm": 90.0}
+      ],
+      "incident": {"material": null, "constant_n": 1.0},
+      "exit": {"material": "sio2"}
+    },
+    "spectrum": {"start_nm": 500.0, "stop_nm": 600.0, "points": 11},
+    "illumination": {"angles_deg": [0.0], "polarizations": ["s"]},
+    "solver": "smatrix",
+    "requested_outputs": ["R", "T", "A"]
+  }
+}

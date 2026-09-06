@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 import shutil
 import uuid
@@ -13,6 +12,7 @@ from typing import Any, Iterable, Mapping, Sequence
 import numpy as np
 
 from .archive.schema_registry import ARCHIVE_SCHEMA_VERSION
+from .hashing import IDENTITY_SCHEME, canonical_json_dumps, file_sha256, stable_sha256
 from .protocol.models import PROTOCOL_VERSION
 from .protocol.responses import (
     DEFAULT_RESPONSE_DETAIL,
@@ -27,6 +27,7 @@ from .protocol.responses import (
     validate_artifact_references,
     validate_projected_response,
 )
+from .reproducibility import reproducibility_block
 
 RESULT_SUMMARY_SCHEMA_VERSION = "veritmm-result-summary-v2"
 RUN_RESULT_SCHEMA_VERSION = "veritmm-run-result-v1"
@@ -43,6 +44,14 @@ _ARTIFACT_KINDS = {
     "PHYSICS_ACCEPTANCE_CERTIFICATE.json": (
         "physics_certificate",
         "physics-acceptance-certificate-v1",
+    ),
+    "VERIFICATION_EVIDENCE.json": (
+        "verification_evidence",
+        "veritmm-verification-evidence-v1",
+    ),
+    "VERIFICATION_POLICY.json": (
+        "verification_policy",
+        "veritmm-verification-policy-v1",
     ),
     "PREFLIGHT_REPORT.json": ("preflight_report", "veritmm-preflight-v1"),
     "DESIGN_PORTFOLIO.json": ("design_portfolio", "veritmm-design-portfolio-v1"),
@@ -115,7 +124,7 @@ class ResponseDetailUnavailableError(ValueError):
                         "action_id": "rerun_with_response_context",
                         "action_type": "rerun_required",
                         "description": (
-                            "Re-run the task with a build that persists "
+                            "Re-run the task with VeriTMM v0.5.2+ to persist "
                             "RESPONSE_CONTEXT.json, then inspect again."
                         ),
                         "safety": "safe",
@@ -125,29 +134,10 @@ class ResponseDetailUnavailableError(ValueError):
         }
 
 
-def canonical_json_bytes(payload: Any) -> bytes:
-    """Return the canonical UTF-8 representation used for stable task hashes."""
-
-    return json.dumps(
-        payload,
-        sort_keys=True,
-        separators=(",", ":"),
-        ensure_ascii=False,
-        allow_nan=False,
-        default=str,
-    ).encode("utf-8")
-
-
 def stable_payload_sha256(payload: Any) -> str:
-    return hashlib.sha256(canonical_json_bytes(payload)).hexdigest()
+    """Stable content hash; the canonical implementation lives in hashing."""
 
-
-def file_sha256(path: str | Path) -> str:
-    digest = hashlib.sha256()
-    with Path(path).open("rb") as handle:
-        for block in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(block)
-    return digest.hexdigest()
+    return stable_sha256(payload)
 
 
 def write_json(path: str | Path, payload: Any) -> None:
@@ -242,6 +232,7 @@ def build_result_summary(
         "protocol_version": PROTOCOL_VERSION,
         "run_id": run_id,
         "task_sha256": task_sha256,
+        "identity_scheme": IDENTITY_SCHEME,
         "task_hash_scope": "normalized_operation_wrapper",
         "mode": str(mode),
         "status": str(run_status or certificate.get("status") or "not_certified"),
@@ -332,7 +323,7 @@ def build_result_summary(
                 )
                 if record.get(key) is not None
             }
-            marker = tuple((key, json.dumps(value, sort_keys=True, default=str)) for key, value in sorted(compact.items()))
+            marker = tuple((key, canonical_json_dumps(value)) for key, value in sorted(compact.items()))
             if marker not in seen:
                 seen.add(marker)
                 materials.append(compact)
@@ -605,6 +596,7 @@ def write_run_result(
     summary_payload.setdefault("protocol_version", PROTOCOL_VERSION)
     summary_payload["run_id"] = effective_run_id
     summary_payload["task_sha256"] = task_sha256
+    summary_payload.setdefault("identity_scheme", IDENTITY_SCHEME)
     summary_payload.setdefault("archive_schema_version", ARCHIVE_SCHEMA_VERSION)
     summary_payload.setdefault("task_hash_scope", "normalized_operation_wrapper")
     summary_payload.setdefault("mode", str(operation))
@@ -621,6 +613,7 @@ def write_run_result(
         "ok": bool(ok),
         "run_id": effective_run_id,
         "task_sha256": task_sha256,
+        "identity_scheme": IDENTITY_SCHEME,
         "task_hash_scope": "normalized_operation_wrapper",
         "archive_schema_version": ARCHIVE_SCHEMA_VERSION,
         "input_sha256": input_sha256,
@@ -639,6 +632,7 @@ def write_run_result(
         "cache_hit": False,
         "source_run_id": None,
         "artifact_provenance": None,
+        "reproducibility": reproducibility_block(),
     }
     context = canonical_response_context(
         base_payload, artifact_refs=operation_artifacts
@@ -739,7 +733,6 @@ __all__ = [
     "RESULT_SUMMARY_SCHEMA_VERSION",
     "RUN_RESULT_SCHEMA_VERSION",
     "build_result_summary",
-    "canonical_json_bytes",
     "file_sha256",
     "index_artifacts",
     "load_run_result",

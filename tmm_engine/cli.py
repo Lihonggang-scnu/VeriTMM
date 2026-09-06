@@ -16,6 +16,7 @@ from .archive.schema_registry import ARCHIVE_SCHEMA_VERSION
 from .capabilities import failure_from_exception
 from .execution import ExecutionSettings
 from .experiment_store import ExperimentStore, compare_runs, default_store_root
+from .hashing import canonical_json_dumps
 from .managed_execution import execute_managed_task
 from .preflight import preflight_path
 from .protocol.responses import (
@@ -59,16 +60,7 @@ def _emit(
     else:
         rendered = payload
 
-    print(
-        json.dumps(
-            rendered,
-            ensure_ascii=False,
-            sort_keys=True,
-            separators=(",", ":"),
-            allow_nan=False,
-            default=str,
-        )
-    )
+    print(canonical_json_dumps(rendered))
 
 
 class _MachineArgumentParser(argparse.ArgumentParser):
@@ -123,6 +115,9 @@ def _build_parser() -> argparse.ArgumentParser:
             "failure",
             "run_result",
             "response",
+            "design-problem",
+            "intent",
+            "compilation-equivalence",
         ),
     )
     add_detail(schema)
@@ -149,6 +144,12 @@ def _build_parser() -> argparse.ArgumentParser:
     run.add_argument("--no-plot", action="store_true")
     run.add_argument("--child-timeout-seconds", type=float, default=3600.0)
     run.add_argument("--portfolio-max-candidates", type=int, default=6)
+    run.add_argument(
+        "--workers",
+        type=int,
+        default=1,
+        help="CPU worker processes for parallel study loops (default 1 = serial)",
+    )
     run.add_argument("--store-dir", default=None)
     run.add_argument("--no-store", action="store_true")
     run.add_argument("--experiment-id", default=None)
@@ -201,6 +202,75 @@ def _build_parser() -> argparse.ArgumentParser:
     plan_measurement.add_argument("--json", action="store_true")
     add_detail(plan_measurement)
 
+    gradient = subparsers.add_parser(
+        "gradient",
+        help="Per-layer thickness gradients of a band objective (proposal basis)",
+    )
+    gradient.add_argument("task")
+    gradient.add_argument("--objective", default="mean_R", help="mean_R|mean_T|mean_A[:min..max]")
+    gradient.add_argument(
+        "--variables", default=None, help="comma-separated layer indices (default: all optimizable)"
+    )
+    gradient.add_argument("--device", default="cpu")
+    gradient.add_argument("--json", action="store_true", help="Emit compact machine JSON")
+    add_detail(gradient)
+
+    sensitivity = subparsers.add_parser(
+        "sensitivity",
+        help="Normalized per-layer thickness sensitivities (proposal basis)",
+    )
+    sensitivity.add_argument("task")
+    sensitivity.add_argument("--objective", default="mean_R", help="mean_R|mean_T|mean_A[:min..max]")
+    sensitivity.add_argument("--characteristic-scale-nm", type=float, default=10.0)
+    sensitivity.add_argument(
+        "--variables", default=None, help="comma-separated layer indices (default: all optimizable)"
+    )
+    sensitivity.add_argument("--device", default="cpu")
+    sensitivity.add_argument("--json", action="store_true", help="Emit compact machine JSON")
+    add_detail(sensitivity)
+
+    capability_catalog = subparsers.add_parser(
+        "capability-catalog",
+        help="Show, regenerate, or drift-check the runtime capability catalog",
+    )
+    capability_catalog.add_argument(
+        "--regenerate", action="store_true", help="Rewrite docs/CAPABILITY_CATALOG.md"
+    )
+    capability_catalog.add_argument(
+        "--check", action="store_true", help="Fail on drift between the doc and the live surface"
+    )
+    capability_catalog.add_argument("--json", action="store_true", help="Emit compact machine JSON")
+    add_detail(capability_catalog)
+
+    lineage_graph = subparsers.add_parser(
+        "lineage-graph", help="Build the read-only provenance graph over run directories"
+    )
+    lineage_graph.add_argument("run_dirs", nargs="+")
+    lineage_graph.add_argument("--json", action="store_true", help="Emit compact machine JSON")
+    add_detail(lineage_graph)
+
+    explain_superiority = subparsers.add_parser(
+        "explain-superiority",
+        help="Explain why one run is superior to another via the provenance graph",
+    )
+    explain_superiority.add_argument("run_a")
+    explain_superiority.add_argument("run_b")
+    explain_superiority.add_argument("--json", action="store_true", help="Emit compact machine JSON")
+    add_detail(explain_superiority)
+
+    optimize_problem = subparsers.add_parser(
+        "optimize-problem",
+        help="Compile a declarative OptimizationProblem and run the existing optimize chain",
+    )
+    optimize_problem.add_argument("problem")
+    optimize_problem.add_argument("--output-dir", required=True)
+    optimize_problem.add_argument("--json", action="store_true", help="Emit compact machine JSON")
+    add_detail(optimize_problem)
+    optimize_problem.add_argument("--device", default="cpu")
+    optimize_problem.add_argument("--store-dir", default=None)
+    optimize_problem.add_argument("--no-store", action="store_true")
+    optimize_problem.add_argument("--cache", action=argparse.BooleanOptionalAction, default=True)
+
     history = subparsers.add_parser("history", help="List persisted experiment runs")
     history.add_argument("--store-dir", default=None)
     history.add_argument("--experiment", default=None)
@@ -224,6 +294,45 @@ def _build_parser() -> argparse.ArgumentParser:
     compare.add_argument("--store-dir", default=None)
     compare.add_argument("--json", action="store_true")
     add_detail(compare)
+
+    verify_run = subparsers.add_parser(
+        "verify-run",
+        help="Independently verify one run directory (integrity, certification, replay, authenticity)",
+    )
+    verify_run.add_argument("run_dir")
+    verify_run.add_argument(
+        "--expected-run-id",
+        default=None,
+        help="Fail unless the directory holds this run_id",
+    )
+    verify_run.add_argument(
+        "--expected-task-sha256",
+        default=None,
+        help="Fail unless the directory holds this task identity",
+    )
+    verify_run.add_argument("--json", action="store_true")
+    add_detail(verify_run)
+
+    skill_path = subparsers.add_parser(
+        "skill-path",
+        help="Print the location of the packaged veritmm-tmm Agent Skill",
+    )
+    skill_path.add_argument("--json", action="store_true")
+
+    install_skill = subparsers.add_parser(
+        "install-skill",
+        help="Install the packaged veritmm-tmm Agent Skill into a host skill directory",
+    )
+    install_skill.add_argument(
+        "target",
+        help="Host skills parent directory (the skill installs as TARGET/veritmm-tmm)",
+    )
+    install_skill.add_argument(
+        "--force",
+        action="store_true",
+        help="Explicitly confirm overwriting an existing installation",
+    )
+    install_skill.add_argument("--json", action="store_true")
 
     benchmark = subparsers.add_parser(
         "benchmark", help="Run the deterministic offline AgentBench suite"
@@ -256,6 +365,7 @@ def _store_from_args(args: argparse.Namespace) -> ExperimentStore | None:
 def _execution_settings_from_args(args: argparse.Namespace) -> ExecutionSettings:
     return ExecutionSettings(
         device=args.device,
+        workers=int(getattr(args, "workers", 1)),
         skip_certificate=args.skip_certificate,
         convergence_max_refinements=args.convergence_max_refinements,
         convergence_pointwise_tolerance=args.convergence_pointwise_tolerance,
@@ -590,6 +700,39 @@ def main(argv: Sequence[str] | None = None) -> int:
             code, payload = _run(args)
             _emit(payload, detail=args.detail)
             return code
+        if args.command == "verify-run":
+            from .verify_run import verify_run_dir
+
+            report = verify_run_dir(
+                args.run_dir,
+                expected_run_id=args.expected_run_id,
+                expected_task_sha256=args.expected_task_sha256,
+            )
+            _emit(report, detail=args.detail, project=False)
+            if report["overall_status"] == "valid":
+                return 0
+            if report["overall_status"] == "invalid":
+                return 2
+            return 3
+        if args.command == "skill-path":
+            from .skill_packaging import skill_manifest, skill_source_dir
+
+            if args.json:
+                _emit(skill_manifest(), project=False)
+            else:
+                print(skill_source_dir())
+            return 0
+        if args.command == "install-skill":
+            from .skill_packaging import SkillInstallError, install_skill
+
+            try:
+                payload = install_skill(args.target, force=args.force)
+            except SkillInstallError as exc:
+                payload = {"ok": False, "error": str(exc)}
+                _emit(payload, project=False)
+                return 2
+            _emit(payload, project=False)
+            return 0
         if args.command == "challenge":
             from .verifier.challenge import (
                 ChallengeObjective,
@@ -660,6 +803,224 @@ def main(argv: Sequence[str] | None = None) -> int:
             result = build_measurement_plan(plan_task)
             payload = result.model_dump(mode="json")
             write_json(args.output, payload)
+            _emit(payload, detail=args.detail, project=False)
+            return 0
+        if args.command == "capability-catalog":
+            from .capability_catalog import (
+                CATALOG_DOC,
+                build_catalog,
+                check_catalog,
+                write_catalog_doc,
+            )
+
+            if args.check:
+                report = check_catalog(CATALOG_DOC)
+                payload = {"ok": report["ok"], **report}
+                _emit(payload, detail=args.detail, project=False)
+                return 0 if report["ok"] else 1
+            if args.regenerate:
+                written = write_catalog_doc(CATALOG_DOC)
+                payload = {"ok": True, "written": str(written)}
+                _emit(payload, detail=args.detail, project=False)
+                return 0
+            payload = {"ok": True, "catalog": build_catalog()}
+            _emit(payload, detail=args.detail, project=False)
+            return 0
+        if args.command == "lineage-graph":
+            from .provenance_graph import ProvenanceGraphError, build_graph
+
+            try:
+                graph = build_graph([Path(item) for item in args.run_dirs])
+            except ProvenanceGraphError as exc:
+                payload = {
+                    "ok": False,
+                    "command": args.command,
+                    "failures": [
+                        {"code": exc.code, "message": exc.message, "recoverable": False}
+                    ],
+                }
+                _emit(payload, detail=args.detail, project=False)
+                return 2
+            payload = {"ok": True, "graph": graph.to_dict()}
+            _emit(payload, detail=args.detail, project=False)
+            return 0
+        if args.command == "explain-superiority":
+            from .provenance_graph import ProvenanceGraphError, build_graph
+
+            try:
+                graph = build_graph([Path(args.run_a), Path(args.run_b)])
+                explanation = graph.explain_superiority(
+                    graph.run_id_for_source(args.run_a),
+                    graph.run_id_for_source(args.run_b),
+                )
+            except ProvenanceGraphError as exc:
+                payload = {
+                    "ok": False,
+                    "command": args.command,
+                    "failures": [
+                        {"code": exc.code, "message": exc.message, "recoverable": False}
+                    ],
+                }
+                _emit(payload, detail=args.detail, project=False)
+                return 2
+            payload = {"ok": True, "explanation": explanation}
+            _emit(payload, detail=args.detail, project=False)
+            return 0
+        if args.command == "optimize-problem":
+            from .design_problem import (
+                DesignProblemError,
+                OptimizationProblemModel,
+                compile_design_problem,
+                problem_summary,
+            )
+            from .execution import ExecutionSettings
+            from .managed_execution import execute_managed_task
+
+            try:
+                raw = json.loads(Path(args.problem).read_text(encoding="utf-8"))
+                problem = OptimizationProblemModel.model_validate(raw)
+                task = compile_design_problem(problem)
+            except DesignProblemError as exc:
+                payload = {
+                    "ok": False,
+                    "command": args.command,
+                    "failures": [
+                        {"code": exc.code, "message": exc.message, "recoverable": False}
+                    ],
+                }
+                _emit(payload, detail=args.detail, project=False)
+                return 2
+            except Exception as exc:
+                payload = {
+                    "ok": False,
+                    "command": args.command,
+                    "failures": [
+                        {
+                            "code": "invalid_problem",
+                            "message": f"the problem file could not be compiled: {exc}",
+                            "recoverable": False,
+                        }
+                    ],
+                }
+                _emit(payload, detail=args.detail, project=False)
+                return 2
+            try:
+                envelope = execute_managed_task(
+                    "optimize",
+                    task,
+                    args.output_dir,
+                    execution_settings=ExecutionSettings(device=args.device),
+                    cache=args.cache,
+                    detail=args.detail,
+                )
+            except Exception as exc:
+                payload = {
+                    "ok": False,
+                    "command": args.command,
+                    "problem": problem_summary(problem, task),
+                    "failures": [
+                        {
+                            "code": "optimization_failed",
+                            "message": str(exc),
+                            "recoverable": False,
+                        }
+                    ],
+                }
+                _emit(payload, detail=args.detail, project=False)
+                return 2
+            payload = {
+                "ok": envelope.get("status") == "completed",
+                "problem": problem_summary(problem, task),
+                "envelope": envelope,
+            }
+            _emit(payload, detail=args.detail, project=False)
+            return 0 if payload["ok"] else 2
+        if args.command in ("gradient", "sensitivity"):
+            from .gradient_api import (
+                GradientRequestError,
+                compute_gradient,
+                compute_sensitivity,
+            )
+            from .task_io import load_task
+
+            try:
+                mode, task = load_task(args.task)
+            except Exception as exc:
+                payload = {
+                    "ok": False,
+                    "command": args.command,
+                    "failures": [
+                        {
+                            "code": "invalid_task",
+                            "message": f"the task file could not be loaded: {exc}",
+                            "recoverable": False,
+                        }
+                    ],
+                }
+                _emit(payload, detail=args.detail, project=False)
+                return 2
+            if mode != "simulate":
+                payload = {
+                    "ok": False,
+                    "command": args.command,
+                    "failures": [
+                        {
+                            "code": "invalid_task",
+                            "message": "gradient/sensitivity require a simulation task",
+                            "recoverable": False,
+                        }
+                    ],
+                }
+                _emit(payload, detail=args.detail, project=False)
+                return 2
+            variables = None
+            if getattr(args, "variables", None):
+                try:
+                    variables = [
+                        int(item) for item in args.variables.split(",") if item.strip()
+                    ]
+                except ValueError:
+                    payload = {
+                        "ok": False,
+                        "command": args.command,
+                        "failures": [
+                            {
+                                "code": "unknown_variable",
+                                "message": "--variables must be comma-separated integers",
+                                "recoverable": True,
+                            }
+                        ],
+                    }
+                    _emit(payload, detail=args.detail, project=False)
+                    return 2
+            try:
+                if args.command == "gradient":
+                    result = compute_gradient(
+                        task, args.objective, variables, device=args.device
+                    )
+                else:
+                    result = compute_sensitivity(
+                        task,
+                        variables,
+                        objective=args.objective,
+                        characteristic_scale_nm=args.characteristic_scale_nm,
+                        device=args.device,
+                    )
+            except GradientRequestError as exc:
+                payload = {
+                    "ok": False,
+                    "command": args.command,
+                    "failures": [
+                        {
+                            "code": exc.code,
+                            "message": exc.message,
+                            "recoverable": False,
+                        }
+                    ],
+                }
+                _emit(payload, detail=args.detail, project=False)
+                return 2
+            payload = {"ok": True, **result.to_dict()}
             _emit(payload, detail=args.detail, project=False)
             return 0
         if args.command == "history":

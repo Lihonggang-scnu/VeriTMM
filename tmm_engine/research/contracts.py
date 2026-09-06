@@ -8,8 +8,6 @@ certificate layers.
 
 from __future__ import annotations
 
-import hashlib
-import json
 import math
 from typing import Annotated, Any, Literal, TypeAlias
 
@@ -25,6 +23,7 @@ from pydantic import (
     model_validator,
 )
 
+from ..hashing import canonical_json_dumps, stable_sha256
 from ..protocol.models import SimulationTaskPayload
 from ..schemas import SimulationTask, dataclass_to_dict
 
@@ -37,18 +36,13 @@ def canonical_json(value: Any) -> str:
 
     if isinstance(value, BaseModel):
         value = value.model_dump(mode="json")
-    return json.dumps(
-        value,
-        ensure_ascii=False,
-        allow_nan=False,
-        sort_keys=True,
-        separators=(",", ":"),
-    )
+    return canonical_json_dumps(value)
 
 
 def content_id(prefix: str, value: Any) -> str:
-    digest = hashlib.sha256(canonical_json(value).encode("utf-8")).hexdigest()
-    return f"{prefix}_{digest}"
+    if isinstance(value, BaseModel):
+        value = value.model_dump(mode="json")
+    return f"{prefix}_{stable_sha256(value)}"
 
 
 def _finite_number(value: Any, field_name: str) -> float:

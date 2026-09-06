@@ -30,6 +30,8 @@ class FailureCode(str, Enum):
     BUDGET_EXHAUSTED = "budget_exhausted"
     PROVENANCE_CONFLICT = "provenance_conflict"
     INSUFFICIENT_VALID_SAMPLES = "insufficient_valid_samples"
+    RECIPROCITY_FAILURE = "reciprocity_failure"
+    SURFACE_ROUGHNESS_NOT_MODELED = "surface_roughness_not_modeled"
 
 
 ActionSafety = Literal[
@@ -65,6 +67,7 @@ class FailureRecord:
     message: str
     recoverable: bool
     suggested_solver_family: Optional[str] = None
+    handoff_hints: Optional[Dict[str, Any]] = None
     context: Dict[str, Any] = field(default_factory=dict)
     severity: Literal["warning", "error", "fatal"] = "error"
     requires_user_choice: bool = False
@@ -74,6 +77,15 @@ class FailureRecord:
         payload = asdict(self)
         payload["code"] = self.code.value
         payload["actions"] = [item.to_dict() for item in self.actions]
+        # Handoff routing is serialized only when it exists: failures without
+        # a reliable recommendation keep their historical shape, and the
+        # informational marker is injected exactly when routing information is
+        # present — it marks solver suggestions as informational-only, never
+        # as endorsements and never as a certificate input.
+        if self.handoff_hints is None:
+            payload.pop("handoff_hints", None)
+        if self.suggested_solver_family or self.handoff_hints:
+            payload["informational_only"] = True
         return payload
 
 
@@ -325,6 +337,17 @@ class CapabilityAssessment:
         }
 
 
+def _handoff_hints(required_inputs: list[str], notes: str) -> Dict[str, Any]:
+    """Routing hints for one unsupported-physics boundary.
+
+    Purely informational: the inputs name what an external solver family
+    would need beyond what a 1-D stack records, and the notes state why the
+    boundary exists.  Nothing here is an endorsement or an execution promise.
+    """
+
+    return {"required_inputs": required_inputs, "notes": notes}
+
+
 def assess_tmm_capability(task: SimulationTask) -> CapabilityAssessment:
     """Decide whether the current scalar TMM environment may execute a task."""
 
@@ -338,35 +361,128 @@ def assess_tmm_capability(task: SimulationTask) -> CapabilityAssessment:
 
     profile = task.physics
     if profile.geometry_class != "layered_planar":
-        recommended = "rcwa" if profile.geometry_class == "lateral_periodic" else "fdtd_or_fem"
+        if profile.geometry_class == "lateral_periodic":
+            recommended = "rcwa"
+            hints = _handoff_hints(
+                [
+                    "in-plane period lattice",
+                    "diffraction orders to retain",
+                    "layer stack cross-section",
+                ],
+                "the lateral period is design intent and is not part of a 1-D stack",
+            )
+        else:
+            recommended = "fdtd_or_fem"
+            hints = _handoff_hints(
+                [
+                    "full 2-D/3-D geometry",
+                    "mesh and boundary (PML) settings",
+                    "time or frequency window",
+                ],
+                "scalar TMM cannot represent arbitrary lateral structure",
+            )
         failures.append(
             FailureRecord(
                 FailureCode.UNSUPPORTED_GEOMETRY,
                 "Scalar TMM supports variation only along the layer normal; lateral or arbitrary geometry requires another solver.",
                 True,
                 recommended,
-                {"geometry_class": profile.geometry_class},
+                hints,
+                context={"geometry_class": profile.geometry_class},
             )
         )
     if profile.material_class != "isotropic":
-        recommended = "berreman_4x4" if profile.material_class == "anisotropic" else "fdtd_or_fem"
+        if profile.material_class == "anisotropic":
+            recommended = "berreman_4x4"
+            hints = _handoff_hints(
+                [
+                    "permittivity tensor per wavelength",
+                    "cut-plane orientation (Euler angles)",
+                ],
+                "the engine accepts scalar isotropic optical constants only",
+            )
+        elif profile.material_class == "magneto_optic":
+            recommended = "magneto_optic_4x4"
+            hints = _handoff_hints(
+                [
+                    "gyrotropic permittivity tensor including off-diagonal terms",
+                    "bias-field direction",
+                ],
+                "magneto-optic coupling needs a tensor 4x4 formulation",
+            )
+        else:
+            recommended = "nonlinear_time_domain"
+            hints = _handoff_hints(
+                [
+                    "nonlinear susceptibility model",
+                    "intensity range",
+                    "time window",
+                ],
+                "nonlinear response is intensity-dependent and needs a "
+                "time-domain propagation",
+            )
         failures.append(
             FailureRecord(
                 FailureCode.UNSUPPORTED_MATERIAL_MODEL,
                 "The current TMM engine accepts passive isotropic scalar optical constants only.",
                 True,
                 recommended,
-                {"material_class": profile.material_class},
+                hints,
+                context={"material_class": profile.material_class},
             )
         )
     if profile.excitation_class != "plane_wave":
+        excitation_hints = {
+            "finite_beam": (
+                "beam_propagation",
+                _handoff_hints(
+                    [
+                        "beam waist and divergence",
+                        "propagation distance",
+                        "numerical aperture",
+                    ],
+                    "a finite beam is not a single plane wave",
+                ),
+            ),
+            "dipole": (
+                "dipole_near_field",
+                _handoff_hints(
+                    [
+                        "dipole position and orientation",
+                        "near-field quantity and evaluation distance",
+                    ],
+                    "a dipole source needs a near-field formulation",
+                ),
+            ),
+            "mode_source": (
+                "eigenmode_expansion",
+                _handoff_hints(
+                    [
+                        "waveguide cross-section",
+                        "mode order and effective-index target",
+                    ],
+                    "a mode source is defined on a computed eigenmode basis",
+                ),
+            ),
+        }
+        recommended, hints = excitation_hints.get(
+            profile.excitation_class,
+            (
+                "fourier_optics_or_full_wave",
+                _handoff_hints(
+                    ["source field definition"],
+                    "only plane-wave excitation is supported by scalar TMM",
+                ),
+            ),
+        )
         failures.append(
             FailureRecord(
                 FailureCode.UNSUPPORTED_EXCITATION,
                 "The current TMM engine supports plane-wave excitation only.",
                 True,
-                "fourier_optics_or_full_wave",
-                {"excitation_class": profile.excitation_class},
+                recommended,
+                hints,
+                context={"excitation_class": profile.excitation_class},
             )
         )
     if profile.time_domain_required:
@@ -376,6 +492,13 @@ def assess_tmm_capability(task: SimulationTask) -> CapabilityAssessment:
                 "A time-domain response was requested; frequency-domain TMM is not sufficient.",
                 True,
                 "fdtd",
+                _handoff_hints(
+                    [
+                        "time window and source waveform",
+                        "grid and PML settings",
+                    ],
+                    "frequency-domain TMM cannot produce a time-domain response",
+                ),
             )
         )
 

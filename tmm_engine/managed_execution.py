@@ -289,6 +289,7 @@ def execute_managed_task(
             settings=SweepExecutionSettings(
                 child_execution=settings,
                 resume=resume,
+                workers=getattr(settings, "workers", 1),
             ),
             detail=detail,
         )

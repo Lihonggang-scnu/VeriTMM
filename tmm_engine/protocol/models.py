@@ -438,6 +438,14 @@ class FailureRecordModel(ProtocolModel):
     message: str
     recoverable: bool
     suggested_solver_family: str | None = None
+    # Handoff routing is omitted unless present, mirroring the runtime
+    # failure record's conditional serialization.
+    handoff_hints: dict[str, Any] | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    informational_only: bool = Field(
+        default=False, exclude_if=lambda value: value is False
+    )
     context: dict[str, Any] = Field(default_factory=dict)
     severity: Literal["warning", "error", "fatal"] = "error"
     requires_user_choice: bool = False
@@ -507,12 +515,20 @@ class RunResultEnvelope(ProtocolModel):
     ok: bool
     run_id: str
     task_sha256: str | None
+    identity_scheme: str | None = Field(
+        default=None,
+        exclude_if=lambda value: value is None,
+    )
     task_hash_scope: Literal["normalized_operation_wrapper"]
     archive_schema_version: int | None = Field(
         default=None,
         exclude_if=lambda value: value is None,
     )
     input_sha256: str | None
+    reproducibility: dict[str, Any] | None = Field(
+        default=None,
+        exclude_if=lambda value: value is None,
+    )
     operation: str
     status: str
     summary: dict[str, Any]

@@ -16,6 +16,83 @@
 
 </div>
 
+## 升级说明：远端 `v1.0.0` → 本地 `v2.0.0`
+
+本节根据公开仓库 `main` 的远端快照（提交 `a356ae9`，包版本
+`1.0.0`）与本地实现（`2.0.0`，V-00～V-14 升级线）逐文件比对整理。
+发布边界保持窄范围：同步 `tmm_engine/` 下的运行时代码、两个 Python
+入口/示例脚本、新代码需要的包内资源，以及 `pyproject.toml` 中与版本、
+入口和资源打包直接相关的最小元数据；只更新本文件和 `README.md`；远端
+其余文件保持原样。内置材料 CSV 的内容没有改写。
+
+### 代码级升级内容
+
+本次比较得到 `tmm_engine/` 下 44 个发生变化或新增的 Python 路径（23 个
+修改、21 个新增），另有两个 Python 脚本变化，以及 7 个用于意图回归和
+Agent Skill（智能体技能）打包的新资源。
+
+| 升级面 | `v2.0.0` 的变化 |
+|---|---|
+| 验证与可信链 | 新增独立的逐层吸收能量核算；把证据采集与结论判定拆开；持久化 `VERIFICATION_EVIDENCE.json` 与 `VERIFICATION_POLICY.json`；提供离线四态 `verify-run`；可重放已发布的 `v1.0.0` 运行产物；提供证据摘要；加入可选的互易性检查。 |
+| 可复现性 | 统一规范 JSON（canonical JSON）哈希入口并声明 `identity_scheme`；记录环境指纹；增加独立解析解验证套件；对超出物理范围的任务提供结构化求解器转交信息。 |
+| 物理后端与优化 | 用共享的 `KernelSpec` 接通 NumPy 与 PyTorch 后端注册表；新增一等梯度、灵敏度和批量提案 API；用声明式 `OptimizationProblem` 编译优化问题，并把约束作为边界而不是奖励惩罚。 |
+| 运行时与研究 | 新增 `SimulationJob` 状态机、失败隔离批处理和工具指纹缓存失效；提供只读溯源图与 `explain_superiority`；运行时生成能力目录并支持漂移检查；为研究循环提供 Windows spawn 安全、确定性的 CPU 并行。 |
+| AI 接入 | 新增 Scientific Intent（科学意图）编译和等价证书；提供仅 stdio 的 MCP（Model Context Protocol，模型上下文协议）安全面，共 25 个命名空间工具；打包 `veritmm-tmm` Agent Skill，并提供 `skill-path`/`install-skill`；支持 compact/standard/full 三种响应剖面。 |
+
+### 新增公开入口
+
+CLI（命令行接口）新增 `verify-run`、`gradient`、`sensitivity`、
+`optimize-problem`、`lineage-graph`、`explain-superiority` 和
+`capability-catalog`；研究循环可设置确定性的 CPU worker。可选的
+`veritmm-mcp` 程序提供安全的 MCP 投影，`veritmm skill-path` 与
+`veritmm install-skill` 用于分发打包后的技能。原有的仿真、优化、扫描、
+灵敏度、容差、历史、检查、溯源、比较和离线 benchmark（基准测试）入口
+仍然保留。
+
+### 兼容性与有意的行为变化
+
+- 既有任务 schema（模式）和 `veritmm-run-result-v1` envelope（运行结果
+  信封）保持兼容。历史 `v1.0.0` 运行目录可以使用 `verify-run` 检查；若
+  历史产物证据不足，系统会诚实报告 unavailable（不可用），不会从已保存
+  的结论反推证据。
+- 规范身份现在声明
+  `identity_scheme: "veritmm-canonical-json-v1"`。纯 ASCII 内容的摘要
+  保持原值；含非 ASCII 文本的任务可能得到新的任务/缓存身份，因此旧缓存
+  不会被静默复用。
+- 物理有效性仍与目标分数、灵敏度、容差/良率和稳健设计结论分离。优化器、
+  数据集和 AI 都不能自行创建或提升物理证书。
+- 物理边界没有扩张：仍是标量、各向同性、平面一维 TMM。光栅、超表面、
+  衍射级次、一般各向异性、非线性、有限光束等越界问题会被明确拒绝。
+
+### 这确实是 `OptoMind-Article-2` 实际使用过的版本
+
+`v2.0.0` 不是只设计出来但未接入的 API 快照。`OptoMind-Article-2` 的
+测试入口会优先挂载其同级 `veritmm/` 源树再导入 `tmm_engine`；其中的
+`VeriTMMAdapter` 实际调用引擎的受管执行和 `verify_run` 路径，O-10 工单
+实际消费了梯度、声明式设计问题、意图编译、证据和验证接口。对这棵挂载
+树与本地实现的运行时/打包范围（`tmm_engine/`、`scripts/`、`examples/`、
+`pyproject.toml`、`MANIFEST.in` 共 126 个路径）做字节级比较，结果为
+**0 个差异**。其已保存的证书中也实际出现了
+`veritmm_version: "2.0.0"` 和 `energy_accounting` 能量账本块。
+
+V-14 最终重新同步之前生成的历史产物仍保留实际产生它们的引擎版本号，
+不会被事后改标；重新同步之后的新运行才是本次 `v2.0.0` 发布要保持的
+消费路径。
+
+### 本地验收证据
+
+- `py -3.11 -m pytest -q`：**788 passed，3 skipped**（跳过项是主机相关的
+  可选裁判/符号链接检查）。
+- `veritmm benchmark --offline --json`：**85 / 85** 用例通过，
+  `release_gate_passed=true`，unsupported false-acceptance（不支持任务
+  的误接受率）为 **0**，网络调用为 0。
+- `veritmm describe --json` 报告包版本 `2.0.0`，并列出新的研究接口、
+  响应剖面、产物类型和能力清单。
+
+远端旧版本与本次发布边界都由 Git 保留：旧远端提交会通过本次升级创建的
+归档引用继续可恢复，主分支更新使用普通追加提交，不使用 force-push（强制
+推送）。
+
 ---
 
 ## VeriTMM 能做什么？
@@ -225,9 +302,10 @@ VeriTMM 当前并不打算”比顶级全波工具算得更多”。
 
 ---
 
-# 📊 验证状态
+# 📊 v2.0 验证状态
 
-当前实现已通过仓库中的自动化验证流程：
+当前 `v2.0.0` 实现已通过本地完整回归与离线 AgentBench；云端 CI 的最终
+状态以推送后的工作流结果为准：
 
 ```text
 Python 3.10       PASS
@@ -242,7 +320,7 @@ Build / Wheel     PASS
 
 | 验收项 | 结果 |
 |---|---:|
-| 本地测试 | **382 passed / 1 skipped** |
+| 本地测试 | **788 passed / 3 skipped** |
 | AgentBench | **85 / 85** |
 | unsupported false acceptance | **0** |
 | High-Precision CI gate | **PASS** |
@@ -267,10 +345,10 @@ Build / Wheel     PASS
 
 # 🚀 快速开始
 
-安装已发布的 1.0.0 版本：
+安装当前 `2.0.0` 版本：
 
 ```bash
-pip install veritmm  # 安装当前 1.0.0 版本
+pip install veritmm  # 安装当前 2.0.0 版本
 ```
 
 ```bash

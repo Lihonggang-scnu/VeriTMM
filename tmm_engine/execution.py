@@ -35,6 +35,7 @@ from .run_artifacts import (
 )
 from .schemas import OptimizationTask, SimulationTask, dataclass_to_dict
 from .task_io import write_normalized_task
+from .verification_artifacts import write_verification_artifacts
 from .workbench import TMMWorkbench
 
 
@@ -44,6 +45,7 @@ class ExecutionSettings:
 
     device: str = "cpu"
     skip_certificate: bool = False
+    workers: int = 1
     convergence_max_refinements: int = 6
     convergence_pointwise_tolerance: float = 5e-3
     convergence_integral_tolerance: float = 1e-3
@@ -493,6 +495,12 @@ def execute_task(
             certified = certify_simulation(workbench, task, certificate_settings)
             certificate = certified.certificate
             forward = certified.result
+            write_verification_artifacts(
+                output,
+                certified.evidence,
+                certificate_settings,
+                run_id,
+            )
         elif mode == "optimize":
             if not isinstance(task, OptimizationTask):
                 raise TypeError("optimize mode requires OptimizationTask")

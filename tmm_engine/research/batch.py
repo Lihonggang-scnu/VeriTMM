@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Any, Literal, Protocol, runtime_checkable
 
 from pydantic import Field, JsonValue, StrictBool, StrictInt, StrictStr, model_validator
 
+from ..hashing import canonical_json_dumps
 from ..protocol.models import ResponseMetadata
 from ..protocol.responses import COMPACT_MAX_BYTES, guard_context_budget, project_response
 from ..run_artifacts import (
@@ -393,16 +394,7 @@ def _append_index(
         "candidate_id": record.candidate_id,
         "record": record.model_dump(mode="json"),
     }
-    line = (
-        json.dumps(
-            payload,
-            ensure_ascii=False,
-            allow_nan=False,
-            sort_keys=True,
-            separators=(",", ":"),
-        )
-        + "\n"
-    ).encode("utf-8")
+    line = (canonical_json_dumps(payload) + "\n").encode("utf-8")
     descriptor = os.open(path, os.O_APPEND | os.O_WRONLY)
     try:
         written = os.write(descriptor, line)

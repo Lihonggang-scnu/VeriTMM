@@ -1,8 +1,8 @@
 """Backward-compatible wrapper around the stable ``veritmm run`` command.
 
-The legacy script spelling remains available for existing automation, but there
+The v0.1 script spelling remains available for existing automation, but there
 is only one execution implementation: :mod:`tmm_engine.cli` delegates to
-:mod:`tmm_engine.execution` and always writes the current result envelope.
+:mod:`tmm_engine.execution` and always writes the v0.2 result envelope.
 """
 
 from __future__ import annotations

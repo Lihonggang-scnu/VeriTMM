@@ -6,6 +6,8 @@ from typing import Literal, TypeAlias
 
 from pydantic import BaseModel
 
+from ..design_problem import OptimizationProblemModel
+from ..intent.intent import CompilationEquivalenceCertificate, IntentSpec
 from .models import (
     FailureRecordModel,
     OptimizationTaskContract,
@@ -28,6 +30,9 @@ SchemaKind: TypeAlias = Literal[
     "failure",
     "run_result",
     "response",
+    "design-problem",
+    "intent",
+    "compilation-equivalence",
 ]
 
 _SCHEMA_MODELS: dict[str, type[BaseModel]] = {
@@ -40,6 +45,9 @@ _SCHEMA_MODELS: dict[str, type[BaseModel]] = {
     "failure": FailureRecordModel,
     "run_result": RunResultEnvelope,
     "response": ResponseMetadata,
+    "design-problem": OptimizationProblemModel,
+    "intent": IntentSpec,
+    "compilation-equivalence": CompilationEquivalenceCertificate,
 }
 
 

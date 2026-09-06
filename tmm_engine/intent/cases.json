@@ -1,0 +1,2462 @@
+{
+ "case_count": 50,
+ "cases": [
+  {
+   "case_id": "unit-um-01",
+   "category": "unit_conversion",
+   "expect": {
+    "assertions": [
+     {
+      "path": "conversions[0].to_value",
+      "value": 550.0
+     },
+     {
+      "path": "conversions[1].to_value",
+      "value": 650.0
+     },
+     {
+      "path": "targets[0].wavelength_min_nm",
+      "value": 550.0
+     },
+     {
+      "path": "targets[0].constraint",
+      "value": "at_least"
+     }
+    ],
+    "semantic_status": "equivalent",
+    "task_kind": "simulation"
+   },
+   "intent": {
+    "observables": [
+     {
+      "constraint_role": "soft",
+      "domain": {
+       "angle_deg": 0.0,
+       "polarization": "s",
+       "wavelength_max": {
+        "unit": "um",
+        "value": 0.65
+       },
+       "wavelength_min": {
+        "unit": "um",
+        "value": 0.55
+       }
+      },
+      "quantity": "R",
+      "reducer": "mean",
+      "relation": ">=",
+      "target": 0.99,
+      "weight": 1.0
+     }
+    ]
+   },
+   "nl_en": "Keep reflectance above 0.99 from 0.55 to 0.65 um at normal incidence, s polarization.",
+   "nl_zh": "0.55 到 0.65 微米范围内反射率保持在 0.99 以上，s 偏振。"
+  },
+  {
+   "case_id": "unit-micro-sign-02",
+   "category": "unit_conversion",
+   "expect": {
+    "assertions": [
+     {
+      "path": "conversions[0].from_unit",
+      "value": "µm"
+     },
+     {
+      "path": "targets[0].wavelength_min_nm",
+      "value": 600.0
+     }
+    ],
+    "semantic_status": "equivalent",
+    "task_kind": "simulation"
+   },
+   "intent": {
+    "observables": [
+     {
+      "constraint_role": "soft",
+      "domain": {
+       "angle_deg": 0.0,
+       "polarization": "s",
+       "wavelength_max": {
+        "unit": "µm",
+        "value": 0.62
+       },
+       "wavelength_min": {
+        "unit": "µm",
+        "value": 0.6
+       }
+      },
+      "quantity": "T",
+      "reducer": "mean",
+      "relation": ">=",
+      "target": 0.9,
+      "weight": 1.0
+     }
+    ]
+   },
+   "nl_en": "Sweep the 0.6µm band; report mean transmittance at least 0.9.",
+   "nl_zh": "扫描 0.6µm 波段；平均透射率至少 0.9。"
+  },
+  {
+   "case_id": "unit-mu-greek-03",
+   "category": "unit_conversion",
+   "expect": {
+    "assertions": [
+     {
+      "path": "conversions[0].to_value",
+      "value": 580.0
+     },
+     {
+      "contains": "target",
+      "path": "ambiguity_fields"
+     },
+     {
+      "path": "targets[0].target",
+      "value": 1.0
+     }
+    ],
+    "semantic_status": "ambiguous",
+    "task_kind": "simulation"
+   },
+   "intent": {
+    "observables": [
+     {
+      "constraint_role": "soft",
+      "domain": {
+       "angle_deg": 0.0,
+       "polarization": "s",
+       "wavelength_max": {
+        "unit": "μm",
+        "value": 0.62
+       },
+       "wavelength_min": {
+        "unit": "μm",
+        "value": 0.58
+       }
+      },
+      "quantity": "R",
+      "relation": ">=",
+      "weight": 1.0
+     }
+    ]
+   },
+   "nl_en": "在 0.58–0.62 μm 范围内反射率尽量高。",
+   "nl_zh": "在 0.58–0.62 μm 范围内反射率尽量高。"
+  },
+  {
+   "case_id": "unit-nm-04",
+   "category": "unit_conversion",
+   "expect": {
+    "assertions": [
+     {
+      "path": "conversion_count",
+      "value": 0
+     },
+     {
+      "path": "targets[0].wavelength_min_nm",
+      "value": 520.0
+     }
+    ],
+    "semantic_status": "equivalent",
+    "task_kind": "simulation"
+   },
+   "intent": {
+    "observables": [
+     {
+      "constraint_role": "soft",
+      "domain": {
+       "angle_deg": 0.0,
+       "polarization": "unpolarized",
+       "wavelength_max": {
+        "unit": "nm",
+        "value": 560.0
+       },
+       "wavelength_min": {
+        "unit": "nm",
+        "value": 520.0
+       }
+      },
+      "quantity": "T",
+      "reducer": "mean",
+      "relation": ">=",
+      "target": 0.95,
+      "weight": 1.0
+     }
+    ]
+   },
+   "nl_en": "Transmittance at or above 0.95 between 520 nm and 560 nm.",
+   "nl_zh": "520 到 560 nm 之间透射率不低于 0.95。"
+  },
+  {
+   "case_id": "unit-mixed-05",
+   "category": "unit_conversion",
+   "expect": {
+    "assertions": [
+     {
+      "path": "targets[0].wavelength_min_nm",
+      "value": 500.0
+     },
+     {
+      "path": "targets[0].wavelength_max_nm",
+      "value": 700.0
+     }
+    ],
+    "semantic_status": "ambiguous",
+    "task_kind": "simulation"
+   },
+   "intent": {
+    "observables": [
+     {
+      "constraint_role": "soft",
+      "domain": {
+       "angle_deg": 0.0,
+       "polarization": "s",
+       "wavelength_max": {
+        "unit": "nm",
+        "value": 700.0
+       },
+       "wavelength_min": {
+        "unit": "um",
+        "value": 0.5
+       }
+      },
+      "quantity": "R",
+      "relation": ">=",
+      "weight": 1.0
+     }
+    ]
+   },
+   "nl_en": "Band 0.5 um to 700 nm, reflectance maximize.",
+   "nl_zh": "波段 0.5 微米到 700 nm，反射率最大化。"
+  },
+  {
+   "case_id": "unit-thickness-06",
+   "category": "unit_conversion",
+   "expect": {
+    "assertions": [
+     {
+      "path": "bounds[0].min_nm",
+      "value": 50.0
+     },
+     {
+      "path": "bounds[0].max_nm",
+      "value": 150.0
+     }
+    ],
+    "semantic_status": "equivalent",
+    "task_kind": "optimization"
+   },
+   "intent": {
+    "design_variables": [
+     {
+      "bounds_max": {
+       "unit": "um",
+       "value": 0.15
+      },
+      "bounds_min": {
+       "unit": "um",
+       "value": 0.05
+      },
+      "layer_selector": [
+       0
+      ]
+     }
+    ],
+    "observables": [
+     {
+      "constraint_role": "soft",
+      "domain": {
+       "angle_deg": 0.0,
+       "polarization": "unpolarized",
+       "wavelength_max": {
+        "unit": "nm",
+        "value": 650.0
+       },
+       "wavelength_min": {
+        "unit": "nm",
+        "value": 600.0
+       }
+      },
+      "quantity": "R",
+      "reducer": "mean",
+      "relation": ">=",
+      "target": 0.5,
+      "weight": 1.0
+     }
+    ]
+   },
+   "nl_en": "Thickness of the top layer may vary between 0.05 and 0.15 um.",
+   "nl_zh": "顶层厚度可在 0.05 到 0.15 微米之间变化。"
+  },
+  {
+   "case_id": "unit-open-max-07",
+   "category": "unit_conversion",
+   "expect": {
+    "assertions": [
+     {
+      "path": "targets[0].wavelength_min_nm",
+      "value": 1250.0
+     },
+     {
+      "contains": "wavelength_max",
+      "path": "ambiguity_fields"
+     }
+    ],
+    "semantic_status": "ambiguous",
+    "task_kind": "simulation"
+   },
+   "intent": {
+    "observables": [
+     {
+      "constraint_role": "soft",
+      "domain": {
+       "angle_deg": 0.0,
+       "polarization": "unpolarized",
+       "wavelength_min": {
+        "unit": "um",
+        "value": 1.25
+       }
+      },
+      "quantity": "R",
+      "relation": ">=",
+      "target": 0.9,
+      "weight": 1.0
+     }
+    ]
+   },
+   "nl_en": "Around 1.25 um, reflectance at least 0.9.",
+   "nl_zh": "1.25 微米附近，反射率至少 0.9。"
+  },
+  {
+   "case_id": "unit-nm-cap-08",
+   "category": "unit_conversion",
+   "expect": {
+    "assertions": [
+     {
+      "path": "targets[0].angle_deg",
+      "value": 30.0
+     },
+     {
+      "path": "conversion_count",
+      "value": 0
+     }
+    ],
+    "semantic_status": "equivalent",
+    "task_kind": "simulation"
+   },
+   "intent": {
+    "observables": [
+     {
+      "constraint_role": "soft",
+      "domain": {
+       "angle_deg": 30.0,
+       "polarization": "p",
+       "wavelength_max": {
+        "unit": "nm",
+        "value": 680.0
+       },
+       "wavelength_min": {
+        "unit": "nm",
+        "value": 620.0
+       }
+      },
+      "quantity": "R",
+      "reducer": "mean",
+      "relation": ">=",
+      "target": 0.8,
+      "weight": 1.0
+     }
+    ]
+   },
+   "nl_en": "Reflectance at least 0.8 across 620..680 nm, p polarization, 30 degrees.",
+   "nl_zh": "620..680 nm 范围反射率不低于 0.8，p 偏振，30 度。"
+  },
+  {
+   "case_id": "dir-atleast-01",
+   "category": "direction",
+   "expect": {
+    "assertions": [
+     {
+      "path": "targets[0].constraint",
+      "value": "at_least"
+     },
+     {
+      "path": "targets[0].target",
+      "value": 0.99
+     }
+    ],
+    "semantic_status": "equivalent",
+    "task_kind": "simulation"
+   },
+   "intent": {
+    "observables": [
+     {
+      "constraint_role": "soft",
+      "domain": {
+       "angle_deg": 0.0,
+       "polarization": "s",
+       "wavelength_max": {
+        "unit": "nm",
+        "value": 650.0
+       },
+       "wavelength_min": {
+        "unit": "nm",
+        "value": 550.0
+       }
+      },
+      "quantity": "R",
+      "reducer": "mean",
+      "relation": ">=",
+      "target": 0.99,
+      "weight": 1.0
+     }
+    ]
+   },
+   "nl_en": "Reflectance must be at least 0.99 across the band.",
+   "nl_zh": "波段内反射率至少 0.99。"
+  },
+  {
+   "case_id": "dir-maximize-02",
+   "category": "direction",
+   "expect": {
+    "assertions": [
+     {
+      "path": "targets[0].constraint",
+      "value": "at_least"
+     },
+     {
+      "path": "targets[0].target",
+      "value": 1.0
+     }
+    ],
+    "semantic_status": "equivalent",
+    "task_kind": "simulation"
+   },
+   "intent": {
+    "observables": [
+     {
+      "constraint_role": "soft",
+      "domain": {
+       "angle_deg": 0.0,
+       "polarization": "s",
+       "wavelength_max": {
+        "unit": "nm",
+        "value": 650.0
+       },
+       "wavelength_min": {
+        "unit": "nm",
+        "value": 550.0
+       }
+      },
+      "quantity": "R",
+      "reducer": "mean",
+      "relation": ">=",
+      "target": 1.0,
+      "weight": 1.0
+     }
+    ]
+   },
+   "nl_en": "Maximize reflectance in 550..650 nm.",
+   "nl_zh": "在 550..650 nm 内最大化反射率。"
+  },
+  {
+   "case_id": "dir-highref-zh-03",
+   "category": "direction",
+   "expect": {
+    "assertions": [
+     {
+      "path": "targets[0].constraint",
+      "value": "at_least"
+     },
+     {
+      "path": "targets[0].target",
+      "value": 1.0
+     }
+    ],
+    "semantic_status": "equivalent",
+    "task_kind": "simulation"
+   },
+   "intent": {
+    "observables": [
+     {
+      "constraint_role": "soft",
+      "domain": {
+       "angle_deg": 0.0,
+       "polarization": "s",
+       "wavelength_max": {
+        "unit": "nm",
+        "value": 650.0
+       },
+       "wavelength_min": {
+        "unit": "nm",
+        "value": 550.0
+       }
+      },
+      "quantity": "R",
+      "reducer": "mean",
+      "relation": ">=",
+      "target": 1.0,
+      "weight": 1.0
+     }
+    ]
+   },
+   "nl_en": "High reflection, the higher the better.",
+   "nl_zh": "高反射，越高越好。"
+  },
+  {
+   "case_id": "dir-atmost-04",
+   "category": "direction",
+   "expect": {
+    "assertions": [
+     {
+      "path": "targets[0].constraint",
+      "value": "at_most"
+     },
+     {
+      "path": "targets[0].target",
+      "value": 0.02
+     }
+    ],
+    "semantic_status": "equivalent",
+    "task_kind": "simulation"
+   },
+   "intent": {
+    "observables": [
+     {
+      "constraint_role": "soft",
+      "domain": {
+       "angle_deg": 0.0,
+       "polarization": "s",
+       "wavelength_max": {
+        "unit": "nm",
+        "value": 650.0
+       },
+       "wavelength_min": {
+        "unit": "nm",
+        "value": 550.0
+       }
+      },
+      "quantity": "R",
+      "reducer": "mean",
+      "relation": "<=",
+      "target": 0.02,
+      "weight": 1.0
+     }
+    ]
+   },
+   "nl_en": "Reflectance must not exceed 0.02 in 400..500 nm.",
+   "nl_zh": "400..500 nm 内反射率不得超过 0.02。"
+  },
+  {
+   "case_id": "dir-minimize-05",
+   "category": "direction",
+   "expect": {
+    "assertions": [
+     {
+      "path": "targets[0].constraint",
+      "value": "at_most"
+     },
+     {
+      "path": "targets[0].target",
+      "value": 0.0
+     }
+    ],
+    "semantic_status": "equivalent",
+    "task_kind": "simulation"
+   },
+   "intent": {
+    "observables": [
+     {
+      "constraint_role": "soft",
+      "domain": {
+       "angle_deg": 0.0,
+       "polarization": "s",
+       "wavelength_max": {
+        "unit": "nm",
+        "value": 650.0
+       },
+       "wavelength_min": {
+        "unit": "nm",
+        "value": 550.0
+       }
+      },
+      "quantity": "R",
+      "reducer": "mean",
+      "relation": "<=",
+      "target": 0.0,
+      "weight": 1.0
+     }
+    ]
+   },
+   "nl_en": "Minimize reflectance over the visible range.",
+   "nl_zh": "在可见光范围内最小化反射率。"
+  },
+  {
+   "case_id": "dir-equal-06",
+   "category": "direction",
+   "expect": {
+    "assertions": [
+     {
+      "path": "targets[0].constraint",
+      "value": "match"
+     },
+     {
+      "path": "targets[0].target",
+      "value": 0.5
+     }
+    ],
+    "semantic_status": "equivalent",
+    "task_kind": "simulation"
+   },
+   "intent": {
+    "observables": [
+     {
+      "constraint_role": "soft",
+      "domain": {
+       "angle_deg": 0.0,
+       "polarization": "s",
+       "wavelength_max": {
+        "unit": "nm",
+        "value": 650.0
+       },
+       "wavelength_min": {
+        "unit": "nm",
+        "value": 550.0
+       }
+      },
+      "quantity": "R",
+      "reducer": "mean",
+      "relation": "==",
+      "target": 0.5,
+      "weight": 1.0
+     }
+    ]
+   },
+   "nl_en": "Reflectance should equal 0.5 at 600 nm.",
+   "nl_zh": "600 nm 处反射率应为 0.5。"
+  },
+  {
+   "case_id": "dir-trans-max-07",
+   "category": "direction",
+   "expect": {
+    "assertions": [
+     {
+      "path": "targets[0].constraint",
+      "value": "at_least"
+     },
+     {
+      "path": "targets[0].target",
+      "value": 1.0
+     }
+    ],
+    "semantic_status": "equivalent",
+    "task_kind": "simulation"
+   },
+   "intent": {
+    "observables": [
+     {
+      "constraint_role": "soft",
+      "domain": {
+       "angle_deg": 0.0,
+       "polarization": "s",
+       "wavelength_max": {
+        "unit": "nm",
+        "value": 650.0
+       },
+       "wavelength_min": {
+        "unit": "nm",
+        "value": 550.0
+       }
+      },
+      "quantity": "R",
+      "reducer": "mean",
+      "relation": ">=",
+      "target": 1.0,
+      "weight": 1.0
+     }
+    ]
+   },
+   "nl_en": "Maximize transmittance around 632.8 nm.",
+   "nl_zh": "在 632.8 nm 附近最大化透射率。"
+  },
+  {
+   "case_id": "dir-absorb-08",
+   "category": "direction",
+   "expect": {
+    "assertions": [
+     {
+      "path": "targets[0].constraint",
+      "value": "at_least"
+     },
+     {
+      "path": "targets[0].target",
+      "value": 0.8
+     },
+     {
+      "contains": "closure",
+      "path": "notes"
+     }
+    ],
+    "semantic_status": "ambiguous",
+    "task_kind": "simulation"
+   },
+   "intent": {
+    "observables": [
+     {
+      "constraint_role": "soft",
+      "domain": {
+       "angle_deg": 0.0,
+       "polarization": "unpolarized",
+       "wavelength_max": {
+        "unit": "nm",
+        "value": 500.0
+       },
+       "wavelength_min": {
+        "unit": "nm",
+        "value": 400.0
+       }
+      },
+      "quantity": "A",
+      "relation": ">=",
+      "target": 0.8,
+      "weight": 1.0
+     }
+    ]
+   },
+   "nl_en": "Absorption should be at least 0.8 in 400..500 nm.",
+   "nl_zh": "400..500 nm 内吸收率至少 0.8。"
+  },
+  {
+   "case_id": "mat-hl-01",
+   "category": "material_index",
+   "expect": {
+    "assertions": [
+     {
+      "path": "stack_constants",
+      "value": [
+       2.4,
+       1.46
+      ]
+     }
+    ],
+    "semantic_status": "equivalent",
+    "task_kind": "simulation"
+   },
+   "intent": {
+    "observables": [
+     {
+      "constraint_role": "soft",
+      "domain": {
+       "angle_deg": 0.0,
+       "polarization": "unpolarized",
+       "wavelength_max": {
+        "unit": "nm",
+        "value": 700.0
+       },
+       "wavelength_min": {
+        "unit": "nm",
+        "value": 500.0
+       }
+      },
+      "quantity": "R",
+      "reducer": "mean",
+      "relation": ">=",
+      "target": 0.9,
+      "weight": 1.0
+     }
+    ]
+   },
+   "nl_en": "Alternate titanium-dioxide-like high-index and silica-like low-index films.",
+   "nl_zh": "交替使用类二氧化钛高折射率膜与类二氧化硅低折射率膜。",
+   "stack": {
+    "exit": {
+     "constant_n": 1.52
+    },
+    "incident": {
+     "constant_n": 1.0
+    },
+    "layers": [
+     {
+      "constant_k": 0.0,
+      "constant_n": 2.4,
+      "thickness_nm": 80.0
+     },
+     {
+      "constant_k": 0.0,
+      "constant_n": 1.46,
+      "thickness_nm": 80.0
+     }
+    ]
+   }
+  },
+  {
+   "case_id": "mat-hl-02",
+   "category": "material_index",
+   "expect": {
+    "assertions": [
+     {
+      "path": "stack_constants",
+      "value": [
+       2.35,
+       1.45,
+       2.35,
+       1.45
+      ]
+     }
+    ],
+    "semantic_status": "equivalent",
+    "task_kind": "simulation"
+   },
+   "intent": {
+    "observables": [
+     {
+      "constraint_role": "soft",
+      "domain": {
+       "angle_deg": 0.0,
+       "polarization": "unpolarized",
+       "wavelength_max": {
+        "unit": "nm",
+        "value": 700.0
+       },
+       "wavelength_min": {
+        "unit": "nm",
+        "value": 500.0
+       }
+      },
+      "quantity": "R",
+      "reducer": "mean",
+      "relation": ">=",
+      "target": 0.9,
+      "weight": 1.0
+     }
+    ]
+   },
+   "nl_en": "High-index 2.35 on low-index 1.45, repeated twice.",
+   "nl_zh": "高折射率 2.35 与低折射率 1.45 交替两次。",
+   "stack": {
+    "exit": {
+     "constant_n": 1.52
+    },
+    "incident": {
+     "constant_n": 1.0
+    },
+    "layers": [
+     {
+      "constant_k": 0.0,
+      "constant_n": 2.35,
+      "thickness_nm": 80.0
+     },
+     {
+      "constant_k": 0.0,
+      "constant_n": 1.45,
+      "thickness_nm": 80.0
+     },
+     {
+      "constant_k": 0.0,
+      "constant_n": 2.35,
+      "thickness_nm": 80.0
+     },
+     {
+      "constant_k": 0.0,
+      "constant_n": 1.45,
+      "thickness_nm": 80.0
+     }
+    ]
+   }
+  },
+  {
+   "case_id": "mat-hl-03",
+   "category": "material_index",
+   "expect": {
+    "assertions": [
+     {
+      "path": "stack_constants",
+      "value": [
+       2.4
+      ]
+     }
+    ],
+    "semantic_status": "equivalent",
+    "task_kind": "simulation"
+   },
+   "intent": {
+    "observables": [
+     {
+      "constraint_role": "soft",
+      "domain": {
+       "angle_deg": 0.0,
+       "polarization": "unpolarized",
+       "wavelength_max": {
+        "unit": "nm",
+        "value": 700.0
+       },
+       "wavelength_min": {
+        "unit": "nm",
+        "value": 500.0
+       }
+      },
+      "quantity": "R",
+      "reducer": "mean",
+      "relation": ">=",
+      "target": 0.9,
+      "weight": 1.0
+     }
+    ]
+   },
+   "nl_en": "A single high-index zinc-selenide-like layer (n about 2.4).",
+   "nl_zh": "单层类硒化锌高折射率膜（n 约 2.4）。",
+   "stack": {
+    "exit": {
+     "constant_n": 1.52
+    },
+    "incident": {
+     "constant_n": 1.0
+    },
+    "layers": [
+     {
+      "constant_k": 0.0,
+      "constant_n": 2.4,
+      "thickness_nm": 80.0
+     }
+    ]
+   }
+  },
+  {
+   "case_id": "mat-absorb-04",
+   "category": "material_index",
+   "expect": {
+    "assertions": [
+     {
+      "path": "stack_constants",
+      "value": [
+       3.0
+      ]
+     }
+    ],
+    "semantic_status": "equivalent",
+    "task_kind": "simulation"
+   },
+   "intent": {
+    "observables": [
+     {
+      "constraint_role": "soft",
+      "domain": {
+       "angle_deg": 0.0,
+       "polarization": "unpolarized",
+       "wavelength_max": {
+        "unit": "nm",
+        "value": 700.0
+       },
+       "wavelength_min": {
+        "unit": "nm",
+        "value": 500.0
+       }
+      },
+      "quantity": "R",
+      "reducer": "mean",
+      "relation": ">=",
+      "target": 0.9,
+      "weight": 1.0
+     }
+    ]
+   },
+   "nl_en": "A chromium-like absorbing layer (n=3.0, k=1.2).",
+   "nl_zh": "类铬吸收层（n=3.0, k=1.2）。",
+   "stack": {
+    "exit": {
+     "constant_n": 1.52
+    },
+    "incident": {
+     "constant_n": 1.0
+    },
+    "layers": [
+     {
+      "constant_k": 1.2,
+      "constant_n": 3.0,
+      "thickness_nm": 80.0
+     }
+    ]
+   }
+  },
+  {
+   "case_id": "mat-lowonly-05",
+   "category": "material_index",
+   "expect": {
+    "assertions": [
+     {
+      "path": "stack_constants",
+      "value": [
+       1.4,
+       1.4
+      ]
+     }
+    ],
+    "semantic_status": "equivalent",
+    "task_kind": "simulation"
+   },
+   "intent": {
+    "observables": [
+     {
+      "constraint_role": "soft",
+      "domain": {
+       "angle_deg": 0.0,
+       "polarization": "unpolarized",
+       "wavelength_max": {
+        "unit": "nm",
+        "value": 700.0
+       },
+       "wavelength_min": {
+        "unit": "nm",
+        "value": 500.0
+       }
+      },
+      "quantity": "R",
+      "reducer": "mean",
+      "relation": ">=",
+      "target": 0.9,
+      "weight": 1.0
+     }
+    ]
+   },
+   "nl_en": "Two low-index fluorite-like layers (n about 1.4).",
+   "nl_zh": "两层类萤石低折射率膜（n 约 1.4）。",
+   "stack": {
+    "exit": {
+     "constant_n": 1.52
+    },
+    "incident": {
+     "constant_n": 1.0
+    },
+    "layers": [
+     {
+      "constant_k": 0.0,
+      "constant_n": 1.4,
+      "thickness_nm": 80.0
+     },
+     {
+      "constant_k": 0.0,
+      "constant_n": 1.4,
+      "thickness_nm": 80.0
+     }
+    ]
+   }
+  },
+  {
+   "case_id": "mat-grad-06",
+   "category": "material_index",
+   "expect": {
+    "assertions": [
+     {
+      "path": "stack_constants",
+      "value": [
+       2.1,
+       1.38,
+       2.1
+      ]
+     }
+    ],
+    "semantic_status": "equivalent",
+    "task_kind": "simulation"
+   },
+   "intent": {
+    "observables": [
+     {
+      "constraint_role": "soft",
+      "domain": {
+       "angle_deg": 0.0,
+       "polarization": "unpolarized",
+       "wavelength_max": {
+        "unit": "nm",
+        "value": 700.0
+       },
+       "wavelength_min": {
+        "unit": "nm",
+        "value": 500.0
+       }
+      },
+      "quantity": "R",
+      "reducer": "mean",
+      "relation": ">=",
+      "target": 0.9,
+      "weight": 1.0
+     }
+    ]
+   },
+   "nl_en": "High 2.1 / low 1.38 pair, then one more high layer.",
+   "nl_zh": "高 2.1 / 低 1.38 一对，再加一层高折射率层。",
+   "stack": {
+    "exit": {
+     "constant_n": 1.52
+    },
+    "incident": {
+     "constant_n": 1.0
+    },
+    "layers": [
+     {
+      "constant_k": 0.0,
+      "constant_n": 2.1,
+      "thickness_nm": 80.0
+     },
+     {
+      "constant_k": 0.0,
+      "constant_n": 1.38,
+      "thickness_nm": 80.0
+     },
+     {
+      "constant_k": 0.0,
+      "constant_n": 2.1,
+      "thickness_nm": 80.0
+     }
+    ]
+   }
+  },
+  {
+   "case_id": "hs-hard-target-01",
+   "category": "hard_soft",
+   "expect": {
+    "assertions": [
+     {
+      "contains": "constraint_role",
+      "path": "ambiguity_fields"
+     },
+     {
+      "path": "targets[0].constraint",
+      "value": "match"
+     }
+    ],
+    "semantic_status": "ambiguous",
+    "task_kind": "simulation"
+   },
+   "intent": {
+    "observables": [
+     {
+      "constraint_role": "hard",
+      "domain": {
+       "angle_deg": 0.0,
+       "polarization": "s",
+       "wavelength_max": {
+        "unit": "nm",
+        "value": 600.0
+       },
+       "wavelength_min": {
+        "unit": "nm",
+        "value": 600.0
+       }
+      },
+      "quantity": "R",
+      "relation": "==",
+      "target": 0.9,
+      "weight": 1.0
+     }
+    ]
+   },
+   "nl_en": "Reflectance MUST be exactly 0.9 at 600 nm (hard requirement).",
+   "nl_zh": "600 nm 处反射率必须精确等于 0.9（硬性要求）。"
+  },
+  {
+   "case_id": "hs-soft-weight-02",
+   "category": "hard_soft",
+   "expect": {
+    "assertions": [
+     {
+      "path": "targets[0].weight",
+      "value": 2.0
+     },
+     {
+      "path": "targets[1].weight",
+      "value": 1.0
+     }
+    ],
+    "semantic_status": "equivalent",
+    "task_kind": "simulation"
+   },
+   "intent": {
+    "observables": [
+     {
+      "constraint_role": "soft",
+      "domain": {
+       "angle_deg": 0.0,
+       "polarization": "unpolarized",
+       "wavelength_max": {
+        "unit": "nm",
+        "value": 600.0
+       },
+       "wavelength_min": {
+        "unit": "nm",
+        "value": 500.0
+       }
+      },
+      "quantity": "R",
+      "reducer": "mean",
+      "relation": ">=",
+      "target": 0.8,
+      "weight": 2.0
+     },
+     {
+      "constraint_role": "soft",
+      "domain": {
+       "angle_deg": 0.0,
+       "polarization": "unpolarized",
+       "wavelength_max": {
+        "unit": "nm",
+        "value": 600.0
+       },
+       "wavelength_min": {
+        "unit": "nm",
+        "value": 500.0
+       }
+      },
+      "quantity": "T",
+      "reducer": "mean",
+      "relation": ">=",
+      "target": 0.5,
+      "weight": 1.0
+     }
+    ]
+   },
+   "nl_en": "Prefer reflectance above 0.8 (soft, weight 2) over transmittance above 0.5 (soft, weight 1).",
+   "nl_zh": "偏好反射率高于 0.8（软目标，权重 2）胜过透射率高于 0.5（软目标，权重 1）。"
+  },
+  {
+   "case_id": "hs-hard-total-03",
+   "category": "hard_soft",
+   "expect": {
+    "assertions": [
+     {
+      "path": "rejection_code",
+      "value": null
+     }
+    ],
+    "semantic_status": "equivalent",
+    "task_kind": "simulation"
+   },
+   "intent": {
+    "hard_constraints": [
+     {
+      "kind": "total_thickness_max",
+      "value": 500.0
+     }
+    ],
+    "observables": [
+     {
+      "constraint_role": "soft",
+      "domain": {
+       "angle_deg": 0.0,
+       "polarization": "unpolarized",
+       "wavelength_max": {
+        "unit": "nm",
+        "value": 700.0
+       },
+       "wavelength_min": {
+        "unit": "nm",
+        "value": 500.0
+       }
+      },
+      "quantity": "R",
+      "reducer": "mean",
+      "relation": ">=",
+      "target": 0.9,
+      "weight": 1.0
+     }
+    ]
+   },
+   "nl_en": "Total thickness must not exceed 500 nm (hard constraint).",
+   "nl_zh": "总厚度不得超过 500 nm（硬约束）。"
+  },
+  {
+   "case_id": "hs-hard-total-violated-04",
+   "category": "hard_soft",
+   "expect": {
+    "assertions": [
+     {
+      "path": "rejection_code",
+      "value": "constraint_violated"
+     }
+    ],
+    "semantic_status": "rejected",
+    "task_kind": "any"
+   },
+   "intent": {
+    "hard_constraints": [
+     {
+      "kind": "total_thickness_max",
+      "value": 100.0
+     }
+    ],
+    "observables": [
+     {
+      "constraint_role": "soft",
+      "domain": {
+       "angle_deg": 0.0,
+       "polarization": "unpolarized",
+       "wavelength_max": {
+        "unit": "nm",
+        "value": 700.0
+       },
+       "wavelength_min": {
+        "unit": "nm",
+        "value": 500.0
+       }
+      },
+      "quantity": "R",
+      "relation": ">=",
+      "target": 0.9,
+      "weight": 1.0
+     }
+    ]
+   },
+   "nl_en": "Total thickness must not exceed 100 nm (hard), starting from a 456 nm stack.",
+   "nl_zh": "总厚度不得超过 100 nm（硬约束），而初始栈为 456 nm。"
+  },
+  {
+   "case_id": "hs-hard-forbidden-05",
+   "category": "hard_soft",
+   "expect": {
+    "assertions": [
+     {
+      "path": "rejection_code",
+      "value": null
+     }
+    ],
+    "semantic_status": "equivalent",
+    "task_kind": "simulation"
+   },
+   "intent": {
+    "hard_constraints": [
+     {
+      "kind": "forbidden_materials",
+      "materials": [
+       "tio2"
+      ]
+     }
+    ],
+    "observables": [
+     {
+      "constraint_role": "soft",
+      "domain": {
+       "angle_deg": 0.0,
+       "polarization": "unpolarized",
+       "wavelength_max": {
+        "unit": "nm",
+        "value": 700.0
+       },
+       "wavelength_min": {
+        "unit": "nm",
+        "value": 500.0
+       }
+      },
+      "quantity": "R",
+      "reducer": "mean",
+      "relation": ">=",
+      "target": 0.9,
+      "weight": 1.0
+     }
+    ]
+   },
+   "nl_en": "No titanium-dioxide-like layers allowed (hard); the declared stack uses constant indices.",
+   "nl_zh": "不允许出现类二氧化钛层（硬约束）；声明栈使用恒定折射率。"
+  },
+  {
+   "case_id": "hs-weight-zero-06",
+   "category": "hard_soft",
+   "expect": {
+    "assertions": [
+     {
+      "path": "rejection_code",
+      "value": "intent_rejected"
+     }
+    ],
+    "semantic_status": "rejected",
+    "task_kind": "any"
+   },
+   "intent": {
+    "observables": [
+     {
+      "constraint_role": "soft",
+      "domain": {
+       "angle_deg": 0.0,
+       "polarization": "unpolarized",
+       "wavelength_max": {
+        "unit": "nm",
+        "value": 700.0
+       },
+       "wavelength_min": {
+        "unit": "nm",
+        "value": 500.0
+       }
+      },
+      "quantity": "R",
+      "relation": ">=",
+      "target": 0.9,
+      "weight": 0.0
+     }
+    ]
+   },
+   "nl_en": "An objective with weight 0 must be rejected.",
+   "nl_zh": "权重为 0 的目标必须被拒绝。"
+  },
+  {
+   "case_id": "multi-two-01",
+   "category": "multi_objective",
+   "expect": {
+    "assertions": [
+     {
+      "path": "target_count",
+      "value": 2
+     },
+     {
+      "path": "targets[0].observable",
+      "value": "R"
+     },
+     {
+      "path": "targets[1].observable",
+      "value": "T"
+     }
+    ],
+    "semantic_status": "equivalent",
+    "task_kind": "simulation"
+   },
+   "intent": {
+    "observables": [
+     {
+      "constraint_role": "soft",
+      "domain": {
+       "angle_deg": 0.0,
+       "polarization": "unpolarized",
+       "wavelength_max": {
+        "unit": "nm",
+        "value": 700.0
+       },
+       "wavelength_min": {
+        "unit": "nm",
+        "value": 600.0
+       }
+      },
+      "quantity": "R",
+      "reducer": "mean",
+      "relation": ">=",
+      "target": 0.9,
+      "weight": 1.0
+     },
+     {
+      "constraint_role": "soft",
+      "domain": {
+       "angle_deg": 0.0,
+       "polarization": "unpolarized",
+       "wavelength_max": {
+        "unit": "nm",
+        "value": 500.0
+       },
+       "wavelength_min": {
+        "unit": "nm",
+        "value": 400.0
+       }
+      },
+      "quantity": "T",
+      "reducer": "mean",
+      "relation": ">=",
+      "target": 0.9,
+      "weight": 1.0
+     }
+    ]
+   },
+   "nl_en": "High reflectance in 600..700 and high transmittance in 400..500.",
+   "nl_zh": "600..700 高反射，400..500 高透射。"
+  },
+  {
+   "case_id": "multi-three-02",
+   "category": "multi_objective",
+   "expect": {
+    "assertions": [
+     {
+      "path": "target_count",
+      "value": 3
+     },
+     {
+      "path": "targets[2].constraint",
+      "value": "at_most"
+     }
+    ],
+    "semantic_status": "equivalent",
+    "task_kind": "simulation"
+   },
+   "intent": {
+    "observables": [
+     {
+      "constraint_role": "soft",
+      "domain": {
+       "angle_deg": 0.0,
+       "polarization": "unpolarized",
+       "wavelength_max": {
+        "unit": "nm",
+        "value": 650.0
+       },
+       "wavelength_min": {
+        "unit": "nm",
+        "value": 600.0
+       }
+      },
+      "quantity": "R",
+      "reducer": "mean",
+      "relation": ">=",
+      "target": 0.9,
+      "weight": 1.0
+     },
+     {
+      "constraint_role": "soft",
+      "domain": {
+       "angle_deg": 0.0,
+       "polarization": "unpolarized",
+       "wavelength_max": {
+        "unit": "nm",
+        "value": 500.0
+       },
+       "wavelength_min": {
+        "unit": "nm",
+        "value": 450.0
+       }
+      },
+      "quantity": "T",
+      "reducer": "mean",
+      "relation": ">=",
+      "target": 0.8,
+      "weight": 1.0
+     },
+     {
+      "constraint_role": "soft",
+      "domain": {
+       "angle_deg": 0.0,
+       "polarization": "unpolarized",
+       "wavelength_max": {
+        "unit": "nm",
+        "value": 600.0
+       },
+       "wavelength_min": {
+        "unit": "nm",
+        "value": 550.0
+       }
+      },
+      "quantity": "A",
+      "reducer": "mean",
+      "relation": "<=",
+      "target": 0.05,
+      "weight": 1.0
+     }
+    ]
+   },
+   "nl_en": "R>=0.9 in 600..650, T>=0.8 in 450..500, A<=0.05 in 550..600.",
+   "nl_zh": "600..650 反射率不低于 0.9，450..500 透射率不低于 0.8，550..600 吸收不超过 0.05。"
+  },
+  {
+   "case_id": "multi-two-angles-03",
+   "category": "multi_objective",
+   "expect": {
+    "assertions": [
+     {
+      "path": "target_count",
+      "value": 2
+     },
+     {
+      "path": "angles",
+      "value": [
+       0.0,
+       45.0
+      ]
+     }
+    ],
+    "semantic_status": "equivalent",
+    "task_kind": "simulation"
+   },
+   "intent": {
+    "observables": [
+     {
+      "constraint_role": "soft",
+      "domain": {
+       "angle_deg": 0.0,
+       "polarization": "s",
+       "wavelength_max": {
+        "unit": "nm",
+        "value": 650.0
+       },
+       "wavelength_min": {
+        "unit": "nm",
+        "value": 550.0
+       }
+      },
+      "quantity": "R",
+      "reducer": "mean",
+      "relation": ">=",
+      "target": 0.9,
+      "weight": 1.0
+     },
+     {
+      "constraint_role": "soft",
+      "domain": {
+       "angle_deg": 45.0,
+       "polarization": "s",
+       "wavelength_max": {
+        "unit": "nm",
+        "value": 650.0
+       },
+       "wavelength_min": {
+        "unit": "nm",
+        "value": 550.0
+       }
+      },
+      "quantity": "R",
+      "reducer": "mean",
+      "relation": ">=",
+      "target": 0.8,
+      "weight": 1.0
+     }
+    ]
+   },
+   "nl_en": "Reflectance at least 0.9 at 0 degrees AND at least 0.8 at 45 degrees, band 550..650.",
+   "nl_zh": "550..650 波段在 0 度反射率不低于 0.9，且 45 度不低于 0.8。"
+  },
+  {
+   "case_id": "multi-two-pols-04",
+   "category": "multi_objective",
+   "expect": {
+    "assertions": [
+     {
+      "path": "target_count",
+      "value": 2
+     },
+     {
+      "path": "polarizations",
+      "value": [
+       "p",
+       "s"
+      ]
+     }
+    ],
+    "semantic_status": "equivalent",
+    "task_kind": "simulation"
+   },
+   "intent": {
+    "observables": [
+     {
+      "constraint_role": "soft",
+      "domain": {
+       "angle_deg": 0.0,
+       "polarization": "s",
+       "wavelength_max": {
+        "unit": "nm",
+        "value": 600.0
+       },
+       "wavelength_min": {
+        "unit": "nm",
+        "value": 500.0
+       }
+      },
+      "quantity": "T",
+      "reducer": "mean",
+      "relation": ">=",
+      "target": 0.9,
+      "weight": 1.0
+     },
+     {
+      "constraint_role": "soft",
+      "domain": {
+       "angle_deg": 0.0,
+       "polarization": "p",
+       "wavelength_max": {
+        "unit": "nm",
+        "value": 600.0
+       },
+       "wavelength_min": {
+        "unit": "nm",
+        "value": 500.0
+       }
+      },
+      "quantity": "T",
+      "reducer": "mean",
+      "relation": ">=",
+      "target": 0.9,
+      "weight": 1.0
+     }
+    ]
+   },
+   "nl_en": "s and p transmittance each at least 0.9 in 500..600.",
+   "nl_zh": "500..600 内 s 与 p 透射率各不低于 0.9。"
+  },
+  {
+   "case_id": "multi-mixed-units-05",
+   "category": "multi_objective",
+   "expect": {
+    "assertions": [
+     {
+      "path": "targets[0].wavelength_min_nm",
+      "value": 600.0
+     },
+     {
+      "path": "target_count",
+      "value": 2
+     }
+    ],
+    "semantic_status": "equivalent",
+    "task_kind": "simulation"
+   },
+   "intent": {
+    "observables": [
+     {
+      "constraint_role": "soft",
+      "domain": {
+       "angle_deg": 0.0,
+       "polarization": "s",
+       "wavelength_max": {
+        "unit": "um",
+        "value": 0.65
+       },
+       "wavelength_min": {
+        "unit": "um",
+        "value": 0.6
+       }
+      },
+      "quantity": "R",
+      "reducer": "mean",
+      "relation": ">=",
+      "target": 0.95,
+      "weight": 1.0
+     },
+     {
+      "constraint_role": "soft",
+      "domain": {
+       "angle_deg": 0.0,
+       "polarization": "unpolarized",
+       "wavelength_max": {
+        "unit": "nm",
+        "value": 500.0
+       },
+       "wavelength_min": {
+        "unit": "nm",
+        "value": 450.0
+       }
+      },
+      "quantity": "T",
+      "reducer": "mean",
+      "relation": ">=",
+      "target": 0.9,
+      "weight": 1.0
+     }
+    ]
+   },
+   "nl_en": "R>=0.95 in 0.6..0.65 um and T>=0.9 in 450..500 nm.",
+   "nl_zh": "0.6..0.65 微米反射率不低于 0.95，450..500 nm 透射率不低于 0.9。"
+  },
+  {
+   "case_id": "multi-band-worst-06",
+   "category": "multi_objective",
+   "expect": {
+    "assertions": [
+     {
+      "path": "targets[0].aggregation",
+      "value": "worst_case"
+     }
+    ],
+    "semantic_status": "equivalent",
+    "task_kind": "simulation"
+   },
+   "intent": {
+    "observables": [
+     {
+      "constraint_role": "soft",
+      "domain": {
+       "angle_deg": 0.0,
+       "polarization": "unpolarized",
+       "wavelength_max": {
+        "unit": "nm",
+        "value": 700.0
+       },
+       "wavelength_min": {
+        "unit": "nm",
+        "value": 600.0
+       }
+      },
+      "quantity": "R",
+      "reducer": "band_worst_case",
+      "relation": ">=",
+      "target": 0.95,
+      "weight": 1.0
+     }
+    ]
+   },
+   "nl_en": "Worst-case reflectance at least 0.95 across 600..700 (band worst case).",
+   "nl_zh": "600..700 全波段最差处反射率不低于 0.95（band worst case）。"
+  },
+  {
+   "case_id": "ang-45-01",
+   "category": "angle_pol",
+   "expect": {
+    "assertions": [
+     {
+      "path": "targets[0].angle_deg",
+      "value": 45.0
+     }
+    ],
+    "semantic_status": "equivalent",
+    "task_kind": "simulation"
+   },
+   "intent": {
+    "observables": [
+     {
+      "constraint_role": "soft",
+      "domain": {
+       "angle_deg": 45.0,
+       "polarization": "s",
+       "wavelength_max": {
+        "unit": "nm",
+        "value": 650.0
+       },
+       "wavelength_min": {
+        "unit": "nm",
+        "value": 550.0
+       }
+      },
+      "quantity": "R",
+      "reducer": "mean",
+      "relation": ">=",
+      "target": 0.7,
+      "weight": 1.0
+     }
+    ]
+   },
+   "nl_en": "Reflectance at 45 degrees, 550..650 nm, at least 0.7.",
+   "nl_zh": "45 度入射，550..650 nm 反射率至少 0.7。"
+  },
+  {
+   "case_id": "ang-p-02",
+   "category": "angle_pol",
+   "expect": {
+    "assertions": [
+     {
+      "path": "targets[0].polarization",
+      "value": "p"
+     }
+    ],
+    "semantic_status": "equivalent",
+    "task_kind": "simulation"
+   },
+   "intent": {
+    "observables": [
+     {
+      "constraint_role": "soft",
+      "domain": {
+       "angle_deg": 0.0,
+       "polarization": "p",
+       "wavelength_max": {
+        "unit": "nm",
+        "value": 600.0
+       },
+       "wavelength_min": {
+        "unit": "nm",
+        "value": 500.0
+       }
+      },
+      "quantity": "T",
+      "reducer": "mean",
+      "relation": ">=",
+      "target": 0.9,
+      "weight": 1.0
+     }
+    ]
+   },
+   "nl_en": "p-polarized transmittance at least 0.9 in 500..600 nm.",
+   "nl_zh": "500..600 nm 内 p 偏振透射率不低于 0.9。"
+  },
+  {
+   "case_id": "ang-unpol-default-03",
+   "category": "angle_pol",
+   "expect": {
+    "assertions": [
+     {
+      "path": "targets[0].polarization",
+      "value": "unpolarized"
+     }
+    ],
+    "semantic_status": "equivalent",
+    "task_kind": "simulation"
+   },
+   "intent": {
+    "observables": [
+     {
+      "constraint_role": "soft",
+      "domain": {
+       "angle_deg": 0.0,
+       "polarization": "unpolarized",
+       "wavelength_max": {
+        "unit": "nm",
+        "value": 600.0
+       },
+       "wavelength_min": {
+        "unit": "nm",
+        "value": 500.0
+       }
+      },
+      "quantity": "T",
+      "reducer": "mean",
+      "relation": ">=",
+      "target": 0.9,
+      "weight": 1.0
+     }
+    ]
+   },
+   "nl_en": "Transmittance at least 0.9 in 500..600 nm (no polarization given).",
+   "nl_zh": "500..600 nm 内透射率不低于 0.9（未指明偏振）。"
+  },
+  {
+   "case_id": "ang-60-04",
+   "category": "angle_pol",
+   "expect": {
+    "assertions": [
+     {
+      "path": "targets[0].angle_deg",
+      "value": 60.0
+     }
+    ],
+    "semantic_status": "equivalent",
+    "task_kind": "simulation"
+   },
+   "intent": {
+    "observables": [
+     {
+      "constraint_role": "soft",
+      "domain": {
+       "angle_deg": 60.0,
+       "polarization": "unpolarized",
+       "wavelength_max": {
+        "unit": "nm",
+        "value": 650.0
+       },
+       "wavelength_min": {
+        "unit": "nm",
+        "value": 550.0
+       }
+      },
+      "quantity": "R",
+      "reducer": "mean",
+      "relation": ">=",
+      "target": 0.85,
+      "weight": 1.0
+     }
+    ]
+   },
+   "nl_en": "60 度斜入射，550..650 nm 反射率至少 0.85。",
+   "nl_zh": "60 度斜入射，550..650 nm 反射率至少 0.85。"
+  },
+  {
+   "case_id": "ang-s-default-05",
+   "category": "angle_pol",
+   "expect": {
+    "assertions": [
+     {
+      "path": "targets[0].polarization",
+      "value": "s"
+     }
+    ],
+    "semantic_status": "equivalent",
+    "task_kind": "simulation"
+   },
+   "intent": {
+    "observables": [
+     {
+      "constraint_role": "soft",
+      "domain": {
+       "angle_deg": 0.0,
+       "polarization": "s",
+       "wavelength_max": {
+        "unit": "nm",
+        "value": 700.0
+       },
+       "wavelength_min": {
+        "unit": "nm",
+        "value": 600.0
+       }
+      },
+      "quantity": "R",
+      "reducer": "mean",
+      "relation": ">=",
+      "target": 0.9,
+      "weight": 1.0
+     }
+    ]
+   },
+   "nl_en": "s 反射率至少 0.9，波段 600..700 nm。",
+   "nl_zh": "s 反射率至少 0.9，波段 600..700 nm。"
+  },
+  {
+   "case_id": "ang-steep-06",
+   "category": "angle_pol",
+   "expect": {
+    "assertions": [
+     {
+      "path": "targets[0].angle_deg",
+      "value": 75.0
+     }
+    ],
+    "semantic_status": "equivalent",
+    "task_kind": "simulation"
+   },
+   "intent": {
+    "observables": [
+     {
+      "constraint_role": "soft",
+      "domain": {
+       "angle_deg": 75.0,
+       "polarization": "unpolarized",
+       "wavelength_max": {
+        "unit": "nm",
+        "value": 700.0
+       },
+       "wavelength_min": {
+        "unit": "nm",
+        "value": 600.0
+       }
+      },
+      "quantity": "R",
+      "reducer": "mean",
+      "relation": ">=",
+      "target": 0.95,
+      "weight": 1.0
+     }
+    ]
+   },
+   "nl_en": "Reflectance at 75 degrees across 600..700 nm, at least 0.95.",
+   "nl_zh": "75 度入射，600..700 nm 反射率不低于 0.95。"
+  },
+  {
+   "case_id": "cons-layercount-01",
+   "category": "structural",
+   "expect": {
+    "assertions": [
+     {
+      "path": "rejection_code",
+      "value": null
+     }
+    ],
+    "semantic_status": "equivalent",
+    "task_kind": "simulation"
+   },
+   "intent": {
+    "hard_constraints": [
+     {
+      "kind": "layer_count_max",
+      "value": 5
+     }
+    ],
+    "observables": [
+     {
+      "constraint_role": "soft",
+      "domain": {
+       "angle_deg": 0.0,
+       "polarization": "unpolarized",
+       "wavelength_max": {
+        "unit": "nm",
+        "value": 650.0
+       },
+       "wavelength_min": {
+        "unit": "nm",
+        "value": 550.0
+       }
+      },
+      "quantity": "R",
+      "reducer": "mean",
+      "relation": ">=",
+      "target": 0.9,
+      "weight": 1.0
+     }
+    ]
+   },
+   "nl_en": "At most 5 layers, reflectance at least 0.9 in 550..650 nm.",
+   "nl_zh": "最多 5 层，550..650 nm 反射率至少 0.9。"
+  },
+  {
+   "case_id": "cons-layercount-violated-02",
+   "category": "structural",
+   "expect": {
+    "assertions": [
+     {
+      "path": "rejection_code",
+      "value": "constraint_violated"
+     }
+    ],
+    "semantic_status": "rejected",
+    "task_kind": "any"
+   },
+   "intent": {
+    "hard_constraints": [
+     {
+      "kind": "layer_count_max",
+      "value": 2
+     }
+    ],
+    "observables": [
+     {
+      "constraint_role": "soft",
+      "domain": {
+       "angle_deg": 0.0,
+       "polarization": "unpolarized",
+       "wavelength_max": {
+        "unit": "nm",
+        "value": 650.0
+       },
+       "wavelength_min": {
+        "unit": "nm",
+        "value": 550.0
+       }
+      },
+      "quantity": "R",
+      "relation": ">=",
+      "target": 0.9,
+      "weight": 1.0
+     }
+    ]
+   },
+   "nl_en": "At most 2 layers, but the declared stack has 4.",
+   "nl_zh": "最多 2 层，但声明的栈有 4 层。"
+  },
+  {
+   "case_id": "cons-total-thickness-03",
+   "category": "structural",
+   "expect": {
+    "assertions": [
+     {
+      "path": "rejection_code",
+      "value": null
+     }
+    ],
+    "semantic_status": "equivalent",
+    "task_kind": "simulation"
+   },
+   "intent": {
+    "hard_constraints": [
+     {
+      "kind": "total_thickness_max",
+      "value": 500.0
+     }
+    ],
+    "observables": [
+     {
+      "constraint_role": "soft",
+      "domain": {
+       "angle_deg": 0.0,
+       "polarization": "unpolarized",
+       "wavelength_max": {
+        "unit": "nm",
+        "value": 650.0
+       },
+       "wavelength_min": {
+        "unit": "nm",
+        "value": 550.0
+       }
+      },
+      "quantity": "R",
+      "reducer": "mean",
+      "relation": ">=",
+      "target": 0.9,
+      "weight": 1.0
+     }
+    ]
+   },
+   "nl_en": "Total thickness capped at 500 nm.",
+   "nl_zh": "总厚度上限 500 nm。"
+  },
+  {
+   "case_id": "cons-substrate-ok-04",
+   "category": "structural",
+   "expect": {
+    "assertions": [
+     {
+      "path": "rejection_code",
+      "value": null
+     }
+    ],
+    "semantic_status": "equivalent",
+    "task_kind": "simulation"
+   },
+   "intent": {
+    "hard_constraints": [
+     {
+      "kind": "substrate",
+      "substrate": "constant:1.52"
+     }
+    ],
+    "observables": [
+     {
+      "constraint_role": "soft",
+      "domain": {
+       "angle_deg": 0.0,
+       "polarization": "unpolarized",
+       "wavelength_max": {
+        "unit": "nm",
+        "value": 650.0
+       },
+       "wavelength_min": {
+        "unit": "nm",
+        "value": 550.0
+       }
+      },
+      "quantity": "R",
+      "reducer": "mean",
+      "relation": ">=",
+      "target": 0.9,
+      "weight": 1.0
+     }
+    ]
+   },
+   "nl_en": "Substrate must be silica-like (constant 1.52), reflectance at least 0.9.",
+   "nl_zh": "基底必须是类二氧化硅（1.52），反射率至少 0.9。"
+  },
+  {
+   "case_id": "cons-substrate-bad-05",
+   "category": "structural",
+   "expect": {
+    "assertions": [
+     {
+      "path": "rejection_code",
+      "value": "constraint_violated"
+     }
+    ],
+    "semantic_status": "rejected",
+    "task_kind": "any"
+   },
+   "intent": {
+    "hard_constraints": [
+     {
+      "kind": "substrate",
+      "substrate": "constant:4.0"
+     }
+    ],
+    "observables": [
+     {
+      "constraint_role": "soft",
+      "domain": {
+       "angle_deg": 0.0,
+       "polarization": "unpolarized",
+       "wavelength_max": {
+        "unit": "nm",
+        "value": 650.0
+       },
+       "wavelength_min": {
+        "unit": "nm",
+        "value": 550.0
+       }
+      },
+      "quantity": "R",
+      "relation": ">=",
+      "target": 0.9,
+      "weight": 1.0
+     }
+    ]
+   },
+   "nl_en": "Substrate must be germanium-like (4.0), but the declared exit is 1.52.",
+   "nl_zh": "基底必须是类锗（4.0），而声明的出射介质是 1.52。"
+  },
+  {
+   "case_id": "amb-reducer-missing-01",
+   "category": "ambiguity",
+   "expect": {
+    "assertions": [
+     {
+      "contains": "reducer",
+      "path": "ambiguity_fields"
+     },
+     {
+      "contains": "reducer",
+      "path": "defaults_fields"
+     }
+    ],
+    "semantic_status": "ambiguous",
+    "task_kind": "simulation"
+   },
+   "intent": {
+    "observables": [
+     {
+      "constraint_role": "soft",
+      "domain": {
+       "angle_deg": 0.0,
+       "polarization": "unpolarized",
+       "wavelength_max": {
+        "unit": "nm",
+        "value": 650.0
+       },
+       "wavelength_min": {
+        "unit": "nm",
+        "value": 550.0
+       }
+      },
+      "quantity": "R",
+      "relation": "==",
+      "target": 0.9,
+      "weight": 1.0
+     }
+    ]
+   },
+   "nl_en": "Reflectance in 550..650 nm should be 0.9 (reducer unspecified).",
+   "nl_zh": "550..650 nm 反射率应为 0.9（未指明 reducer）。"
+  },
+  {
+   "case_id": "amb-open-band-02",
+   "category": "ambiguity",
+   "expect": {
+    "assertions": [
+     {
+      "contains": "wavelength_max",
+      "path": "ambiguity_fields"
+     }
+    ],
+    "semantic_status": "ambiguous",
+    "task_kind": "simulation"
+   },
+   "intent": {
+    "observables": [
+     {
+      "constraint_role": "soft",
+      "domain": {
+       "angle_deg": 0.0,
+       "polarization": "unpolarized",
+       "wavelength_min": {
+        "unit": "nm",
+        "value": 500.0
+       }
+      },
+      "quantity": "T",
+      "relation": ">=",
+      "target": 0.9,
+      "weight": 1.0
+     }
+    ]
+   },
+   "nl_en": "Transmittance above 0.9 from 500 nm onward (band end missing).",
+   "nl_zh": "500 nm 以上透射率高于 0.9（波段终点缺失）。"
+  },
+  {
+   "case_id": "amb-unknown-quantity-03",
+   "category": "ambiguity",
+   "expect": {
+    "assertions": [
+     {
+      "path": "rejection_code",
+      "value": "quantity_unsupported"
+     }
+    ],
+    "semantic_status": "rejected",
+    "task_kind": "any"
+   },
+   "intent": {
+    "observables": [
+     {
+      "domain": {
+       "angle_deg": 0.0,
+       "polarization": "unpolarized",
+       "wavelength_max": {
+        "unit": "nm",
+        "value": 700.0
+       },
+       "wavelength_min": {
+        "unit": "nm",
+        "value": 500.0
+       }
+      },
+      "quantity": "group_delay_dispersion",
+      "relation": "<="
+     }
+    ]
+   },
+   "nl_en": "Minimize the group delay dispersion of the coating.",
+   "nl_zh": "最小化镀膜的群延迟色散。"
+  },
+  {
+   "case_id": "amb-layer-absorption-04",
+   "category": "ambiguity",
+   "expect": {
+    "assertions": [
+     {
+      "path": "rejection_code",
+      "value": "quantity_unsupported"
+     }
+    ],
+    "semantic_status": "rejected",
+    "task_kind": "any"
+   },
+   "intent": {
+    "observables": [
+     {
+      "constraint_role": "soft",
+      "domain": {
+       "angle_deg": 0.0,
+       "polarization": "unpolarized",
+       "wavelength_max": {
+        "unit": "nm",
+        "value": 700.0
+       },
+       "wavelength_min": {
+        "unit": "nm",
+        "value": 500.0
+       }
+      },
+      "quantity": "layer_absorption",
+      "relation": ">=",
+      "weight": 1.0
+     }
+    ]
+   },
+   "nl_en": "Maximize layer absorption of the second layer.",
+   "nl_zh": "最大化第二层的层吸收。"
+  },
+  {
+   "case_id": "amb-symbolic-selector-05",
+   "category": "ambiguity",
+   "expect": {
+    "assertions": [
+     {
+      "path": "rejection_code",
+      "value": "selector_unsupported"
+     }
+    ],
+    "semantic_status": "rejected",
+    "task_kind": "any"
+   },
+   "intent": {
+    "design_variables": [
+     {
+      "bounds_max": {
+       "unit": "nm",
+       "value": 160.0
+      },
+      "bounds_min": {
+       "unit": "nm",
+       "value": 40.0
+      },
+      "layer_selector": "top_part"
+     }
+    ],
+    "observables": [
+     {
+      "constraint_role": "soft",
+      "domain": {
+       "angle_deg": 0.0,
+       "polarization": "unpolarized",
+       "wavelength_max": {
+        "unit": "nm",
+        "value": 650.0
+       },
+       "wavelength_min": {
+        "unit": "nm",
+        "value": 550.0
+       }
+      },
+      "quantity": "R",
+      "relation": ">=",
+      "target": 0.9,
+      "weight": 1.0
+     }
+    ]
+   },
+   "nl_en": "Optimize the 'top part' of the stack between 40 and 160 nm.",
+   "nl_zh": "优化栈的“顶部区域”，厚度 40 到 160 nm。"
+  }
+ ],
+ "schema_version": "veritmm-intent-cases-v1"
+}

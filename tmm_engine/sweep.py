@@ -7,9 +7,9 @@ import itertools
 import json
 import uuid
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Dict
 
 from .archive.schema_registry import ARCHIVE_SCHEMA_VERSION
 from .capabilities import failure_from_exception
@@ -34,6 +34,7 @@ class SweepExecutionSettings:
     child_execution: ExecutionSettings = ExecutionSettings(write_plot=False)
     resume: bool = False
     stop_after_children: int | None = None
+    workers: int = 1
 
 
 def _set_pointer(payload: dict[str, Any], pointer: str, value: float | int) -> None:
@@ -111,6 +112,33 @@ def _write_table(path: Path, children: list[dict[str, Any]], metric_names: list[
             )
 
 
+def _execute_sweep_child_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """Run one sweep child inside a (possibly spawned) worker process.
+
+    Payload-driven on purpose (task JSON + paths + settings dict): Windows
+    spawn cannot pickle engine objects, so the child rebuilds its own context
+    through the existing constructors.  The failure record is built in the
+    worker with the same ``failure_from_exception`` mapping the serial path
+    uses, so failure classification is identical across modes.
+    """
+
+    from .parallel import force_single_thread_blas
+
+    force_single_thread_blas()
+    try:
+        simulation = simulation_task_from_dict(payload["task"])
+        envelope = execute_task(
+            "simulate",
+            simulation,
+            Path(payload["child_dir"]),
+            settings=ExecutionSettings(**payload["child_execution"]),
+            detail=payload["detail"],
+        )
+        return {"ok": True, "envelope": envelope}
+    except Exception as exc:  # noqa: BLE001 - isolated per child
+        return {"ok": False, "failures": [failure_from_exception(exc).to_dict()]}
+
+
 def execute_sweep(
     sweep: SweepTaskPayload,
     output_dir: str | Path,
@@ -142,6 +170,44 @@ def execute_sweep(
     children: list[dict[str, Any]] = []
     executed_now = 0
     interrupted = False
+
+    # ---- V-12: parallel child execution (workers > 1) --------------------
+    # Pre-executes every pending child through a spawn process pool; the
+    # serial loop below then consumes the outcomes exactly as if it had run
+    # them itself, so records, checkpointing, and the result tail are shared.
+    # workers == 1 (the default) skips this entirely.
+    parallel_outcomes: Dict[int, Dict[str, Any]] = {}
+    if config.workers > 1:
+        from .parallel import map_payloads
+
+        rows_by_index: Dict[int, dict[str, Any]] = {}
+        child_dirs: Dict[int, Path] = {}
+        for row in expand_sweep(sweep):
+            index = int(row["index"])
+            cached = previous.get(index)
+            if cached is not None and cached.get("child_task_sha256") == row["child_task_sha256"]:
+                continue
+            if config.stop_after_children is not None and executed_now >= config.stop_after_children:
+                continue
+            rows_by_index[index] = row
+            child_dirs[index] = output / "children" / f"{index:06d}_{row['child_task_sha256'][:12]}"
+        payloads = [
+            {
+                "index": index,
+                "task": rows_by_index[index]["simulation"],
+                "child_dir": str(child_dirs[index]),
+                "detail": detail,
+                "child_execution": {**asdict(config.child_execution), "workers": 1},
+            }
+            for index in sorted(rows_by_index)
+        ]
+        outcomes = map_payloads(
+            payloads, _execute_sweep_child_payload, workers=config.workers
+        )
+        for payload, outcome in zip(payloads, outcomes):
+            parallel_outcomes[int(payload["index"])] = outcome
+    # ---- end V-12 pre-pass -----------------------------------------------
+
     for row in expand_sweep(sweep):
         index = int(row["index"])
         cached = previous.get(index)
@@ -163,13 +229,19 @@ def execute_sweep(
         child_dir = output / "children" / f"{index:06d}_{row['child_task_sha256'][:12]}"
         try:
             simulation = simulation_task_from_dict(row["simulation"])
-            child_envelope = execute_task(
-                "simulate",
-                simulation,
-                child_dir,
-                settings=config.child_execution,
-                detail=detail,
-            )
+            if config.workers > 1 and index in parallel_outcomes:
+                outcome = parallel_outcomes[index]
+                if not outcome["ok"]:
+                    raise RuntimeError(outcome["failures"][0].get("message", "child failed"))
+                child_envelope = outcome["result"]["envelope"]
+            else:
+                child_envelope = execute_task(
+                    "simulate",
+                    simulation,
+                    child_dir,
+                    settings=config.child_execution,
+                    detail=detail,
+                )
             result_path = child_dir / "SIMULATION_RESULT.json"
             metrics: dict[str, float] = {}
             if child_envelope.get("ok") and result_path.is_file():

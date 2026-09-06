@@ -7,9 +7,11 @@ physics certificate's ``accepted`` field.
 
 from __future__ import annotations
 
+import json
 from collections.abc import Mapping
 from enum import Enum
-from typing import Any
+from pathlib import Path
+from typing import Any, Dict, Union
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -100,6 +102,39 @@ def _status_from_mapping(
     if status in {"not_triggered", "not_requested", "not_evaluated", "skipped"}:
         return EvidenceStatus.NOT_EVALUATED
     return EvidenceStatus.NOT_EVALUATED
+
+
+EVIDENCE_SUMMARY_SCHEMA_VERSION = "veritmm-evidence-summary-v1"
+
+
+def build_evidence_summary(
+    source: Union[str, Path, Mapping[str, Any]]
+) -> Dict[str, Any]:
+    """One-call evidence summary for consumers holding a physics certificate.
+
+    ``source`` is either the path to a ``PHYSICS_ACCEPTANCE_CERTIFICATE.json``
+    file or the already-parsed certificate mapping.  The returned dict carries
+    the verdict fields plus the nine-dimension ``evidence_coverage`` ledger —
+    built exclusively through :meth:`EvidenceCoverage.from_certificate`, the
+    single authoritative definition of that semantics.  Pure function: no
+    artifacts are written and no schema is changed.
+    """
+
+    if isinstance(source, (str, Path)):
+        payload = json.loads(Path(source).read_text(encoding="utf-8"))
+    elif isinstance(source, Mapping):
+        payload = source
+    else:
+        raise ValueError(
+            "source must be a certificate file path or a parsed certificate mapping"
+        )
+    return {
+        "schema_version": EVIDENCE_SUMMARY_SCHEMA_VERSION,
+        "certificate_id": payload.get("certificate_id"),
+        "accepted": payload.get("accepted"),
+        "status": payload.get("status"),
+        "evidence_coverage": from_certificate(payload).model_dump(mode="json"),
+    }
 
 
 def from_certificate(cert: Mapping[str, Any]) -> EvidenceCoverage:

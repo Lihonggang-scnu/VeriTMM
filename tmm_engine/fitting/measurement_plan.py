@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-import hashlib
-import json
 from typing import Any, Callable, Literal, Sequence
 
 import numpy as np
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, model_validator
 
+from ..hashing import stable_sha256
 from ..material_registry import MaterialRegistry
 from ..workbench import TMMWorkbench
 from .fit_task import FitResult, MeasuredDataPoint, MeasurementType
@@ -133,8 +132,7 @@ def measurement_action_id(action: MeasurementAction) -> str:
         "sigma": float(action.sigma),
         "wavelength_nm": float(action.wavelength_nm),
     }
-    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
-    return hashlib.sha256(encoded).hexdigest()
+    return stable_sha256(payload)
 
 
 def _action_sort_key(action: MeasurementAction) -> tuple[Any, ...]:

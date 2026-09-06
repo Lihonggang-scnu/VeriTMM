@@ -22,6 +22,7 @@ from pydantic import (
 
 from .. import __version__
 from ..archive.schema_registry import ARCHIVE_SCHEMA_VERSION
+from ..hashing import canonical_json_dumps
 from ..protocol.models import ResponseMetadata
 from ..protocol.responses import (
     COMPACT_MAX_BYTES,
@@ -746,16 +747,7 @@ def _append_dataset_index(path: Path, index: int, record: DatasetRecord) -> None
         "candidate_id": record.candidate_id,
         "record": record.model_dump(mode="json"),
     }
-    line = (
-        json.dumps(
-            payload,
-            ensure_ascii=False,
-            allow_nan=False,
-            sort_keys=True,
-            separators=(",", ":"),
-        )
-        + "\n"
-    ).encode("utf-8")
+    line = (canonical_json_dumps(payload) + "\n").encode("utf-8")
     descriptor = os.open(path, os.O_APPEND | os.O_WRONLY)
     try:
         written = os.write(descriptor, line)

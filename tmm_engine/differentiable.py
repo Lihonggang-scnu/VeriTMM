@@ -127,9 +127,13 @@ class DifferentiableTMM(nn.Module):
 
     def _cos_theta(self, n_i: "torch.Tensor", conserved_kx: "torch.Tensor") -> "torch.Tensor":
         eps = torch.tensor(self.eps + 0j, dtype=self.dtype_complex, device=n_i.device)
-        cos_t = torch.sqrt(1.0 - (conserved_kx.unsqueeze(1) / (n_i + eps)) ** 2)
-        kz = n_i * cos_t
-        return torch.where(torch.imag(kz) < 0.0, -cos_t, cos_t)
+        # Principal square root, matching the NumPy reference solver and the
+        # analytic oracle: for lossless media past the critical angle the
+        # imaginary part of the root is positive (forward decay), and for
+        # absorbing media the root must not be flipped — sign-flipping cos to
+        # force Im(n*cos) > 0 selects a growing/alternative branch that
+        # diverges from the reference at oblique incidence.
+        return torch.sqrt(1.0 - (conserved_kx.unsqueeze(1) / (n_i + eps)) ** 2)
 
     def _eta(self, n_i: "torch.Tensor", cos_i: "torch.Tensor", pol: str) -> "torch.Tensor":
         eps = torch.tensor(self.eps + 0j, dtype=self.dtype_complex, device=n_i.device)

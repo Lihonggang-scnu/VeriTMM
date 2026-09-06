@@ -12,6 +12,7 @@ import json
 import os
 import shutil
 import sqlite3
+import time
 import uuid
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
@@ -20,6 +21,7 @@ from typing import Any, Iterable, Literal, Mapping
 
 from ._version import __version__
 from .archive.schema_registry import ARCHIVE_SCHEMA_VERSION
+from .hashing import IDENTITY_SCHEME, canonical_json_dumps
 from .protocol.responses import (
     CANONICAL_MAX_ARTIFACT_REFS,
     LINEAGE_MAX_RECORDS,
@@ -30,6 +32,10 @@ from .protocol.responses import (
     response_profile,
 )
 from .run_artifacts import stable_payload_sha256, write_json
+from .verification_artifacts import (
+    VERIFICATION_EVIDENCE_FILENAME,
+    VERIFICATION_POLICY_FILENAME,
+)
 
 EXPERIMENT_STORE_SCHEMA_VERSION = "veritmm-experiment-store-v2"
 _RUN_SCOPED_CACHE_ARTIFACTS: tuple[str, ...] = (
@@ -40,6 +46,25 @@ _RUN_SCOPED_CACHE_ARTIFACTS: tuple[str, ...] = (
     "TOLERANCE_RESULT.json",
     "ROBUSTNESS_REPORT.json",
 )
+
+
+def _read_text_with_retry(path: Path, *, attempts: int = 10) -> str:
+    """Read a text file, tolerating transient antivirus/scan locks.
+
+    On Windows a file written moments ago can be briefly locked while it is
+    being scanned; a plain read then raises ``PermissionError`` (an
+    ``OSError``).  Retrying with a bounded exponential backoff keeps freshly
+    archived runs readable without weakening real errors.
+    """
+
+    for attempt in range(attempts):
+        try:
+            return path.read_text(encoding="utf-8")
+        except OSError:
+            if attempt == attempts - 1:
+                raise
+            time.sleep(min(0.05 * (2**attempt), 0.5))
+    raise OSError(f"unreadable after retries: {path}")  # pragma: no cover
 
 
 class RunLedgerConflictError(RuntimeError):
@@ -55,7 +80,7 @@ def _utc_now() -> str:
 
 
 def _json(value: Any) -> str:
-    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return canonical_json_dumps(value)
 
 
 def default_store_root() -> Path:
@@ -636,7 +661,7 @@ class ExperimentStore:
         if not result_path.is_file():
             return None
         try:
-            result = json.loads(result_path.read_text(encoding="utf-8"))
+            result = json.loads(_read_text_with_retry(result_path))
         except (OSError, json.JSONDecodeError):
             return None
         return record if isinstance(result, dict) and result.get("ok") is True else None
@@ -652,6 +677,7 @@ class ExperimentStore:
     ) -> str:
         return stable_payload_sha256(
             {
+                "identity_scheme": IDENTITY_SCHEME,
                 "normalized_task": normalized_task,
                 "package_version": package_version,
                 "protocol_version": protocol_version,
@@ -761,7 +787,7 @@ class ExperimentStore:
             else:
                 shutil.copy2(path, destination_path)
         self.assert_artifact_tree_no_links(target)
-        result = json.loads((source_root / "RUN_RESULT.json").read_text(encoding="utf-8"))
+        result = json.loads(_read_text_with_retry(source_root / "RUN_RESULT.json"))
         if not isinstance(result, dict):
             raise ValueError("cached RUN_RESULT.json must contain a JSON object")
         if str(result.get("run_id") or "") != source.run_id:
@@ -849,6 +875,19 @@ class ExperimentStore:
             target,
             source_parent_run_id=source.run_id,
         )
+        # A cache replay does not re-run the verifier, so it must not present
+        # the source run's verification evidence as its own: the evidence is
+        # bound to the source run_id and stays in the source run.  Drop the
+        # copied pair (root here, sweep children inside their rebase) before
+        # any artifact index or response context is rebuilt, so replayed run
+        # envelopes carry no stale-bound evidence references.
+        for verification_artifact in (
+            VERIFICATION_EVIDENCE_FILENAME,
+            VERIFICATION_POLICY_FILENAME,
+        ):
+            stale_path = target / verification_artifact
+            if stale_path.is_file():
+                stale_path.unlink()
         context_path = target / RESPONSE_CONTEXT_FILENAME
         self._refresh_cached_response_context(target, result)
         # Refresh hashes only after all copied run-scoped artifacts and children
@@ -1078,6 +1117,17 @@ class ExperimentStore:
                     provenance=provenance,
                 )
                 write_json(artifact_path, artifact)
+
+            # The copied child's verification evidence is bound to the source
+            # child run and the replay did not re-verify; drop it before the
+            # child's artifact index is rebuilt.
+            for verification_artifact in (
+                VERIFICATION_EVIDENCE_FILENAME,
+                VERIFICATION_POLICY_FILENAME,
+            ):
+                stale_child_path = child_root / verification_artifact
+                if stale_child_path.is_file():
+                    stale_child_path.unlink()
 
             result_path = child_root / "RUN_RESULT.json"
             if not result_path.is_file():

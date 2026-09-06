@@ -13,6 +13,94 @@
 
 </div>
 
+## Upgrade notes: remote `v1.0.0` → local `v2.0.0`
+
+This note records the code-level comparison between the public remote `main`
+snapshot (`a356ae9`, package version `1.0.0`) and the local implementation
+(`2.0.0`, built from the V-00–V-14 upgrade line). The publish plan is
+deliberately narrow: update the runtime Python implementation under
+`tmm_engine/`, the two Python entry-point/example scripts, the package
+resources required by the new runtime, and the minimum installation metadata
+in `pyproject.toml`; update this file and `README.zh-CN.md`; leave all other
+remote files in place. The bundled material CSV contents are unchanged.
+
+### Code-level changes
+
+The comparison finds 44 changed or added Python paths in `tmm_engine/` (23
+modified and 21 new), plus two changed Python scripts and seven new package
+resources for the intent regression set and packaged Agent Skill.
+
+| Area | Upgrade in `v2.0.0` |
+|---|---|
+| Verification and trust | Independent layer-absorption accounting; explicit evidence collection separated from verdict evaluation; persisted `VERIFICATION_EVIDENCE.json` and `VERIFICATION_POLICY.json`; offline four-state `verify-run`; replay adapter for published `v1.0.0` run artifacts; evidence-summary projection; opt-in reciprocity checks. |
+| Reproducibility | One canonical-JSON hashing path with the declared `identity_scheme`; environment fingerprints; an independent analytic oracle suite; structured solver handoff information for unsupported physics. |
+| Physics backends and optimization | A shared `KernelSpec` backend registry for NumPy and PyTorch; first-class gradient, sensitivity, and batch-proposal APIs; declarative `OptimizationProblem` compilation with constraints treated as boundaries rather than reward penalties. |
+| Runtime and studies | `SimulationJob` state and failure-isolated batch runtime; tool-fingerprint cache invalidation; read-only provenance graph and `explain_superiority`; runtime-generated capability catalog with a drift check; deterministic spawn-safe CPU parallel execution for study loops. |
+| AI integration | Scientific intent compilation with an equivalence certificate; an agent-safe stdio MCP（Model Context Protocol）surface with 25 namespaced tools; packaged `veritmm-tmm` Agent Skill plus `skill-path`/`install-skill` commands; compact/standard/full response projections. |
+
+### New public entry points
+
+The new CLI surface includes `verify-run`, `gradient`, `sensitivity`,
+`optimize-problem`, `lineage-graph`, `explain-superiority`, and
+`capability-catalog`; study commands accept deterministic CPU worker settings.
+The optional `veritmm-mcp` executable exposes the agent-safe MCP projection,
+and `veritmm skill-path` / `veritmm install-skill` distribute the packaged
+skill. The existing simulation, optimization, sweep, sensitivity, tolerance,
+history, inspection, lineage, comparison, and offline benchmark commands
+remain available.
+
+### Compatibility and deliberate behavior changes
+
+- Existing task schemas and the `veritmm-run-result-v1` envelope remain
+  compatible. Historical `v1.0.0` run directories can be checked with
+  `verify-run`; missing historical evidence is reported as unavailable rather
+  than reconstructed from a stored verdict.
+- Canonical identities now declare
+  `identity_scheme: "veritmm-canonical-json-v1"`. ASCII-only payload digests
+  retain their previous values; payloads containing non-ASCII text may receive
+  new task/cache identities, so their old cache entries are intentionally not
+  reused.
+- Physics validity remains separate from objective score, sensitivity,
+  tolerance/yield, and robust-design claims. No optimizer, dataset, or agent
+  can create or strengthen a physics certificate.
+- The numerical boundary is unchanged: VeriTMM remains a scalar, isotropic,
+  planar 1D TMM tool. Gratings, metasurfaces, diffraction orders, general
+  anisotropy, nonlinear optics, finite beams, and other out-of-scope physics
+  are rejected explicitly.
+
+### Actual consumer validation: `OptoMind-Article-2`
+
+`v2.0.0` is an exercised implementation, not a speculative API snapshot.
+The `OptoMind-Article-2` harness prepends its sibling `veritmm/` tree before
+importing `tmm_engine`; its `VeriTMMAdapter` calls the managed execution and
+`verify_run` paths used by the engine, and its O-10 integration consumes the
+gradient, declarative design-problem, intent-compilation, evidence, and
+verification surfaces. A byte-level comparison of the runtime/package scope
+(126 paths under `tmm_engine/`, `scripts/`, `examples/`, `pyproject.toml`,
+and `MANIFEST.in`) found **zero differences** between that mounted tree and
+this local implementation. Recorded `OptoMind-Article-2` certificates also
+contain `veritmm_version: "2.0.0"` and the `energy_accounting` block.
+
+Artifacts created before the final V-14 resynchronization remain truthfully
+labelled with the engine version that produced them; they are not relabelled
+retroactively. New runs after the resynchronization are the intended
+`v2.0.0` consumer path.
+
+### Validation evidence for this snapshot
+
+- `py -3.11 -m pytest -q`: **788 passed, 3 skipped** (the skips are
+  host-dependent optional/referee or symlink checks).
+- `veritmm benchmark --offline --json`: **85 / 85** cases passed,
+  `release_gate_passed=true`, unsupported false-acceptance rate **0**, and
+  zero network calls.
+- `veritmm describe --json` reports package version `2.0.0`, the new research
+  interface, response profiles, artifact types, and capability manifest.
+
+The full remote-side backup and the exact publish boundary are kept in Git:
+the old remote commit remains recoverable through the archive ref created for
+this upgrade, while the main update is a normal additive commit rather than a
+force-push.
+
 VeriTMM is first and foremost a **transfer-matrix-method (TMM) tool** for
 planar, isotropic, one-dimensional multilayer optics. Its distinctive purpose
 is to make established TMM physics safer and easier for AI agents to use in

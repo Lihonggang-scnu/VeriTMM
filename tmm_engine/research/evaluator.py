@@ -7,7 +7,6 @@ scores remain separate from the resulting physics acceptance certificate.
 
 from __future__ import annotations
 
-import hashlib
 import json
 import uuid
 from pathlib import Path, PurePosixPath
@@ -27,6 +26,7 @@ from pydantic import (
 
 from ..execution import ExecutionSettings
 from ..experiment_store import ExperimentStore
+from ..hashing import stable_sha256
 from ..managed_execution import execute_managed_task, material_catalog_identity
 from ..protocol.models import RunResultEnvelope
 from ..protocol.responses import validate_artifact_references
@@ -552,24 +552,10 @@ class ResearchEvaluator:
 
         unsigned = dict(certificate)
         unsigned.pop("certificate_id", None)
-        expected_certificate_id = hashlib.sha256(
-            json.dumps(
-                unsigned,
-                sort_keys=True,
-                separators=(",", ":"),
-                default=str,
-            ).encode("utf-8")
-        ).hexdigest()
+        expected_certificate_id = stable_sha256(unsigned)
         if certificate_id != expected_certificate_id:
             raise ValueError("physics certificate_id does not match certificate content")
-        task_id = hashlib.sha256(
-            json.dumps(
-                dataclass_to_dict(task),
-                sort_keys=True,
-                separators=(",", ":"),
-                default=str,
-            ).encode("utf-8")
-        ).hexdigest()
+        task_id = stable_sha256(dataclass_to_dict(task))
         if certificate.get("task_sha256") != task_id:
             raise ValueError("physics certificate is bound to a different simulation task")
         return certificate

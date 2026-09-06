@@ -1,4 +1,4 @@
-"""Minimal verified dataset generation with the VeriTMM research API."""
+"""Minimal verified dataset generation with the VeriTMM v0.6 research API."""
 
 from __future__ import annotations
 

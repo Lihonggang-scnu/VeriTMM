@@ -369,7 +369,17 @@ class TMMEngine:
 
 # Stable v2 workbench API. Differentiable modules remain explicit imports so
 # importing tmm_engine never requires PyTorch.
-from .acceptance import AcceptanceSettings, CertifiedSimulation, certify_simulation  # noqa: E402
+from .acceptance import (  # noqa: E402
+    EVIDENCE_SCHEMA_VERSION,
+    VERIFICATION_POLICY_SCHEMA_VERSION,
+    AcceptanceSettings,
+    CertifiedSimulation,
+    VerificationArtifactError,
+    VerificationEvidence,
+    certify_simulation,
+    collect_verification_evidence,
+    evaluate_evidence,
+)
 from .agent_bench import (  # noqa: E402
     BenchmarkAssertion,
     BenchmarkCase,
@@ -460,6 +470,13 @@ from .schemas import (  # noqa: E402
     SpectralTarget,
     StackSpec,
 )
+from .verification_artifacts import (  # noqa: E402
+    VERIFICATION_EVIDENCE_FILENAME,
+    VERIFICATION_POLICY_FILENAME,
+    load_verification_evidence,
+    load_verification_policy,
+    write_verification_artifacts,
+)
 from .workbench import ForwardSimulationResult, TMMWorkbench  # noqa: E402
 
 __all__ = [
@@ -477,6 +494,17 @@ __all__ = [
     "ContextBudgetError",
     "DEFAULT_RESPONSE_DETAIL",
     "ExecutionSettings",
+    "EVIDENCE_SCHEMA_VERSION",
+    "VERIFICATION_EVIDENCE_FILENAME",
+    "VERIFICATION_POLICY_FILENAME",
+    "VERIFICATION_POLICY_SCHEMA_VERSION",
+    "VerificationArtifactError",
+    "VerificationEvidence",
+    "collect_verification_evidence",
+    "evaluate_evidence",
+    "load_verification_evidence",
+    "load_verification_policy",
+    "write_verification_artifacts",
     "FailureAction",
     "FailureCode",
     "FailureRecord",

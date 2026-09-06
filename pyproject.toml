@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "veritmm"
-version = "1.0.0"
+version = "2.0.0"
 description = "An AI-ready, verifier-first transfer-matrix tool for multilayer optics"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -16,7 +16,7 @@ keywords = [
   "inverse-design", "differentiable-physics", "refractive-index"
 ]
 classifiers = [
-  "Development Status :: 3 - Alpha",
+  "Development Status :: 4 - Beta",
   "Intended Audience :: Science/Research",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.10",
@@ -33,18 +33,22 @@ dependencies = [
 
 [project.scripts]
 veritmm = "tmm_engine.cli:main"
+veritmm-mcp = "tmm_engine.mcp_server:main"
 
 [project.optional-dependencies]
 optimize = ["torch>=2.1"]
 plot = ["matplotlib>=3.7"]
 high_precision = ["mpmath>=1.3"]
+mcp = ["mcp>=2,<3"]
+docs = ["mkdocs-material>=9.5", "mkdocstrings[python]>=0.26"]
 test = ["pytest>=8", "jsonschema>=4.23", "tomli>=2.0; python_version < '3.11'"]
 dev = [
   "pytest>=8", "jsonschema>=4.23", "build>=1.2", "ruff>=0.6",
   "tomli>=2.0; python_version < '3.11'",
 ]
 all = [
-  "torch>=2.1", "matplotlib>=3.7", "mpmath>=1.3", "pytest>=8", "jsonschema>=4.23",
+  "torch>=2.1", "matplotlib>=3.7", "mpmath>=1.3", "mcp>=2,<3",
+  "pytest>=8", "jsonschema>=4.23",
   "tomli>=2.0; python_version < '3.11'",
 ]
 
@@ -60,7 +64,15 @@ include-package-data = true
 include = ["tmm_engine*", "benchmarks*"]
 
 [tool.setuptools.package-data]
-tmm_engine = ["materials/*.csv", "examples/*.json", "rii_cache.db"]
+tmm_engine = [
+  "materials/*.csv",
+  "examples/*.json",
+  "rii_cache.db",
+  "skills/veritmm-tmm/SKILL.md",
+  "skills/veritmm-tmm/references/*.md",
+  "skills/veritmm-tmm/scripts/*.py",
+  "skills/veritmm-tmm/scripts/*.json",
+]
 benchmarks = [
   "cases/*/*.json",
   "prompts/*",

@@ -10,11 +10,12 @@ from __future__ import annotations
 
 import copy
 import hashlib
-import json
 import re
 from collections.abc import Iterable, Mapping
 from pathlib import Path, PurePosixPath
 from typing import Any, Literal, TypeAlias
+
+from ..hashing import canonical_json_dumps
 
 ResponseDetail: TypeAlias = Literal["compact", "standard", "full"]
 
@@ -503,7 +504,7 @@ def _project_compact_materials(
         if not isinstance(item, Mapping):
             continue
         compact = {key: copy.deepcopy(item[key]) for key in fields if key in item}
-        marker = json.dumps(compact, sort_keys=True, ensure_ascii=False, default=str)
+        marker = canonical_json_dumps(compact)
         record = grouped.setdefault(marker, {**compact, "stack_occurrence_count": 0})
         record["stack_occurrence_count"] += 1
     records = list(grouped.values())
@@ -677,6 +678,7 @@ def _project_mapping(
             "failures",
             "artifacts",
             "next_machine_actions",
+            "reproducibility",
         }
         items = sorted(items, key=lambda pair: (str(pair[0]) not in priority, str(pair[0])))[:limit]
         state.record_truncated(path, len(value) - limit)
@@ -922,6 +924,7 @@ def _canonical_value(
                 "failures",
                 "artifacts",
                 "next_machine_actions",
+                "reproducibility",
             }
             items = sorted(
                 items,
@@ -1050,6 +1053,7 @@ def rebase_response_context(
         "ok",
         "run_id",
         "task_sha256",
+        "identity_scheme",
         "task_hash_scope",
         "input_sha256",
         "operation",
@@ -1058,6 +1062,7 @@ def rebase_response_context(
         "cache_hit",
         "source_run_id",
         "artifact_provenance",
+        "reproducibility",
     ):
         if key in result:
             source[key] = copy.deepcopy(result[key])
@@ -1067,6 +1072,7 @@ def rebase_response_context(
         for key in (
             "run_id",
             "task_sha256",
+            "identity_scheme",
             "status",
             "mode",
             "cache_hit",
@@ -1163,14 +1169,7 @@ def guard_context_budget(
     """Assert compact structural and byte budgets; return encoded byte size."""
 
     profile = normalize_response_detail(detail)
-    encoded = json.dumps(
-        payload,
-        ensure_ascii=False,
-        sort_keys=True,
-        separators=(",", ":"),
-        allow_nan=False,
-        default=str,
-    ).encode("utf-8")
+    encoded = canonical_json_dumps(payload).encode("utf-8")
     if profile != "compact":
         return len(encoded)
     violations: list[str] = []
