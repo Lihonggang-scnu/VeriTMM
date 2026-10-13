@@ -245,11 +245,23 @@ class DifferentiableThicknessOptimizer:
                     errors = (1.0 - values) ** 2
                 else:
                     errors = values**2
-                term = (
-                    self.torch.max(errors, dim=1).values
-                    if target.aggregation == "worst_case"
-                    else self.torch.mean(errors, dim=1)
-                )
+                if target.mean_reduction is not None:
+                    if target.mean_reduction == "wavelength_integral_mean" and values.shape[1] > 1:
+                        band = wavelength_t[mask]
+                        observed = self.torch.trapezoid(values, band, dim=1) / (band[-1] - band[0])
+                    else:
+                        observed = self.torch.mean(values, dim=1)
+                    term = (
+                        (observed - float(target.target)) ** 2
+                        if target.constraint == "match"
+                        else 1.0 - observed if target.constraint == "at_least" else observed
+                    )
+                else:
+                    term = (
+                        self.torch.max(errors, dim=1).values
+                        if target.aggregation == "worst_case"
+                        else self.torch.mean(errors, dim=1)
+                    )
                 total = total + float(target.weight) * term
                 total_weight += float(target.weight)
                 key = target.name or "%s_%g_%g_%s_%s" % (
@@ -419,8 +431,18 @@ class DifferentiableThicknessOptimizer:
         history: List[float] = []
         stop_reason = "max_steps"
         budget_exhausted = False
+        local_finish_reserve = 0
+        if cfg.method == "adam_lbfgs" and self._maximum_forward_evaluations is not None:
+            available = max(0, self._maximum_forward_evaluations - self._evaluation_count - self._reserved_evaluations)
+            local_finish_reserve = min(20, available // 2)
+        adam_evaluations = self._evaluation_count
+        lbfgs_evaluations = 0
 
         for step in range(1, int(cfg.max_steps) + 1):
+            batch_cost = starts * (int(robustness_offsets.shape[0]) if robustness_offsets is not None else 1)
+            if local_finish_reserve and self._evaluation_count + batch_cost + self._reserved_evaluations > self._maximum_forward_evaluations - local_finish_reserve:
+                stop_reason = "local_finish_reserved"
+                break
             optimizer.zero_grad(set_to_none=True)
             thicknesses = self._raw_to_range(raw, lo.expand_as(raw), hi.expand_as(raw))
             thicknesses = torch.where(fixed_mask.expand_as(thicknesses), init.expand_as(thicknesses), thicknesses)
@@ -466,6 +488,9 @@ class DifferentiableThicknessOptimizer:
                 stop_reason = "no_improvement"
                 break
 
+        adam_evaluations = self._evaluation_count - adam_evaluations
+        local_finish_started = self._evaluation_count
+
         # Optional deterministic local finish.  It runs only from the best Adam
         # solution and therefore does not inflate all multi-start trajectories.
         if cfg.method == "adam_lbfgs" and stop_reason != "non_finite_loss" and not budget_exhausted:
@@ -473,7 +498,8 @@ class DifferentiableThicknessOptimizer:
                 self._range_to_raw(best_thickness.reshape(1, -1), lo, hi).detach().clone()
             )
             lbfgs = torch.optim.LBFGS(
-                [raw_best], lr=0.5, max_iter=20, tolerance_grad=1e-9, tolerance_change=1e-10
+                [raw_best], lr=1.0, max_iter=20, tolerance_grad=1e-9,
+                tolerance_change=1e-10, line_search_fn="strong_wolfe"
             )
 
             def closure() -> Any:
@@ -497,6 +523,7 @@ class DifferentiableThicknessOptimizer:
 
             try:
                 lbfgs.step(closure)
+                stop_reason = "lbfgs_finish"
                 candidate = self._raw_to_range(raw_best, lo, hi)
                 candidate = torch.where(fixed_mask, init, candidate)
                 with torch.no_grad():
@@ -519,6 +546,7 @@ class DifferentiableThicknessOptimizer:
                 # unsupported complex-gradient edge case.
                 stop_reason = "lbfgs_failed_adam_kept"
 
+        lbfgs_evaluations = self._evaluation_count - local_finish_started
         self._reserved_evaluations = 0
         optimized = best_thickness.detach().cpu().numpy().astype(np.float64)
         try:
@@ -645,6 +673,18 @@ class DifferentiableThicknessOptimizer:
             candidate_designs=candidate_designs,
             audit={
                 "best_step": best_step,
+                "adam_forward_evaluations": adam_evaluations,
+                "local_finish_forward_evaluations": lbfgs_evaluations,
+                "local_finish_reserved_evaluations": local_finish_reserve,
+                "objective_contract": [
+                    {"observable": target.observable, "constraint": target.constraint,
+                     "target": target.target, "weight": target.weight,
+                     "wavelength_min_nm": target.wavelength_min_nm, "wavelength_max_nm": target.wavelength_max_nm,
+                     "angle_deg": target.angle_deg, "polarization": target.polarization,
+                     "aggregation": target.aggregation, "mean_reduction": target.mean_reduction,
+                     "loss_semantics": "requested_statistic" if target.mean_reduction else "legacy_pointwise_squared_error"}
+                    for target in task.targets
+                ],
                 "device": str(self.device),
                 "dtype": str(self.real_dtype),
                 "material_provenance": provenance,
