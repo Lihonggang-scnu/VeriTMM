@@ -10,11 +10,16 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 import numpy as np
 
 from .schemas import LayerSpec, MediumSpec, OptimizationTask, SimulationTask
+from .spectral_reduction import reduce_spectral_mean
 from .uncertainty import (
     apply_thickness_boundary_policy_torch,
     final_robustness_seed,
     sample_normal_offsets,
 )
+
+
+class _EvaluationBudgetExhausted(Exception):
+    pass
 
 
 @dataclass
@@ -78,6 +83,9 @@ class DifferentiableThicknessOptimizer:
         self.complex_dtype = torch.complex128
         self._solver_class = DifferentiableTMM
         self._evaluation_count = 0
+        self._maximum_forward_evaluations: Optional[int] = None
+        self._reserved_evaluations = 0
+        self._nominal_cache: Optional[Dict[Tuple[float, ...], Tuple[float, Dict[str, float]]]] = None
 
     @property
     def evaluation_count(self) -> int:
@@ -185,12 +193,20 @@ class DifferentiableThicknessOptimizer:
         task: OptimizationTask,
         thicknesses_nm: Any,
         nk_stack: Any,
+        *,
+        cache_nominal: bool = True,
     ) -> Tuple[Any, Dict[str, Any]]:
         wavelengths_nm = task.simulation.spectrum.wavelengths_nm()
         wavelength_t = self.torch.tensor(
             wavelengths_nm * 1e-3, dtype=self.real_dtype, device=self.device
         )
         batch_size = int(thicknesses_nm.shape[0])
+        if (
+            self._maximum_forward_evaluations is not None
+            and self._evaluation_count + batch_size + self._reserved_evaluations
+            > self._maximum_forward_evaluations
+        ):
+            raise _EvaluationBudgetExhausted
         self._evaluation_count += batch_size
         nk_batched = nk_stack.unsqueeze(0).expand(batch_size, -1, -1)
         details: Dict[str, Any] = {}
@@ -243,8 +259,19 @@ class DifferentiableThicknessOptimizer:
                     angle_deg,
                     polarization,
                 )
-                details[key] = self.torch.mean(values, dim=1)
-        return total / max(total_weight, 1e-12), details
+                if target.mean_reduction == "wavelength_integral_mean" and values.shape[1] > 1:
+                    band = wavelength_t[mask]
+                    details[key] = self.torch.trapezoid(values, band, dim=1) / (band[-1] - band[0])
+                else:
+                    details[key] = self.torch.mean(values, dim=1)
+        losses = total / max(total_weight, 1e-12)
+        if cache_nominal and self._nominal_cache is not None:
+            for index, row in enumerate(thicknesses_nm.detach().cpu().tolist()):
+                loss = float(losses[index].detach().item())
+                metrics = {key: float(value[index].detach().item()) for key, value in details.items()}
+                if np.isfinite(loss) and all(np.isfinite(value) for value in metrics.values()):
+                    self._nominal_cache[tuple(row)] = (loss, metrics)
+        return losses, details
 
     def _robust_loss_for_thicknesses(
         self,
@@ -271,6 +298,7 @@ class DifferentiableThicknessOptimizer:
             task,
             expanded.reshape(batch * samples, layers),
             nk_stack,
+            cache_nominal=False,
         )
         losses = losses.reshape(batch, samples)
         objective = task.robustness.objective
@@ -293,6 +321,9 @@ class DifferentiableThicknessOptimizer:
 
     def evaluate(self, task: OptimizationTask, thicknesses_nm: Sequence[float]) -> Tuple[float, Dict[str, float]]:
         task.validate()
+        key = tuple(float(value) for value in thicknesses_nm)
+        if self._nominal_cache is not None and key in self._nominal_cache:
+            return self._nominal_cache[key]
         nk_stack, _ = self._build_nk_stack(task.simulation)
         value = self.torch.tensor(
             np.asarray(thicknesses_nm, dtype=np.float64).reshape(1, -1),
@@ -303,8 +334,30 @@ class DifferentiableThicknessOptimizer:
             loss, details = self._loss_for_thicknesses(task, value, nk_stack)
         return float(loss[0].item()), {key: float(val[0].item()) for key, val in details.items()}
 
-    def optimize(self, task: OptimizationTask) -> OptimizationResult:
+    def optimize(
+        self,
+        task: OptimizationTask,
+        maximum_forward_evaluations: Optional[int] = None,
+    ) -> OptimizationResult:
+        if maximum_forward_evaluations is not None:
+            if isinstance(maximum_forward_evaluations, bool) or (
+                int(maximum_forward_evaluations) != maximum_forward_evaluations
+                or int(maximum_forward_evaluations) < 1
+            ):
+                raise ValueError("maximum_forward_evaluations must be a positive integer")
+            maximum_forward_evaluations = int(maximum_forward_evaluations)
         self._evaluation_count = 0
+        self._maximum_forward_evaluations = maximum_forward_evaluations
+        self._reserved_evaluations = 0
+        self._nominal_cache = {}
+        try:
+            return self._optimize(task)
+        finally:
+            self._maximum_forward_evaluations = None
+            self._reserved_evaluations = 0
+            self._nominal_cache = None
+
+    def _optimize(self, task: OptimizationTask) -> OptimizationResult:
         task.validate()
         if task.simulation.stack.has_incoherent_layers:
             raise ValueError("differentiable optimizer currently supports coherent stacks only")
@@ -350,8 +403,11 @@ class DifferentiableThicknessOptimizer:
                 device=self.device,
             )
 
+        started = time.perf_counter()
+        initial_loss, initial_metrics = self.evaluate(task, initial)
+        self._reserved_evaluations = int(robustness_offsets is not None)
         optimizer = torch.optim.Adam([raw], lr=float(cfg.learning_rate))
-        best_loss = float("inf")
+        best_loss = initial_loss if robustness_offsets is None else float("inf")
         best_thickness = init[0].detach().clone()
         best_start = 0
         best_step = 0
@@ -362,19 +418,24 @@ class DifferentiableThicknessOptimizer:
         no_improve = 0
         history: List[float] = []
         stop_reason = "max_steps"
-        started = time.perf_counter()
+        budget_exhausted = False
 
         for step in range(1, int(cfg.max_steps) + 1):
             optimizer.zero_grad(set_to_none=True)
             thicknesses = self._raw_to_range(raw, lo.expand_as(raw), hi.expand_as(raw))
             thicknesses = torch.where(fixed_mask.expand_as(thicknesses), init.expand_as(thicknesses), thicknesses)
-            per_start = (
-                self._robust_loss_for_thicknesses(
-                    task, thicknesses, nk_stack, robustness_offsets
+            try:
+                per_start = (
+                    self._robust_loss_for_thicknesses(
+                        task, thicknesses, nk_stack, robustness_offsets
+                    )
+                    if robustness_offsets is not None
+                    else self._loss_for_thicknesses(task, thicknesses, nk_stack)[0]
                 )
-                if robustness_offsets is not None
-                else self._loss_for_thicknesses(task, thicknesses, nk_stack)[0]
-            )
+            except _EvaluationBudgetExhausted:
+                budget_exhausted = True
+                stop_reason = "maximum_forward_evaluations"
+                break
             loss = torch.mean(per_start)
             if not torch.isfinite(loss):
                 stop_reason = "non_finite_loss"
@@ -407,7 +468,7 @@ class DifferentiableThicknessOptimizer:
 
         # Optional deterministic local finish.  It runs only from the best Adam
         # solution and therefore does not inflate all multi-start trajectories.
-        if cfg.method == "adam_lbfgs" and stop_reason != "non_finite_loss":
+        if cfg.method == "adam_lbfgs" and stop_reason != "non_finite_loss" and not budget_exhausted:
             raw_best = torch.nn.Parameter(
                 self._range_to_raw(best_thickness.reshape(1, -1), lo, hi).detach().clone()
             )
@@ -416,6 +477,7 @@ class DifferentiableThicknessOptimizer:
             )
 
             def closure() -> Any:
+                nonlocal best_loss, best_thickness
                 lbfgs.zero_grad(set_to_none=True)
                 candidate = self._raw_to_range(raw_best, lo, hi)
                 candidate = torch.where(fixed_mask, init, candidate)
@@ -426,6 +488,10 @@ class DifferentiableThicknessOptimizer:
                     if robustness_offsets is not None
                     else self._loss_for_thicknesses(task, candidate, nk_stack)[0]
                 )
+                current_loss = float(value[0].detach().item())
+                if np.isfinite(current_loss) and current_loss < best_loss:
+                    best_loss = current_loss
+                    best_thickness = candidate.detach()[0].clone()
                 value[0].backward()
                 return value[0]
 
@@ -445,14 +511,23 @@ class DifferentiableThicknessOptimizer:
                     best_loss = float(candidate_loss[0].item())
                     best_thickness = candidate.detach()[0].clone()
                     stop_reason = "lbfgs_finish"
+            except _EvaluationBudgetExhausted:
+                budget_exhausted = True
+                stop_reason = "maximum_forward_evaluations"
             except RuntimeError:
                 # Adam result remains valid and auditable if LBFGS encounters an
                 # unsupported complex-gradient edge case.
                 stop_reason = "lbfgs_failed_adam_kept"
 
+        self._reserved_evaluations = 0
         optimized = best_thickness.detach().cpu().numpy().astype(np.float64)
-        initial_loss, _ = self.evaluate(task, initial)
-        optimized_loss, metrics = self.evaluate(task, optimized)
+        try:
+            optimized_loss, metrics = self.evaluate(task, optimized)
+        except _EvaluationBudgetExhausted:
+            budget_exhausted = True
+            optimized = initial.copy()
+            optimized_loss, metrics = initial_loss, initial_metrics
+            best_loss = initial_loss if robustness_offsets is None else float("inf")
         quantized_values: Optional[np.ndarray] = None
         quantized_loss: Optional[float] = None
         if cfg.quantization_nm is not None:
@@ -460,27 +535,23 @@ class DifferentiableThicknessOptimizer:
             quantized_values = np.round(optimized / q) * q
             quantized_values = np.clip(quantized_values, bounds[:, 0], bounds[:, 1])
             quantized_values[fixed] = initial[fixed]
-            quantized_loss, _ = self.evaluate(task, quantized_values)
+            try:
+                quantized_loss, _ = self.evaluate(task, quantized_values)
+            except _EvaluationBudgetExhausted:
+                budget_exhausted = True
+                quantized_values = None
 
+        initial_selection_loss = float(initial_loss)
+        if robustness_offsets is not None:
+            try:
+                initial_selection_loss = float(self._robust_loss_for_thicknesses(
+                    task, init, nk_stack, robustness_offsets
+                )[0].detach().item())
+            except _EvaluationBudgetExhausted:
+                budget_exhausted = True
+                initial_selection_loss = float("inf")
         raw_candidates: List[Tuple[str, np.ndarray, float]] = [
-            (
-                "initial",
-                initial.copy(),
-                float(
-                    initial_loss
-                    if robustness_offsets is None
-                    else self._robust_loss_for_thicknesses(
-                        task,
-                        torch.tensor(
-                            initial.reshape(1, -1),
-                            dtype=self.real_dtype,
-                            device=self.device,
-                        ),
-                        nk_stack,
-                        robustness_offsets,
-                    )[0].detach().item()
-                ),
-            ),
+            ("initial", initial.copy(), initial_selection_loss),
             ("optimized_best", optimized.copy(), float(best_loss)),
         ]
         for index in range(starts):
@@ -491,20 +562,24 @@ class DifferentiableThicknessOptimizer:
         if quantized_values is not None and quantized_loss is not None:
             quantized_selection_loss = float(quantized_loss)
             if robustness_offsets is not None:
-                quantized_selection_loss = float(
-                    self._robust_loss_for_thicknesses(
-                        task,
-                        torch.tensor(
-                            quantized_values.reshape(1, -1),
-                            dtype=self.real_dtype,
-                            device=self.device,
-                        ),
-                        nk_stack,
-                        robustness_offsets,
-                    )[0]
-                    .detach()
-                    .item()
-                )
+                try:
+                    quantized_selection_loss = float(
+                        self._robust_loss_for_thicknesses(
+                            task,
+                            torch.tensor(
+                                quantized_values.reshape(1, -1),
+                                dtype=self.real_dtype,
+                                device=self.device,
+                            ),
+                            nk_stack,
+                            robustness_offsets,
+                        )[0]
+                        .detach()
+                        .item()
+                    )
+                except _EvaluationBudgetExhausted:
+                    budget_exhausted = True
+                    quantized_selection_loss = float("inf")
             raw_candidates.append(
                 ("quantized_best", quantized_values.copy(), quantized_selection_loss)
             )
@@ -517,7 +592,11 @@ class DifferentiableThicknessOptimizer:
             if signature in seen or not np.isfinite(loss):
                 continue
             seen.add(signature)
-            candidate_nominal_loss, candidate_metrics = self.evaluate(task, values)
+            try:
+                candidate_nominal_loss, candidate_metrics = self.evaluate(task, values)
+            except _EvaluationBudgetExhausted:
+                budget_exhausted = True
+                continue
             candidate_designs.append(
                 {
                     "candidate_id": f"candidate_{len(candidate_designs) + 1:02d}",
@@ -534,8 +613,23 @@ class DifferentiableThicknessOptimizer:
                 }
             )
 
+        if not candidate_designs and np.isfinite(optimized_loss):
+            candidate_designs.append({
+                "candidate_id": "candidate_01",
+                "source": "optimized_best",
+                "thicknesses_nm": optimized.tolist(),
+                "objective_loss": float(optimized_loss),
+                "training_selection_loss": float(best_loss) if np.isfinite(best_loss) else None,
+                "training_objective": (
+                    "nominal_loss" if robustness_offsets is None else task.robustness.objective
+                ),
+                "target_metrics": metrics,
+            })
+        if budget_exhausted:
+            stop_reason = "maximum_forward_evaluations"
         return OptimizationResult(
-            status="completed" if np.isfinite(optimized_loss) else "failed",
+            status=("best_effort" if budget_exhausted else "completed")
+            if np.isfinite(optimized_loss) else "failed",
             initial_thicknesses_nm=initial.tolist(),
             optimized_thicknesses_nm=optimized.tolist(),
             quantized_thicknesses_nm=None if quantized_values is None else quantized_values.tolist(),
@@ -557,6 +651,9 @@ class DifferentiableThicknessOptimizer:
                 "coherent_only": True,
                 "specformer_derived_backend": True,
                 "evaluation_count": self.evaluation_count,
+                "evaluation_count_unit": "design_rows_all_target_channels",
+                "maximum_forward_evaluations": self._maximum_forward_evaluations,
+                "budget_exhausted": budget_exhausted,
                 "robust_training": (
                     None
                     if task.robustness is None
@@ -635,27 +732,29 @@ class DifferentiableThicknessOptimizer:
                 target.angle_deg,
                 target.polarization,
             )
-            target_metrics[key + "_mean"] = float(np.mean(values))
+            mean_reduction = target.mean_reduction or "sample_mean"
+            mean_value = reduce_spectral_mean(wavelengths[mask], values, mean_reduction)
+            target_metrics[key + "_mean"] = mean_value
             target_metrics[key + "_objective_loss"] = objective_loss
             tolerance = float(target.tolerance or 0.0)
             if target.constraint == "at_most":
-                observed = float(np.max(values) if target.aggregation == "worst_case" else np.mean(values))
+                observed = float(np.max(values) if target.aggregation == "worst_case" else mean_value)
                 satisfied = observed <= float(target.target) + tolerance
                 certifiable = True
                 shortfall = max(0.0, observed - (float(target.target) + tolerance))
             elif target.constraint == "at_least":
-                observed = float(np.min(values) if target.aggregation == "worst_case" else np.mean(values))
+                observed = float(np.min(values) if target.aggregation == "worst_case" else mean_value)
                 satisfied = observed >= float(target.target) - tolerance
                 certifiable = True
                 shortfall = max(0.0, (float(target.target) - tolerance) - observed)
             elif target.tolerance is not None:
                 deviations = np.abs(values - float(target.target))
-                observed = float(np.max(deviations) if target.aggregation == "worst_case" else np.mean(deviations))
+                observed = float(np.max(deviations) if target.aggregation == "worst_case" else reduce_spectral_mean(wavelengths[mask], deviations, mean_reduction))
                 satisfied = observed <= tolerance
                 certifiable = True
                 shortfall = max(0.0, observed - tolerance)
             else:
-                observed = float(np.mean(values))
+                observed = mean_value
                 satisfied = None
                 certifiable = False
                 shortfall = None
@@ -664,6 +763,12 @@ class DifferentiableThicknessOptimizer:
             target_attainment[key] = {
                 "constraint": target.constraint,
                 "aggregation": target.aggregation,
+                "mean_reduction": mean_reduction if target.aggregation == "mean" else None,
+                "loss_semantics": (
+                    "sample_mean_squared_directional_error_surrogate"
+                    if target.aggregation == "mean"
+                    else "worst_case_squared_directional_error_surrogate"
+                ),
                 "target": float(target.target),
                 "tolerance": tolerance if certifiable else None,
                 "observed": observed,
