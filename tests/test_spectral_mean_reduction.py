@@ -4,7 +4,6 @@ from dataclasses import asdict
 from types import SimpleNamespace
 
 import numpy as np
-
 import pytest
 from pydantic import ValidationError
 
