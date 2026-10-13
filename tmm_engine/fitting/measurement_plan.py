@@ -12,6 +12,7 @@ from ..material_registry import MaterialRegistry
 from ..workbench import TMMWorkbench
 from .fit_task import FitResult, MeasuredDataPoint, MeasurementType
 from .optimizer import (
+    _residual_difference,
     build_simulation_task,
     execute_forward_simulation,
     extract_simulation_value,
@@ -166,6 +167,11 @@ def _parameter_values(fit_result: FitResult) -> tuple[list[str], dict[str, float
             value = float(parameter.initial_guess)
         else:
             value = float(sum(parameter.bounds) / 2.0)
+        if not np.isfinite(value):
+            raise MeasurementPlanError(
+                "nonfinite_fit_parameter",
+                f"fitted parameter {parameter.name!r} must be finite",
+            )
         if not parameter.bounds[0] <= value <= parameter.bounds[1]:
             raise MeasurementPlanError(
                 "fit_parameter_out_of_bounds",
@@ -186,6 +192,7 @@ def _evaluate_action(
         fit_result.task.structure,
         [_action_measurement(action)],
         parameters,
+        fit_parameters=fit_result.task.fit_parameters,
     )
     result = execute_forward_simulation(task, workbench=workbench)
     value = extract_simulation_value(result, _action_measurement(action))
@@ -214,29 +221,33 @@ def _finite_difference_action(
         step = max(1e-4, abs(value) * 1e-5)
         can_minus = value - step >= low
         can_plus = value + step <= high
-        if not can_minus and not can_plus:
-            row.append(0.0)
-            continue
         if can_minus and can_plus:
-            minus_params = dict(base)
-            plus_params = dict(base)
-            minus_params[name] = value - step
-            plus_params[name] = value + step
-            minus = _evaluate_action(fit_result, action, minus_params, workbench=workbench)
-            plus = _evaluate_action(fit_result, action, plus_params, workbench=workbench)
-            row.append(float((plus - minus) / (2.0 * step)))
+            left, right = value - step, value + step
         elif can_plus:
-            plus_params = dict(base)
-            plus_params[name] = value + step
-            base_value = _evaluate_action(fit_result, action, base, workbench=workbench)
-            plus = _evaluate_action(fit_result, action, plus_params, workbench=workbench)
-            row.append(float((plus - base_value) / step))
+            left, right = value, value + step
+        elif can_minus:
+            left, right = value - step, value
         else:
-            minus_params = dict(base)
-            minus_params[name] = value - step
-            base_value = _evaluate_action(fit_result, action, base, workbench=workbench)
-            minus = _evaluate_action(fit_result, action, minus_params, workbench=workbench)
-            row.append(float((base_value - minus) / step))
+            minus_room, plus_room = value - low, high - value
+            step = min(minus_room, plus_room)
+            if step > 0.0 and step >= 0.5 * max(minus_room, plus_room):
+                left, right = max(low, value - step), min(high, value + step)
+            else:
+                left, right = (low, value) if value - low >= high - value else (value, high)
+        interval = right - left
+        if not np.isfinite(interval) or interval <= 0.0:
+            raise MeasurementPlanError(
+                "finite_difference_step_unavailable",
+                f"no finite, distinct perturbations within bounds for {name!r}",
+            )
+        minus_params = dict(base)
+        plus_params = dict(base)
+        minus_params[name] = left
+        plus_params[name] = right
+        minus = _evaluate_action(fit_result, action, minus_params, workbench=workbench)
+        plus = _evaluate_action(fit_result, action, plus_params, workbench=workbench)
+        difference = _residual_difference(plus, minus, action.measurement_type)
+        row.append(float(difference / interval))
     if len(row) != len(names) or not np.all(np.isfinite(row)):
         raise MeasurementPlanError(
             "nonfinite_candidate_jacobian",

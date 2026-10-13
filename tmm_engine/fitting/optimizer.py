@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from typing import Any
+from typing import Any, Sequence
 
 import numpy as np
 from scipy.linalg import svd
@@ -29,11 +29,36 @@ from .fit_task import (
 )
 
 
-def _parameter_layer_index(parameter: FitParameter, position: int) -> int:
-    if parameter.layer_index is not None:
-        return int(parameter.layer_index)
-    match = re.search(r"(?:layer[_-]?)?(\d+)$", parameter.name.casefold())
+def _parameter_layer_index(parameter: FitParameter | str, position: int) -> int:
+    if isinstance(parameter, FitParameter):
+        if parameter.layer_index is not None:
+            return int(parameter.layer_index)
+        name = parameter.name
+    else:
+        name = parameter
+    match = re.search(r"(?:layer[_-]?)?(\d+)$", name.casefold())
     return int(match.group(1)) if match else position
+
+
+def _parameter_thicknesses(
+    parameters: dict[str, float],
+    fit_parameters: Sequence[FitParameter] | None,
+    layer_count: int,
+) -> dict[int, float]:
+    bindings = list(parameters) if fit_parameters is None else list(fit_parameters)
+    names = [item.name if isinstance(item, FitParameter) else item for item in bindings]
+    if len(names) != len(set(names)) or set(names) != set(parameters):
+        raise ValueError("fit parameter definitions must match parameter values by unique name")
+    thicknesses: dict[int, float] = {}
+    for position, parameter in enumerate(bindings):
+        name = names[position]
+        index = _parameter_layer_index(parameter, position)
+        if not 0 <= index < layer_count:
+            raise ValueError(f"fit parameter {name!r} targets missing layer {index}")
+        if index in thicknesses:
+            raise ValueError(f"multiple fit parameters target layer {index}")
+        thicknesses[index] = float(parameters[name])
+    return thicknesses
 
 
 def _medium_from_structure(value: Any, *, default_material: str | None = None) -> MediumSpec:
@@ -52,20 +77,19 @@ def _medium_from_structure(value: Any, *, default_material: str | None = None) -
     return MediumSpec(constant_n=1.5)
 
 
-def _structure_layers(structure: dict[str, Any], parameters: dict[str, float]) -> tuple[LayerSpec, ...]:
+def _structure_layers(
+    structure: dict[str, Any],
+    parameters: dict[str, float],
+    fit_parameters: Sequence[FitParameter] | None = None,
+) -> tuple[LayerSpec, ...]:
     raw_layers = structure.get("layers")
     if isinstance(raw_layers, list):
+        thicknesses_by_layer = _parameter_thicknesses(parameters, fit_parameters, len(raw_layers))
         layers: list[LayerSpec] = []
         for index, raw in enumerate(raw_layers):
             if not isinstance(raw, dict):
                 raise ValueError("structure.layers entries must be objects")
-            thickness = float(raw.get("thickness_nm", 100.0))
-            for name, value in parameters.items():
-                parameter_index = _parameter_layer_index(
-                    FitParameter(name=name, bounds=(0.0, max(1.0, value + 1.0))), index
-                )
-                if parameter_index == index:
-                    thickness = float(value)
+            thickness = thicknesses_by_layer.get(index, float(raw.get("thickness_nm", 100.0)))
             material = raw.get("material")
             constant_n = raw.get("constant_n")
             layers.append(
@@ -89,17 +113,12 @@ def _structure_layers(structure: dict[str, Any], parameters: dict[str, float]) -
         raise ValueError("structure requires layers or materials plus thicknesses_nm")
     if len(materials) != len(thicknesses):
         raise ValueError("structure materials and thicknesses_nm lengths must match")
+    thicknesses_by_layer = _parameter_thicknesses(parameters, fit_parameters, len(materials))
     layers = []
     for index, (material, thickness) in enumerate(zip(materials, thicknesses, strict=True)):
         material_name = None if isinstance(material, dict) else str(material)
         material_data = material if isinstance(material, dict) else {}
-        value = float(thickness)
-        for name, parameter_value in parameters.items():
-            if _parameter_layer_index(
-                FitParameter(name=name, bounds=(0.0, max(1.0, parameter_value + 1.0))),
-                index,
-            ) == index:
-                value = float(parameter_value)
+        value = thicknesses_by_layer.get(index, float(thickness))
         layers.append(
             LayerSpec(
                 material=material_name,
@@ -117,6 +136,8 @@ def build_simulation_task(
     structure: dict[str, Any],
     measurements: list[MeasuredDataPoint] | tuple[MeasuredDataPoint, ...] | MeasuredDataPoint,
     params: dict[str, float],
+    *,
+    fit_parameters: Sequence[FitParameter] | None = None,
 ) -> SimulationTask:
     """Build one validated forward task for the current parameter vector."""
 
@@ -149,7 +170,7 @@ def build_simulation_task(
     )
     task = SimulationTask(
         stack=StackSpec(
-            layers=_structure_layers(structure, params),
+            layers=_structure_layers(structure, params, fit_parameters),
             incident=incident,
             exit=_medium_from_structure(exit_medium, default_material="sio2"),
             name=str(structure.get("name", "fit_structure")),
@@ -286,7 +307,9 @@ def fit_task(task: FitTask) -> FitResult:
 
     def residual_fn(values: np.ndarray) -> np.ndarray:
         params = {name: float(value) for name, value in zip(parameter_names, values, strict=True)}
-        simulation_task = build_simulation_task(task.structure, task.measurements, params)
+        simulation_task = build_simulation_task(
+            task.structure, task.measurements, params, fit_parameters=task.fit_parameters
+        )
         forward = execute_forward_simulation(simulation_task, workbench=workbench)
         return np.asarray(
             [
