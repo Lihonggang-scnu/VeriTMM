@@ -150,6 +150,12 @@ def _validate_task(task: SimulationTask, variables) -> list:
 
 
 def _resolve_illumination(task: SimulationTask) -> tuple:
+    if len(task.illumination.angles_deg) != 1 or len(task.illumination.polarizations) != 1:
+        raise GradientRequestError(
+            "multichannel_objective_unsupported",
+            "The scalar gradient/batch API requires one explicit angle and polarization; "
+            "it does not silently select the first channel. Bind a multi-channel objective explicitly.",
+        )
     return (
         float(task.illumination.angles_deg[0]),
         str(task.illumination.polarizations[0]),
@@ -229,8 +235,8 @@ def _finite_difference_cross_check(
             minus = list(base)
             plus[index] = base[index] + h
             minus[index] = base[index] - h
-            plus_value = value(torch.tensor([plus], dtype=thicknesses_row.dtype))
-            minus_value = value(torch.tensor([minus], dtype=thicknesses_row.dtype))
+            plus_value = value(torch.tensor([plus], dtype=thicknesses_row.dtype, device=thicknesses_row.device))
+            minus_value = value(torch.tensor([minus], dtype=thicknesses_row.dtype, device=thicknesses_row.device))
             fd = (float(plus_value) - float(minus_value)) / (2.0 * h)
             ad = autograd[index]
             absolute = abs(ad - fd)
