@@ -1,0 +1,1235 @@
+{
+  "runs": [
+    {
+      "receipt": "entries\\article-30b8aeb0e290.json",
+      "lane": "article",
+      "output": "D:\\OptoMind-Article-3\\local-repair-validation\\20261013\\article\\formal-01",
+      "argv": [
+        "--question-file",
+        "D:\\OptoMind-Article-3\\local-repair-validation\\20261013\\ARTICLE_REQUEST.txt",
+        "--output-dir",
+        "D:\\OptoMind-Article-3\\local-repair-validation\\20261013\\article\\formal-01",
+        "--run-id",
+        "cloud-repair-formal-ar-01",
+        "--maximum-iterations",
+        "2",
+        "--maximum-initial-routes",
+        "1",
+        "--route-planning-maximum-routes",
+        "1",
+        "--max-rounds-per-route",
+        "2",
+        "--no-control-route",
+        "--no-online-method-research",
+        "--no-qwen-method-synthesis",
+        "--maximum-method-research-rounds",
+        "1",
+        "--maximum-refinement-rounds",
+        "1",
+        "--wall-time-seconds",
+        "1200"
+      ],
+      "python": "D:\\OptoMind-Article-3\\local-integration\\20261013\\envs\\tensor\\Scripts\\python.exe",
+      "source_heads": {
+        "OptoMind-Article": "491d7ddddfbdddbdbd11edffafc3299f242ab8d2",
+        "OptoMInd-Review": "0cf7bc1f86e242cd7466243ff99c3d614d5f2aee",
+        "VeriTMM": "86de13615d98a3adfc0d7a026e28915570b8111d"
+      },
+      "started_at": 1791884130.2272289,
+      "finished_at": 1791884472.1552696,
+      "exit_code": 2,
+      "provider_calls": 12,
+      "cost_cny": 0.0492658,
+      "calls": [
+        {
+          "call_id": "article-1418a3c7fb174ee6",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.004274399999999999
+        },
+        {
+          "call_id": "article-1b243ef11d9446ba",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.0024944
+        },
+        {
+          "call_id": "article-33c8396222b5438f",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.0025146000000000005
+        },
+        {
+          "call_id": "article-3828dce396094753",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.012309599999999999
+        },
+        {
+          "call_id": "article-3a13e2cb3ed84b9d",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.005341599999999999
+        },
+        {
+          "call_id": "article-5a1f9beb11ff4cff",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.0016912000000000003
+        },
+        {
+          "call_id": "article-691d8bc196e44c30",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.0016464000000000001
+        },
+        {
+          "call_id": "article-7634347fe4d74f96",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.0012046
+        },
+        {
+          "call_id": "article-7e7bab15510e4bfd",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.0009998000000000001
+        },
+        {
+          "call_id": "article-a74c7b41b84f4f97",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.0062328
+        },
+        {
+          "call_id": "article-aca7cd94342d4fac",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.009561599999999998
+        },
+        {
+          "call_id": "article-f21975e6e1a14d59",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.0009948000000000001
+        }
+      ]
+    },
+    {
+      "receipt": "entries\\review-649ce7a73cc4.json",
+      "lane": "review",
+      "output": "D:\\OptoMind-Article-3\\local-repair-validation\\20261013\\review\\formal-01",
+      "argv": [
+        "--preflight",
+        "--pool",
+        "D:\\OptoMind-Article-3\\local-functional-trial\\20261013\\review\\planning-pool\\PLANNING_POOL.jsonl",
+        "--plan",
+        "D:\\OptoMind-Article-3\\local-functional-trial\\20261013\\review\\FINAL_SCHEMA.json",
+        "--output-dir",
+        "D:\\OptoMind-Article-3\\local-repair-validation\\20261013\\review\\formal-01",
+        "--topic-id",
+        "visible-achromatic-metalens-pilot-20261013",
+        "--key-file",
+        "F:\\OptoMind-Review-2\\api_keys\\qwen-api-key.txt",
+        "--budget-ledger",
+        "D:\\OptoMind-Article-3\\local-functional-trial\\20261013\\budget.sqlite",
+        "--budget-limit-cny",
+        "80",
+        "--deep-read-limit",
+        "2",
+        "--chapter-workers",
+        "1",
+        "--reader-workers",
+        "1",
+        "--thinking-budget",
+        "0",
+        "--reader-thinking-budget",
+        "0",
+        "--output-tokens",
+        "8192",
+        "--reader-output-tokens",
+        "8192",
+        "--no-external-supplement",
+        "--no-outline-strengthening",
+        "--tokenizer",
+        "F:\\OptoMind-Review-2\\data\\tokenizers\\qwen3_5_9b\\tokenizer.json",
+        "--material-parser-mode",
+        "docling_basic",
+        "--docling-batch-index",
+        "D:\\OptoMind-Article-3\\local-functional-trial\\20261013\\review\\docling-basic\\BATCH_RESULT.json",
+        "--local-formula-config",
+        "F:\\OptoMind-Review-2\\outputs\\pdf_bulk_route_20261013\\integration_audit\\formal_formula_preview\\hook_config.json",
+        "--local-formula-cache-root",
+        "D:\\OptoMind-Article-3\\local-functional-trial\\20261013\\review\\formula-cache"
+      ],
+      "python": "D:\\OptoMind-Article-3\\local-preparation\\envs\\review\\Scripts\\python.exe",
+      "source_heads": {
+        "OptoMind-Article": "491d7ddddfbdddbdbd11edffafc3299f242ab8d2",
+        "OptoMInd-Review": "0cf7bc1f86e242cd7466243ff99c3d614d5f2aee",
+        "VeriTMM": "86de13615d98a3adfc0d7a026e28915570b8111d"
+      },
+      "started_at": 1791884430.6736884,
+      "finished_at": 1791884432.2588165,
+      "exit_code": 0,
+      "provider_calls": 0,
+      "cost_cny": 0,
+      "calls": []
+    },
+    {
+      "receipt": "entries\\review-1a1b4d687292.json",
+      "lane": "review",
+      "output": "D:\\OptoMind-Article-3\\local-repair-validation\\20261013\\review\\formal-01",
+      "argv": [
+        "--run",
+        "--pool",
+        "D:\\OptoMind-Article-3\\local-functional-trial\\20261013\\review\\planning-pool\\PLANNING_POOL.jsonl",
+        "--plan",
+        "D:\\OptoMind-Article-3\\local-functional-trial\\20261013\\review\\FINAL_SCHEMA.json",
+        "--output-dir",
+        "D:\\OptoMind-Article-3\\local-repair-validation\\20261013\\review\\formal-01",
+        "--topic-id",
+        "visible-achromatic-metalens-pilot-20261013",
+        "--key-file",
+        "F:\\OptoMind-Review-2\\api_keys\\qwen-api-key.txt",
+        "--budget-ledger",
+        "D:\\OptoMind-Article-3\\local-functional-trial\\20261013\\budget.sqlite",
+        "--budget-limit-cny",
+        "80",
+        "--deep-read-limit",
+        "2",
+        "--chapter-workers",
+        "1",
+        "--reader-workers",
+        "1",
+        "--thinking-budget",
+        "0",
+        "--reader-thinking-budget",
+        "0",
+        "--output-tokens",
+        "8192",
+        "--reader-output-tokens",
+        "8192",
+        "--no-external-supplement",
+        "--no-outline-strengthening",
+        "--tokenizer",
+        "F:\\OptoMind-Review-2\\data\\tokenizers\\qwen3_5_9b\\tokenizer.json",
+        "--material-parser-mode",
+        "docling_basic",
+        "--docling-batch-index",
+        "D:\\OptoMind-Article-3\\local-functional-trial\\20261013\\review\\docling-basic\\BATCH_RESULT.json",
+        "--local-formula-config",
+        "F:\\OptoMind-Review-2\\outputs\\pdf_bulk_route_20261013\\integration_audit\\formal_formula_preview\\hook_config.json",
+        "--local-formula-cache-root",
+        "D:\\OptoMind-Article-3\\local-repair-validation\\20261013\\review\\formula-cache"
+      ],
+      "python": "D:\\OptoMind-Article-3\\local-preparation\\envs\\review\\Scripts\\python.exe",
+      "source_heads": {
+        "OptoMind-Article": "491d7ddddfbdddbdbd11edffafc3299f242ab8d2",
+        "OptoMInd-Review": "0cf7bc1f86e242cd7466243ff99c3d614d5f2aee",
+        "VeriTMM": "86de13615d98a3adfc0d7a026e28915570b8111d"
+      },
+      "started_at": 1791884628.5348523,
+      "finished_at": 1791884948.1102638,
+      "exit_code": 1,
+      "provider_calls": 9,
+      "cost_cny": 0.123047,
+      "calls": [
+        {
+          "call_id": "review-2d58f0444ba24cdf",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.0037422
+        },
+        {
+          "call_id": "review-4d5c588e0b434673",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.004383199999999999
+        },
+        {
+          "call_id": "review-5073a1bfbdab4348",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.0126048
+        },
+        {
+          "call_id": "review-52131f3a72ff4766",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.030987199999999996
+        },
+        {
+          "call_id": "review-791175ab72de468e",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.0049088000000000005
+        },
+        {
+          "call_id": "review-934ef1ee29ad4c73",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.0308832
+        },
+        {
+          "call_id": "review-9a3f02f40b6041d3",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.011879200000000001
+        },
+        {
+          "call_id": "review-a3816bdac1e343db",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.0123272
+        },
+        {
+          "call_id": "review-b899efd4333b4dd8",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.011331200000000001
+        }
+      ]
+    },
+    {
+      "receipt": "entries\\review-475bbfdd47fb.json",
+      "lane": "review",
+      "output": "D:\\OptoMind-Article-3\\local-repair-validation\\20261013\\review\\formal-01",
+      "argv": [
+        "--run",
+        "--pool",
+        "D:\\OptoMind-Article-3\\local-functional-trial\\20261013\\review\\planning-pool\\PLANNING_POOL.jsonl",
+        "--plan",
+        "D:\\OptoMind-Article-3\\local-functional-trial\\20261013\\review\\FINAL_SCHEMA.json",
+        "--output-dir",
+        "D:\\OptoMind-Article-3\\local-repair-validation\\20261013\\review\\formal-01",
+        "--topic-id",
+        "visible-achromatic-metalens-pilot-20261013",
+        "--key-file",
+        "F:\\OptoMind-Review-2\\api_keys\\qwen-api-key.txt",
+        "--budget-ledger",
+        "D:\\OptoMind-Article-3\\local-functional-trial\\20261013\\budget.sqlite",
+        "--budget-limit-cny",
+        "80",
+        "--deep-read-limit",
+        "2",
+        "--chapter-workers",
+        "1",
+        "--reader-workers",
+        "1",
+        "--thinking-budget",
+        "0",
+        "--reader-thinking-budget",
+        "0",
+        "--output-tokens",
+        "8192",
+        "--reader-output-tokens",
+        "8192",
+        "--no-external-supplement",
+        "--no-outline-strengthening",
+        "--tokenizer",
+        "F:\\OptoMind-Review-2\\data\\tokenizers\\qwen3_5_9b\\tokenizer.json",
+        "--material-parser-mode",
+        "docling_basic",
+        "--docling-batch-index",
+        "D:\\OptoMind-Article-3\\local-functional-trial\\20261013\\review\\docling-basic\\BATCH_RESULT.json",
+        "--local-formula-config",
+        "F:\\OptoMind-Review-2\\outputs\\pdf_bulk_route_20261013\\integration_audit\\formal_formula_preview\\hook_config.json",
+        "--local-formula-cache-root",
+        "D:\\OptoMind-Article-3\\local-repair-validation\\20261013\\review\\formula-cache",
+        "--resume",
+        "--local-material-index",
+        "D:\\OptoMind-Article-3\\local-repair-validation\\20261013\\review\\planning_material_index.sqlite"
+      ],
+      "python": "D:\\OptoMind-Article-3\\local-preparation\\envs\\review\\Scripts\\python.exe",
+      "source_heads": {
+        "OptoMind-Article": "491d7ddddfbdddbdbd11edffafc3299f242ab8d2",
+        "OptoMInd-Review": "db3eda77d28fc7807064f73e18e57e18e7721139",
+        "VeriTMM": "86de13615d98a3adfc0d7a026e28915570b8111d"
+      },
+      "started_at": 1791885313.354288,
+      "finished_at": 1791885813.4607909,
+      "exit_code": 0,
+      "provider_calls": 19,
+      "cost_cny": 1.7773384,
+      "calls": [
+        {
+          "call_id": "review-00012d3eac7a4d1d",
+          "model": "qwen3.5-plus",
+          "settled_cny": 1.434128
+        },
+        {
+          "call_id": "review-07452899f5044eb6",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.004395
+        },
+        {
+          "call_id": "review-08a2843125b144e3",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.0652968
+        },
+        {
+          "call_id": "review-11ce944f2e5a4391",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.0716808
+        },
+        {
+          "call_id": "review-1d1fc8663f684bef",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.0035906
+        },
+        {
+          "call_id": "review-1fb3ee33d2b94edd",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.037852800000000006
+        },
+        {
+          "call_id": "review-37e71488731a41b5",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.0081382
+        },
+        {
+          "call_id": "review-6480fe55e68741bd",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.004767
+        },
+        {
+          "call_id": "review-685c0d3e3f714166",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.027968800000000002
+        },
+        {
+          "call_id": "review-6d0589d2929346ec",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.0079288
+        },
+        {
+          "call_id": "review-7626b1266ce04750",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.0029228
+        },
+        {
+          "call_id": "review-813541d2c4934f88",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.07333520000000002
+        },
+        {
+          "call_id": "review-903b73fee83f43b7",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.0061088
+        },
+        {
+          "call_id": "review-a3f139ee9f424f79",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.002802
+        },
+        {
+          "call_id": "review-caee1d105ed649f9",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.0046278000000000005
+        },
+        {
+          "call_id": "review-cf5d1dd73c654aa5",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.0028798
+        },
+        {
+          "call_id": "review-dd7225926d494dac",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.008059400000000001
+        },
+        {
+          "call_id": "review-de0d2ab4feeb4c11",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.0045488
+        },
+        {
+          "call_id": "review-f4a796b85a74483f",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.006307
+        }
+      ]
+    },
+    {
+      "receipt": "entries\\article-90fdbafd11cb.json",
+      "lane": "article",
+      "output": "D:\\OptoMind-Article-3\\local-repair-validation\\20261013\\article\\formal-02",
+      "argv": [
+        "--question-file",
+        "D:\\OptoMind-Article-3\\local-repair-validation\\20261013\\ARTICLE_REQUEST.txt",
+        "--output-dir",
+        "D:\\OptoMind-Article-3\\local-repair-validation\\20261013\\article\\formal-02",
+        "--run-id",
+        "cloud-repair-formal-ar-02",
+        "--maximum-iterations",
+        "2",
+        "--maximum-initial-routes",
+        "1",
+        "--route-planning-maximum-routes",
+        "1",
+        "--max-rounds-per-route",
+        "2",
+        "--no-control-route",
+        "--no-online-method-research",
+        "--no-qwen-method-synthesis",
+        "--maximum-method-research-rounds",
+        "1",
+        "--maximum-refinement-rounds",
+        "1",
+        "--wall-time-seconds",
+        "1200"
+      ],
+      "python": "D:\\OptoMind-Article-3\\local-integration\\20261013\\envs\\tensor\\Scripts\\python.exe",
+      "source_heads": {
+        "OptoMind-Article": "7726133b8019b8f6ab4fe87612db1dd0e2523ab5",
+        "OptoMInd-Review": "db3eda77d28fc7807064f73e18e57e18e7721139",
+        "VeriTMM": "86de13615d98a3adfc0d7a026e28915570b8111d"
+      },
+      "started_at": 1791885870.7536643,
+      "finished_at": 1791886162.2721367,
+      "exit_code": 2,
+      "provider_calls": 11,
+      "cost_cny": 0.0456072,
+      "calls": [
+        {
+          "call_id": "article-00fd03cc6ca64f40",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.0017232
+        },
+        {
+          "call_id": "article-3cecd06c6dd1452e",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.005341599999999999
+        },
+        {
+          "call_id": "article-4176024d623a4f06",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.0094304
+        },
+        {
+          "call_id": "article-41d0687b099e4240",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.01162
+        },
+        {
+          "call_id": "article-60562ae41b324722",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.0025216000000000006
+        },
+        {
+          "call_id": "article-6d31e746ee2148e0",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.000997
+        },
+        {
+          "call_id": "article-6dbbf7edb0234d8c",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.0009226
+        },
+        {
+          "call_id": "article-9047968506ca4446",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.001707
+        },
+        {
+          "call_id": "article-b97d38234ad143e9",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.0062856000000000006
+        },
+        {
+          "call_id": "article-e83c5152c52f4514",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.0009246000000000001
+        },
+        {
+          "call_id": "article-eb539d49ee324b94",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.0041336
+        }
+      ]
+    },
+    {
+      "receipt": "entries\\article-30f0f464b7ac.json",
+      "lane": "article",
+      "output": "D:\\OptoMind-Article-3\\local-repair-validation\\20261013\\article\\formal-03",
+      "argv": [
+        "--question-file",
+        "D:\\OptoMind-Article-3\\local-repair-validation\\20261013\\ARTICLE_REQUEST.txt",
+        "--output-dir",
+        "D:\\OptoMind-Article-3\\local-repair-validation\\20261013\\article\\formal-03",
+        "--run-id",
+        "cloud-repair-formal-ar-03",
+        "--maximum-iterations",
+        "2",
+        "--maximum-initial-routes",
+        "1",
+        "--route-planning-maximum-routes",
+        "1",
+        "--max-rounds-per-route",
+        "2",
+        "--no-control-route",
+        "--no-online-method-research",
+        "--no-qwen-method-synthesis",
+        "--maximum-method-research-rounds",
+        "1",
+        "--maximum-refinement-rounds",
+        "1",
+        "--wall-time-seconds",
+        "1200"
+      ],
+      "python": "D:\\OptoMind-Article-3\\local-integration\\20261013\\envs\\tensor\\Scripts\\python.exe",
+      "source_heads": {
+        "OptoMind-Article": "3e3c873cea10acb7314c55858b6d642a5e77c168",
+        "OptoMInd-Review": "db3eda77d28fc7807064f73e18e57e18e7721139",
+        "VeriTMM": "86de13615d98a3adfc0d7a026e28915570b8111d"
+      },
+      "started_at": 1791886620.7939637,
+      "finished_at": 1791886949.9662564,
+      "exit_code": 0,
+      "provider_calls": 11,
+      "cost_cny": 0.0533258,
+      "calls": [
+        {
+          "call_id": "article-328ebc7fbe0c4f68",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.001844
+        },
+        {
+          "call_id": "article-4911b493718f40f9",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.0025772000000000004
+        },
+        {
+          "call_id": "article-659874ae896449a3",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.005341599999999999
+        },
+        {
+          "call_id": "article-753de36d879b4b6a",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.0028646000000000006
+        },
+        {
+          "call_id": "article-91ca591c4cdb45c0",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.0131448
+        },
+        {
+          "call_id": "article-97def1db2d3f4d51",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.0043752
+        },
+        {
+          "call_id": "article-c0d63545a1394ecb",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.0089424
+        },
+        {
+          "call_id": "article-c64fd487f8ae4290",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.00618
+        },
+        {
+          "call_id": "article-cb73eca97b6041f6",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.0029406000000000002
+        },
+        {
+          "call_id": "article-d9d1e97f04b64d83",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.002528
+        },
+        {
+          "call_id": "article-ddac295e7b5f4ecb",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.0025874
+        }
+      ]
+    },
+    {
+      "receipt": "entries\\article-5ba1b848e3c1.json",
+      "lane": "article",
+      "output": "D:\\OptoMind-Article-3\\local-repair-validation\\20261013\\article\\formal-04",
+      "argv": [
+        "--question-file",
+        "D:\\OptoMind-Article-3\\local-repair-validation\\20261013\\ARTICLE_REQUEST.txt",
+        "--output-dir",
+        "D:\\OptoMind-Article-3\\local-repair-validation\\20261013\\article\\formal-04",
+        "--run-id",
+        "cloud-repair-formal-ar-04",
+        "--maximum-iterations",
+        "2",
+        "--maximum-initial-routes",
+        "1",
+        "--route-planning-maximum-routes",
+        "1",
+        "--max-rounds-per-route",
+        "2",
+        "--no-control-route",
+        "--no-online-method-research",
+        "--no-qwen-method-synthesis",
+        "--maximum-method-research-rounds",
+        "1",
+        "--maximum-refinement-rounds",
+        "1",
+        "--wall-time-seconds",
+        "1200"
+      ],
+      "python": "D:\\OptoMind-Article-3\\local-integration\\20261013\\envs\\tensor\\Scripts\\python.exe",
+      "source_heads": {
+        "OptoMind-Article": "f39d433a30edb9ea49d9779f2fd2ac9eeed85b2b",
+        "OptoMInd-Review": "db3eda77d28fc7807064f73e18e57e18e7721139",
+        "VeriTMM": "86de13615d98a3adfc0d7a026e28915570b8111d"
+      },
+      "started_at": 1791887198.8392484,
+      "finished_at": 1791887512.8127851,
+      "exit_code": 0,
+      "provider_calls": 11,
+      "cost_cny": 0.0537976,
+      "calls": [
+        {
+          "call_id": "article-15b383fc857042be",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.0020204
+        },
+        {
+          "call_id": "article-599c04469c644d5f",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.011228799999999999
+        },
+        {
+          "call_id": "article-646a98cda9b543b5",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.0016752
+        },
+        {
+          "call_id": "article-6887c69a70a6444e",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.012507200000000001
+        },
+        {
+          "call_id": "article-80e0bab36d13448f",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.0028380000000000002
+        },
+        {
+          "call_id": "article-894ce501ccd44608",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.0042808
+        },
+        {
+          "call_id": "article-a2ecc900eeb247cf",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.0018264000000000002
+        },
+        {
+          "call_id": "article-a55cefbab1d74216",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.0027264
+        },
+        {
+          "call_id": "article-c0d3398f4d5f46a4",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.0029232
+        },
+        {
+          "call_id": "article-cd3b7462d11b4e41",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.006429600000000001
+        },
+        {
+          "call_id": "article-e6d7fca7b2a54f40",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.005341599999999999
+        }
+      ]
+    },
+    {
+      "receipt": "entries\\article-1f35de66a349.json",
+      "lane": "article",
+      "output": "D:\\OptoMind-Article-3\\local-repair-validation\\20261013\\article\\resume-04",
+      "argv": [
+        "--question-file",
+        "D:\\OptoMind-Article-3\\local-repair-validation\\20261013\\ARTICLE_REQUEST.txt",
+        "--output-dir",
+        "D:\\OptoMind-Article-3\\local-repair-validation\\20261013\\article\\resume-04",
+        "--run-id",
+        "cloud-repair-formal-ar-04-resume",
+        "--maximum-iterations",
+        "2",
+        "--maximum-initial-routes",
+        "1",
+        "--route-planning-maximum-routes",
+        "1",
+        "--max-rounds-per-route",
+        "2",
+        "--no-control-route",
+        "--no-online-method-research",
+        "--no-qwen-method-synthesis",
+        "--maximum-method-research-rounds",
+        "1",
+        "--maximum-refinement-rounds",
+        "1",
+        "--wall-time-seconds",
+        "1200",
+        "--resume-from",
+        "D:\\OptoMind-Article-3\\local-repair-validation\\20261013\\article\\formal-04"
+      ],
+      "python": "D:\\OptoMind-Article-3\\local-integration\\20261013\\envs\\tensor\\Scripts\\python.exe",
+      "source_heads": {
+        "OptoMind-Article": "f39d433a30edb9ea49d9779f2fd2ac9eeed85b2b",
+        "OptoMInd-Review": "db3eda77d28fc7807064f73e18e57e18e7721139",
+        "VeriTMM": "86de13615d98a3adfc0d7a026e28915570b8111d"
+      },
+      "started_at": 1791887843.243302,
+      "finished_at": 1791887843.4777048,
+      "exit_code": 1,
+      "provider_calls": 0,
+      "cost_cny": 0,
+      "calls": []
+    },
+    {
+      "receipt": "entries\\article-12feafab450b.json",
+      "lane": "article",
+      "output": "D:\\OptoMind-Article-3\\local-repair-validation\\20261013\\article\\pause-05",
+      "argv": [
+        "--question-file",
+        "D:\\OptoMind-Article-3\\local-repair-validation\\20261013\\ARTICLE_REQUEST.txt",
+        "--output-dir",
+        "D:\\OptoMind-Article-3\\local-repair-validation\\20261013\\article\\pause-05",
+        "--run-id",
+        "cloud-repair-restore-ar-05",
+        "--maximum-iterations",
+        "1",
+        "--maximum-initial-routes",
+        "1",
+        "--route-planning-maximum-routes",
+        "1",
+        "--max-rounds-per-route",
+        "2",
+        "--no-control-route",
+        "--no-online-method-research",
+        "--no-qwen-method-synthesis",
+        "--maximum-method-research-rounds",
+        "1",
+        "--maximum-refinement-rounds",
+        "1",
+        "--wall-time-seconds",
+        "1200"
+      ],
+      "python": "D:\\OptoMind-Article-3\\local-integration\\20261013\\envs\\tensor\\Scripts\\python.exe",
+      "source_heads": {
+        "OptoMind-Article": "f39d433a30edb9ea49d9779f2fd2ac9eeed85b2b",
+        "OptoMInd-Review": "db3eda77d28fc7807064f73e18e57e18e7721139",
+        "VeriTMM": "86de13615d98a3adfc0d7a026e28915570b8111d"
+      },
+      "started_at": 1791888002.4015963,
+      "finished_at": 1791888249.0695364,
+      "exit_code": 0,
+      "provider_calls": 8,
+      "cost_cny": 0.0336394,
+      "calls": [
+        {
+          "call_id": "article-275e0718a5dd41cc",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.0053511999999999995
+        },
+        {
+          "call_id": "article-6e76e1d7218c4dad",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.0018118000000000001
+        },
+        {
+          "call_id": "article-8086a5011a454b18",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.0025351999999999996
+        },
+        {
+          "call_id": "article-8a02d1ba50e04caf",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.00156
+        },
+        {
+          "call_id": "article-9d817d0945a74665",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.0028068000000000004
+        },
+        {
+          "call_id": "article-b14cb22cbd9a4262",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.009309600000000001
+        },
+        {
+          "call_id": "article-c63f9689db3445f2",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.0041328
+        },
+        {
+          "call_id": "article-e0f351535b9a46b7",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.006132
+        }
+      ]
+    },
+    {
+      "receipt": "entries\\article-71071ec4582c.json",
+      "lane": "article",
+      "output": "D:\\OptoMind-Article-3\\local-repair-validation\\20261013\\article\\resume-05",
+      "argv": [
+        "--question-file",
+        "D:\\OptoMind-Article-3\\local-repair-validation\\20261013\\ARTICLE_REQUEST.txt",
+        "--output-dir",
+        "D:\\OptoMind-Article-3\\local-repair-validation\\20261013\\article\\resume-05",
+        "--run-id",
+        "cloud-repair-restore-ar-05-resume",
+        "--maximum-iterations",
+        "2",
+        "--maximum-initial-routes",
+        "1",
+        "--route-planning-maximum-routes",
+        "1",
+        "--max-rounds-per-route",
+        "2",
+        "--no-control-route",
+        "--no-online-method-research",
+        "--no-qwen-method-synthesis",
+        "--maximum-method-research-rounds",
+        "1",
+        "--maximum-refinement-rounds",
+        "1",
+        "--wall-time-seconds",
+        "1200",
+        "--resume-from",
+        "D:\\OptoMind-Article-3\\local-repair-validation\\20261013\\article\\pause-05"
+      ],
+      "python": "D:\\OptoMind-Article-3\\local-integration\\20261013\\envs\\tensor\\Scripts\\python.exe",
+      "source_heads": {
+        "OptoMind-Article": "f39d433a30edb9ea49d9779f2fd2ac9eeed85b2b",
+        "OptoMInd-Review": "db3eda77d28fc7807064f73e18e57e18e7721139",
+        "VeriTMM": "86de13615d98a3adfc0d7a026e28915570b8111d"
+      },
+      "started_at": 1791888304.744772,
+      "finished_at": 1791888375.032275,
+      "exit_code": 0,
+      "provider_calls": 2,
+      "cost_cny": 0.0044874,
+      "calls": [
+        {
+          "call_id": "article-aba0841551cc4bf7",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.0018374
+        },
+        {
+          "call_id": "article-e328b27149a64b2f",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.00265
+        }
+      ]
+    },
+    {
+      "receipt": "entries\\review-993236e7d058.json",
+      "lane": "review",
+      "output": "D:\\OptoMind-Article-3\\local-repair-validation\\20261013\\review\\formal-01",
+      "argv": [
+        "--run",
+        "--pool",
+        "D:\\OptoMind-Article-3\\local-functional-trial\\20261013\\review\\planning-pool\\PLANNING_POOL.jsonl",
+        "--plan",
+        "D:\\OptoMind-Article-3\\local-functional-trial\\20261013\\review\\FINAL_SCHEMA.json",
+        "--output-dir",
+        "D:\\OptoMind-Article-3\\local-repair-validation\\20261013\\review\\formal-01",
+        "--topic-id",
+        "visible-achromatic-metalens-pilot-20261013",
+        "--key-file",
+        "F:\\OptoMind-Review-2\\api_keys\\qwen-api-key.txt",
+        "--budget-ledger",
+        "D:\\OptoMind-Article-3\\local-functional-trial\\20261013\\budget.sqlite",
+        "--budget-limit-cny",
+        "80",
+        "--deep-read-limit",
+        "2",
+        "--chapter-workers",
+        "1",
+        "--reader-workers",
+        "1",
+        "--thinking-budget",
+        "0",
+        "--reader-thinking-budget",
+        "0",
+        "--output-tokens",
+        "8192",
+        "--reader-output-tokens",
+        "8192",
+        "--no-external-supplement",
+        "--no-outline-strengthening",
+        "--tokenizer",
+        "F:\\OptoMind-Review-2\\data\\tokenizers\\qwen3_5_9b\\tokenizer.json",
+        "--material-parser-mode",
+        "docling_basic",
+        "--docling-batch-index",
+        "D:\\OptoMind-Article-3\\local-functional-trial\\20261013\\review\\docling-basic\\BATCH_RESULT.json",
+        "--local-formula-config",
+        "F:\\OptoMind-Review-2\\outputs\\pdf_bulk_route_20261013\\integration_audit\\formal_formula_preview\\hook_config.json",
+        "--local-formula-cache-root",
+        "D:\\OptoMind-Article-3\\local-repair-validation\\20261013\\review\\formula-cache",
+        "--resume",
+        "--local-material-index",
+        "D:\\OptoMind-Article-3\\local-repair-validation\\20261013\\review\\planning_material_index.sqlite",
+        "--editorial-feedback",
+        "D:\\OptoMind-Article-3\\local-repair-validation\\20261013\\review\\CHANGED_REQUEST.json"
+      ],
+      "python": "D:\\OptoMind-Article-3\\local-preparation\\envs\\review\\Scripts\\python.exe",
+      "source_heads": {
+        "OptoMind-Article": "f39d433a30edb9ea49d9779f2fd2ac9eeed85b2b",
+        "OptoMInd-Review": "b0aee17ab1667031f39f76cf0df0030ab77c6a34",
+        "VeriTMM": "86de13615d98a3adfc0d7a026e28915570b8111d"
+      },
+      "started_at": 1791888450.7849314,
+      "finished_at": 1791888720.5682013,
+      "exit_code": 0,
+      "provider_calls": 10,
+      "cost_cny": 1.6789486,
+      "calls": [
+        {
+          "call_id": "review-1d6efd1c59fd470f",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.0063064
+        },
+        {
+          "call_id": "review-2026f12ba2ef4bcb",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.0645912
+        },
+        {
+          "call_id": "review-286fcb55550649bf",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.0078188
+        },
+        {
+          "call_id": "review-3a5ae9c2fb9445a9",
+          "model": "qwen3.5-plus",
+          "settled_cny": 1.434828
+        },
+        {
+          "call_id": "review-47354fa4d23b454b",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.003586
+        },
+        {
+          "call_id": "review-4926f05b17934e4a",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.007645600000000001
+        },
+        {
+          "call_id": "review-7e46770c74414b25",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.0077998
+        },
+        {
+          "call_id": "review-aa34590d63e247dc",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.0704272
+        },
+        {
+          "call_id": "review-c159701b4fad4f96",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.069704
+        },
+        {
+          "call_id": "review-c3e9170de3ba4a0d",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.006241600000000001
+        }
+      ]
+    },
+    {
+      "receipt": "entries\\review-0fe89279d2b4.json",
+      "lane": "review",
+      "output": "D:\\OptoMind-Article-3\\local-repair-validation\\20261013\\review\\formal-01",
+      "argv": [
+        "--run",
+        "--pool",
+        "D:\\OptoMind-Article-3\\local-functional-trial\\20261013\\review\\planning-pool\\PLANNING_POOL.jsonl",
+        "--plan",
+        "D:\\OptoMind-Article-3\\local-functional-trial\\20261013\\review\\FINAL_SCHEMA.json",
+        "--output-dir",
+        "D:\\OptoMind-Article-3\\local-repair-validation\\20261013\\review\\formal-01",
+        "--topic-id",
+        "visible-achromatic-metalens-pilot-20261013",
+        "--key-file",
+        "F:\\OptoMind-Review-2\\api_keys\\qwen-api-key.txt",
+        "--budget-ledger",
+        "D:\\OptoMind-Article-3\\local-functional-trial\\20261013\\budget.sqlite",
+        "--budget-limit-cny",
+        "80",
+        "--deep-read-limit",
+        "2",
+        "--chapter-workers",
+        "1",
+        "--reader-workers",
+        "1",
+        "--thinking-budget",
+        "0",
+        "--reader-thinking-budget",
+        "0",
+        "--output-tokens",
+        "8192",
+        "--reader-output-tokens",
+        "8192",
+        "--no-external-supplement",
+        "--no-outline-strengthening",
+        "--tokenizer",
+        "F:\\OptoMind-Review-2\\data\\tokenizers\\qwen3_5_9b\\tokenizer.json",
+        "--material-parser-mode",
+        "docling_basic",
+        "--docling-batch-index",
+        "D:\\OptoMind-Article-3\\local-functional-trial\\20261013\\review\\docling-basic\\BATCH_RESULT.json",
+        "--local-formula-config",
+        "F:\\OptoMind-Review-2\\outputs\\pdf_bulk_route_20261013\\integration_audit\\formal_formula_preview\\hook_config.json",
+        "--local-formula-cache-root",
+        "D:\\OptoMind-Article-3\\local-repair-validation\\20261013\\review\\formula-cache",
+        "--resume",
+        "--local-material-index",
+        "D:\\OptoMind-Article-3\\local-repair-validation\\20261013\\review\\planning_material_index.sqlite",
+        "--editorial-feedback",
+        "D:\\OptoMind-Article-3\\local-repair-validation\\20261013\\review\\CHANGED_REQUEST.json"
+      ],
+      "python": "D:\\OptoMind-Article-3\\local-preparation\\envs\\review\\Scripts\\python.exe",
+      "source_heads": {
+        "OptoMind-Article": "f39d433a30edb9ea49d9779f2fd2ac9eeed85b2b",
+        "OptoMInd-Review": "f234580a57c7c8ed2118de252b22422a94182180",
+        "VeriTMM": "86de13615d98a3adfc0d7a026e28915570b8111d"
+      },
+      "started_at": 1791889233.683262,
+      "finished_at": 1791890332.031612,
+      "exit_code": 0,
+      "provider_calls": 29,
+      "cost_cny": 3.4467232,
+      "calls": [
+        {
+          "call_id": "review-047f6c856944499d",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.026428800000000002
+        },
+        {
+          "call_id": "review-0b6e96a6b36c4519",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.005960200000000001
+        },
+        {
+          "call_id": "review-0bf4a39d13e34cd0",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.005451800000000001
+        },
+        {
+          "call_id": "review-27bfed5f2cbe4f98",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.005848000000000001
+        },
+        {
+          "call_id": "review-3289899cbff9400e",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.0352686
+        },
+        {
+          "call_id": "review-37312f0cdd9349db",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.0029418
+        },
+        {
+          "call_id": "review-4282dce56c414646",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.004212
+        },
+        {
+          "call_id": "review-456892f52a9c416c",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.0037408000000000003
+        },
+        {
+          "call_id": "review-4c9a68e508134d10",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.0043408000000000006
+        },
+        {
+          "call_id": "review-5397db4441f74f2b",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.02958
+        },
+        {
+          "call_id": "review-643c05e3e1b849e2",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.0330204
+        },
+        {
+          "call_id": "review-6c1256bedddd49c5",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.0062056
+        },
+        {
+          "call_id": "review-6ef1b23b42004f32",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.0055536000000000005
+        },
+        {
+          "call_id": "review-8445bc2a04464f08",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.0630024
+        },
+        {
+          "call_id": "review-8f2b6fdc06894906",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.013028
+        },
+        {
+          "call_id": "review-9bb2b162bee049c8",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.011856799999999999
+        },
+        {
+          "call_id": "review-a235b39ec57e4ec6",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.0048442
+        },
+        {
+          "call_id": "review-aa0ce77e43414266",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.034444199999999994
+        },
+        {
+          "call_id": "review-b78ac321188a4b8e",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.029817600000000003
+        },
+        {
+          "call_id": "review-b7e2079937304373",
+          "model": "qwen3.5-plus",
+          "settled_cny": 2.520984
+        },
+        {
+          "call_id": "review-bc2d5fa876f94262",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.04460800000000001
+        },
+        {
+          "call_id": "review-c0d686bd7019487e",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.0034978
+        },
+        {
+          "call_id": "review-c982699ee43847b3",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.029667
+        },
+        {
+          "call_id": "review-d5307185a15d48bf",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.005568399999999999
+        },
+        {
+          "call_id": "review-da15af2f53204f05",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.289166
+        },
+        {
+          "call_id": "review-e36b93cd30b44f05",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.09932320000000001
+        },
+        {
+          "call_id": "review-e65365c6f1d145cc",
+          "model": "qwen3.7-flash",
+          "settled_cny": 0.0054288
+        },
+        {
+          "call_id": "review-f28ae6d5aa014d28",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.0113912
+        },
+        {
+          "call_id": "review-fd1b27c876894a1a",
+          "model": "qwen3.5-plus",
+          "settled_cny": 0.11154320000000001
+        }
+      ]
+    }
+  ]
+}

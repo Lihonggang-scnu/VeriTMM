@@ -1,0 +1,5 @@
+cwd= D:\OptoMind-Article-3\repos\OptoMind-Article\veritmm
+tmm_engine= D:\OptoMind-Article-3\repos\OptoMind-Article\veritmm\tmm_engine\__init__.py
+torch= 2.14.1+cpu
+compute= 5.0
+exit_code=0

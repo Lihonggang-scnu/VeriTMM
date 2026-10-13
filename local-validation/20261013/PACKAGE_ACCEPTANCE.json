@@ -1,0 +1,190 @@
+{
+  "status": "passed",
+  "indexed_file_count": 31,
+  "files": [
+    {
+      "path": "OptoMInd-Review.bundle",
+      "expected": "47af6d1a2b15c92291a687dc05ab999ecda26f0c242e02a022af67ae02d7bcec",
+      "actual": "47af6d1a2b15c92291a687dc05ab999ecda26f0c242e02a022af67ae02d7bcec"
+    },
+    {
+      "path": "IMPLEMENTATION_MANIFEST.json",
+      "expected": "c46289a94714a1017d972b18a720f1298a26bfda4807502636fdca309f39b9bd",
+      "actual": "c46289a94714a1017d972b18a720f1298a26bfda4807502636fdca309f39b9bd"
+    },
+    {
+      "path": "OptoMind-Article.bundle",
+      "expected": "a2b5c1f9a3b028f3f97b38c31f49d3960e5b60d0a1430447215f45f009a296cd",
+      "actual": "a2b5c1f9a3b028f3f97b38c31f49d3960e5b60d0a1430447215f45f009a296cd"
+    },
+    {
+      "path": "VeriTMM.bundle",
+      "expected": "4deaf6f46471a58ad0c52f849d3bc13d4a7ecc31d1ef793766329e751a6f184d",
+      "actual": "4deaf6f46471a58ad0c52f849d3bc13d4a7ecc31d1ef793766329e751a6f184d"
+    },
+    {
+      "path": "LOCAL_HANDOFF.md",
+      "expected": "c23da9c8fa74cb9dfe71bf7e225aaeea75b2ebb8cde92e5a442cdf5159acc98c",
+      "actual": "c23da9c8fa74cb9dfe71bf7e225aaeea75b2ebb8cde92e5a442cdf5159acc98c"
+    },
+    {
+      "path": "verification/budget/BENCHMARK_RESULT.json",
+      "expected": "cc2e16386fb675577747d2955b537a6909b29264f5f7adbd5bdcea540253d62a",
+      "actual": "cc2e16386fb675577747d2955b537a6909b29264f5f7adbd5bdcea540253d62a"
+    },
+    {
+      "path": "verification/budget/fit_result.json",
+      "expected": "ef2205692e908ed826ba3bf6e0d181add8fd147bd613bc9f3e65d54bcff3c55b",
+      "actual": "ef2205692e908ed826ba3bf6e0d181add8fd147bd613bc9f3e65d54bcff3c55b"
+    },
+    {
+      "path": "verification/budget/standalone-final-lint.log",
+      "expected": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18",
+      "actual": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    {
+      "path": "verification/budget/final-build.log",
+      "expected": "c3f87710669cca9f1d29bcd14a545c3bbd76e22cb050b1382aff18488dcdab2d",
+      "actual": "c3f87710669cca9f1d29bcd14a545c3bbd76e22cb050b1382aff18488dcdab2d"
+    },
+    {
+      "path": "verification/budget/torch-marker.log",
+      "expected": "c4a558bee1233262e9767c89a6095d0eec7f3ddc36da624b45729e9db9e6339e",
+      "actual": "c4a558bee1233262e9767c89a6095d0eec7f3ddc36da624b45729e9db9e6339e"
+    },
+    {
+      "path": "verification/budget/final-wheel-install.log",
+      "expected": "6ba608447e9bccae9d0c785918f52e03c179a25c54f0f855e516dfae607e4477",
+      "actual": "6ba608447e9bccae9d0c785918f52e03c179a25c54f0f855e516dfae607e4477"
+    },
+    {
+      "path": "verification/budget/standalone-final.log",
+      "expected": "293a96739cdd275e01eac820f7cc53a2d3681f6179762bc6663f7cd00117e2aa",
+      "actual": "293a96739cdd275e01eac820f7cc53a2d3681f6179762bc6663f7cd00117e2aa"
+    },
+    {
+      "path": "verification/budget/challenge_result.json",
+      "expected": "7ce0dde6d4a57d71ee1943d7809b590a11197493cb53d65ca51b38382b0e2a6b",
+      "actual": "7ce0dde6d4a57d71ee1943d7809b590a11197493cb53d65ca51b38382b0e2a6b"
+    },
+    {
+      "path": "verification/budget/final-describe.json",
+      "expected": "2f6fdcf4559ddc2c24223e7efe9eb982c0799f9aa8ae36337d1b8bb684bd7134",
+      "actual": "2f6fdcf4559ddc2c24223e7efe9eb982c0799f9aa8ae36337d1b8bb684bd7134"
+    },
+    {
+      "path": "verification/budget/harness-final.log",
+      "expected": "3d0deac92a870ed7e976e5d10cfebe7d9cbe5fc77aecb0a4ab8ff5d77867a9c1",
+      "actual": "3d0deac92a870ed7e976e5d10cfebe7d9cbe5fc77aecb0a4ab8ff5d77867a9c1"
+    },
+    {
+      "path": "verification/budget/python-dependencies.txt",
+      "expected": "062374466d8cd3ceccf245514587cb65db823b14802c34749bb3a7a357c2ea6e",
+      "actual": "062374466d8cd3ceccf245514587cb65db823b14802c34749bb3a7a357c2ea6e"
+    },
+    {
+      "path": "verification/metrics/standalone_engine_metric_regressions.txt",
+      "expected": "8013a39a84ac8db5e43e28f351047f8fabe2bf6bf654c5d2ef3f975229e6db29",
+      "actual": "8013a39a84ac8db5e43e28f351047f8fabe2bf6bf654c5d2ef3f975229e6db29"
+    },
+    {
+      "path": "verification/metrics/article_metric_regressions.txt",
+      "expected": "385c26451cba34c5983813efb86083b37c72d237d3169dd3c42c68926c6b4a1d",
+      "actual": "385c26451cba34c5983813efb86083b37c72d237d3169dd3c42c68926c6b4a1d"
+    },
+    {
+      "path": "verification/metrics/bundled_engine_metric_regressions.txt",
+      "expected": "cd8668fb501e8ed127db29b81ef5dbdcf63f10447d30e966c60f4035942ee091",
+      "actual": "cd8668fb501e8ed127db29b81ef5dbdcf63f10447d30e966c60f4035942ee091"
+    },
+    {
+      "path": "verification/integration/run_original_pilot_offline.py",
+      "expected": "abfbdaee457bdca3826a99b56a51f2fff80e9cb185e4208de185a9ab44107094",
+      "actual": "abfbdaee457bdca3826a99b56a51f2fff80e9cb185e4208de185a9ab44107094"
+    },
+    {
+      "path": "verification/integration/original_pilot_cap64.log",
+      "expected": "6da92c8dcaa852052ccd250247508ee46a7f12ca18b83004b3c4cd8cc8985746",
+      "actual": "6da92c8dcaa852052ccd250247508ee46a7f12ca18b83004b3c4cd8cc8985746"
+    },
+    {
+      "path": "verification/integration/independent_cloud_numeric_acceptance.json",
+      "expected": "32bdfe87ca2e8790bd2875c04ff98d28f98f72041aae529669f394aa50b80953",
+      "actual": "32bdfe87ca2e8790bd2875c04ff98d28f98f72041aae529669f394aa50b80953"
+    },
+    {
+      "path": "verification/integration/research_cli_acceptance_final.log",
+      "expected": "828fd1c753f0d6b415611c4a591e642943e428401f70db669ecf0faa89efff6f",
+      "actual": "828fd1c753f0d6b415611c4a591e642943e428401f70db669ecf0faa89efff6f"
+    },
+    {
+      "path": "verification/integration/original_pilot_cap64_summary.json",
+      "expected": "fef8da8e071ec5c6ae03a044fa3d76beb6baf371712571bf9d0c24a6826c2eff",
+      "actual": "fef8da8e071ec5c6ae03a044fa3d76beb6baf371712571bf9d0c24a6826c2eff"
+    },
+    {
+      "path": "verification/review/validation.json",
+      "expected": "24ea96b1e89f51170f9aefd479c3e6b96e6e2414a48210a42a17a47b4151724f",
+      "actual": "24ea96b1e89f51170f9aefd479c3e6b96e6e2414a48210a42a17a47b4151724f"
+    },
+    {
+      "path": "verification/review/extended-final.log",
+      "expected": "dcf2f33c4dda1286184a3715695d0ed97b3bff79f49733fc7e93af40a00a3c11",
+      "actual": "dcf2f33c4dda1286184a3715695d0ed97b3bff79f49733fc7e93af40a00a3c11"
+    },
+    {
+      "path": "verification/review/baseline-legacy-reuse.log",
+      "expected": "9560c36a8c5a3b2a1f1d29ba28bb745b804b86619745ab7a9e405705cf80e973",
+      "actual": "9560c36a8c5a3b2a1f1d29ba28bb745b804b86619745ab7a9e405705cf80e973"
+    },
+    {
+      "path": "verification/review/focused-final.log",
+      "expected": "595c9ef9169261b05bf0f12571df46124765d8a3f7c81e4ab4d554c5f1004d16",
+      "actual": "595c9ef9169261b05bf0f12571df46124765d8a3f7c81e4ab4d554c5f1004d16"
+    },
+    {
+      "path": "verification/article_contracts/baseline_wiring.log",
+      "expected": "6267944cd0f9b02784321b08658dddb2032743c6b755f8bc3d0903009b6d035a",
+      "actual": "6267944cd0f9b02784321b08658dddb2032743c6b755f8bc3d0903009b6d035a"
+    },
+    {
+      "path": "verification/article_contracts/verification_summary.txt",
+      "expected": "3ee7530f8c548910689b482546da318d0823205b035ee5b8aeb4fd44708597fb",
+      "actual": "3ee7530f8c548910689b482546da318d0823205b035ee5b8aeb4fd44708597fb"
+    },
+    {
+      "path": "verification/article_contracts/accepted_final_regression.log",
+      "expected": "2961a5ccdf4c7a0e96d4234a8700441b5b959b3acb95b6eb93dc88c9276bcf6b",
+      "actual": "2961a5ccdf4c7a0e96d4234a8700441b5b959b3acb95b6eb93dc88c9276bcf6b"
+    }
+  ],
+  "repositories": {
+    "OptoMind-Article": {
+      "directory": "D:\\OptoMind-Article-3\\repos\\OptoMind-Article",
+      "imported_commit": "491d7ddddfbdddbdbd11edffafc3299f242ab8d2",
+      "imported_tree": "ac931db0ed5378be575aeef9831eb248a54b810e",
+      "tested_source_head_at_summary": "f39d433a30edb9ea49d9779f2fd2ac9eeed85b2b",
+      "branch": "codex/cloud-repair-validation-20261013",
+      "origin_fetch": "https://github.com/Lihonggang-scnu/OptoMind-Article",
+      "origin_push": "https://github.com/Lihonggang-scnu/OptoMind-Article"
+    },
+    "OptoMInd-Review": {
+      "directory": "D:\\OptoMind-Article-3\\repos\\OptoMInd-Review",
+      "imported_commit": "0cf7bc1f86e242cd7466243ff99c3d614d5f2aee",
+      "imported_tree": "aca90c23ef144e82c4230874de24aad500dc39af",
+      "tested_source_head_at_summary": "bef359f02c8a0a5f81cb4b10713a4b2be91790ad",
+      "branch": "codex/cloud-repair-validation-20261013",
+      "origin_fetch": "https://github.com/Lihonggang-scnu/OptoMInd-Review",
+      "origin_push": "disabled://local-review-components-only"
+    },
+    "VeriTMM": {
+      "directory": "D:\\OptoMind-Article-3\\repos\\VeriTMM",
+      "imported_commit": "86de13615d98a3adfc0d7a026e28915570b8111d",
+      "imported_tree": "f314c6fd01966421f04cbfd50622d37e3caa5215",
+      "tested_source_head_at_summary": "86de13615d98a3adfc0d7a026e28915570b8111d",
+      "branch": "codex/cloud-repair-validation-20261013",
+      "origin_fetch": "https://github.com/Lihonggang-scnu/VeriTMM",
+      "origin_push": "https://github.com/Lihonggang-scnu/VeriTMM"
+    }
+  }
+}

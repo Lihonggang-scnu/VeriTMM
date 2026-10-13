@@ -1,0 +1,28 @@
+{
+  "status": "passed",
+  "parent": "D:\\OptoMind-Article-3\\local-repair-validation\\20261013\\article\\pause-05",
+  "resumed": "D:\\OptoMind-Article-3\\local-repair-validation\\20261013\\article\\resume-05",
+  "observations_before": 1,
+  "observations_after": 2,
+  "prefix_exact_equal": true,
+  "frozen_standard_exact_equal": true,
+  "candidate_statistics_exact_equal": true,
+  "floating_point_differences": [],
+  "forward_total": 106,
+  "per_round_forward": [
+    53,
+    53
+  ],
+  "sqlite_copies": [
+    {
+      "relative_path": "iterations/iteration_01/tmm_run/EXPERIMENT_GRAPH.sqlite",
+      "sha256_equal": true,
+      "quick_check": "ok",
+      "journal_mode": "wal"
+    }
+  ],
+  "production_status": "completed",
+  "production_acceptance": "accepted",
+  "spend_ledger": "shared original external ledger; never copied to repository",
+  "round_policy": "host initial ceiling1 then continuation ceiling2, original maximum2 unchanged"
+}

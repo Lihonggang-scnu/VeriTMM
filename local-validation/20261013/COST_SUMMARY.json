@@ -1,0 +1,11 @@
+{
+  "limit_cny": 80.0,
+  "prior_cost_cny": 0.4619124,
+  "cumulative_estimated_cost_cny": 7.7280928,
+  "new_estimated_cost_cny": 7.2661804,
+  "reserved_cny": 0.0,
+  "remaining_cny": 72.2719072,
+  "estimate_basis": "Existing shared ledger settled provider usage at configured China rates; not an account invoice.",
+  "ledger_database_included": false,
+  "60_cny_checkpoint_reached": false
+}

@@ -1,0 +1,1569 @@
+{
+  "run": "D:\\OptoMind-Article-3\\local-repair-validation\\20261013\\article\\formal-04",
+  "status": "completed",
+  "acceptance_status": "accepted",
+  "independent_scientific_acceptance": "accepted_for_this_case",
+  "scoring_direction_errors": [],
+  "failed_iteration_ids": [],
+  "rounds": [
+    {
+      "iteration_id": "iteration_01",
+      "compiled": true,
+      "run_status": "completed",
+      "forward_evaluations": 53,
+      "cap": 64,
+      "seed": 17,
+      "route_snapshot_matches": true
+    },
+    {
+      "iteration_id": "iteration_02",
+      "compiled": true,
+      "run_status": "completed",
+      "forward_evaluations": 50,
+      "cap": 64,
+      "seed": 17,
+      "route_snapshot_matches": true
+    }
+  ],
+  "independently_checked_candidates": [
+    {
+      "iteration_id": "iteration_01",
+      "candidate_id": "ar_coating_sio2_tio2_opt__baseline",
+      "layer_indices": [
+        1.46,
+        2.4
+      ],
+      "thicknesses_nm": [
+        80.0,
+        80.0
+      ],
+      "max_absolute_error": 2.220446049250313e-16,
+      "sample_mean": 0.06759992338282832,
+      "wavelength_integral_mean": 0.06707371287709821,
+      "target_below_0_03_met_sample_mean": false,
+      "metrics": [
+        {
+          "metric_id": "min_mean_reflectance",
+          "reduction": "sample_mean",
+          "reported": 0.06759992338282833,
+          "independent": 0.06759992338282832
+        },
+        {
+          "metric_id": "fixedscore.mean_reflectance_450_700nm",
+          "reduction": "sample_mean",
+          "reported": 0.06759992338282833,
+          "independent": 0.06759992338282832
+        }
+      ],
+      "simulation_result": "iterations\\iteration_01\\tmm_run\\experiments\\ar_coating_sio2_tio2_opt\\baseline\\SIMULATION_RESULT.json"
+    },
+    {
+      "iteration_id": "iteration_01",
+      "candidate_id": "ar_coating_sio2_tio2_opt__gradient_thickness__01",
+      "layer_indices": [
+        1.46,
+        2.4
+      ],
+      "thicknesses_nm": [
+        86.55957088989845,
+        94.47810205108865
+      ],
+      "max_absolute_error": 1.249000902703301e-16,
+      "sample_mean": 0.03536240865642062,
+      "wavelength_integral_mean": 0.03506454824564925,
+      "target_below_0_03_met_sample_mean": false,
+      "metrics": [
+        {
+          "metric_id": "min_mean_reflectance",
+          "reduction": "sample_mean",
+          "reported": 0.0353624086564206,
+          "independent": 0.03536240865642062
+        },
+        {
+          "metric_id": "fixedscore.mean_reflectance_450_700nm",
+          "reduction": "sample_mean",
+          "reported": 0.0353624086564206,
+          "independent": 0.03536240865642062
+        }
+      ],
+      "simulation_result": "iterations\\iteration_01\\tmm_run\\experiments\\ar_coating_sio2_tio2_opt\\candidates\\ar_coating_sio2_tio2_opt__gradient_thickness__01\\SIMULATION_RESULT.json"
+    },
+    {
+      "iteration_id": "iteration_01",
+      "candidate_id": "ar_coating_sio2_tio2_opt__gradient_thickness__02",
+      "layer_indices": [
+        1.46,
+        2.4
+      ],
+      "thicknesses_nm": [
+        87.0,
+        94.0
+      ],
+      "max_absolute_error": 1.1102230246251565e-16,
+      "sample_mean": 0.0365594365801326,
+      "wavelength_integral_mean": 0.0362670052218531,
+      "target_below_0_03_met_sample_mean": false,
+      "metrics": [
+        {
+          "metric_id": "min_mean_reflectance",
+          "reduction": "sample_mean",
+          "reported": 0.036559436580132616,
+          "independent": 0.0365594365801326
+        },
+        {
+          "metric_id": "fixedscore.mean_reflectance_450_700nm",
+          "reduction": "sample_mean",
+          "reported": 0.036559436580132616,
+          "independent": 0.0365594365801326
+        }
+      ],
+      "simulation_result": "iterations\\iteration_01\\tmm_run\\experiments\\ar_coating_sio2_tio2_opt\\candidates\\ar_coating_sio2_tio2_opt__gradient_thickness__02\\SIMULATION_RESULT.json"
+    },
+    {
+      "iteration_id": "iteration_01",
+      "candidate_id": "ar_coating_sio2_tio2_opt__gradient_thickness__03",
+      "layer_indices": [
+        1.46,
+        2.4
+      ],
+      "thicknesses_nm": [
+        86.31779345829338,
+        86.85623333451034
+      ],
+      "max_absolute_error": 1.942890293094024e-16,
+      "sample_mean": 0.05150505026697739,
+      "wavelength_integral_mean": 0.051073961167445905,
+      "target_below_0_03_met_sample_mean": false,
+      "metrics": [
+        {
+          "metric_id": "min_mean_reflectance",
+          "reduction": "sample_mean",
+          "reported": 0.05150505026697741,
+          "independent": 0.05150505026697739
+        },
+        {
+          "metric_id": "fixedscore.mean_reflectance_450_700nm",
+          "reduction": "sample_mean",
+          "reported": 0.05150505026697741,
+          "independent": 0.05150505026697739
+        }
+      ],
+      "simulation_result": "iterations\\iteration_01\\tmm_run\\experiments\\ar_coating_sio2_tio2_opt\\candidates\\ar_coating_sio2_tio2_opt__gradient_thickness__03\\SIMULATION_RESULT.json"
+    },
+    {
+      "iteration_id": "iteration_01",
+      "candidate_id": "ar_coating_sio2_tio2_opt__gradient_thickness__04",
+      "layer_indices": [
+        1.46,
+        2.4
+      ],
+      "thicknesses_nm": [
+        61.785138870242974,
+        91.93120590112031
+      ],
+      "max_absolute_error": 1.6653345369377348e-16,
+      "sample_mean": 0.05132460111466989,
+      "wavelength_integral_mean": 0.050575958038454945,
+      "target_below_0_03_met_sample_mean": false,
+      "metrics": [
+        {
+          "metric_id": "min_mean_reflectance",
+          "reduction": "sample_mean",
+          "reported": 0.05132460111466987,
+          "independent": 0.05132460111466989
+        },
+        {
+          "metric_id": "fixedscore.mean_reflectance_450_700nm",
+          "reduction": "sample_mean",
+          "reported": 0.05132460111466987,
+          "independent": 0.05132460111466989
+        }
+      ],
+      "simulation_result": "iterations\\iteration_01\\tmm_run\\experiments\\ar_coating_sio2_tio2_opt\\candidates\\ar_coating_sio2_tio2_opt__gradient_thickness__04\\SIMULATION_RESULT.json"
+    },
+    {
+      "iteration_id": "iteration_02",
+      "candidate_id": "ar_coating_tio2_sio2_opt__baseline",
+      "layer_indices": [
+        2.4,
+        1.46
+      ],
+      "thicknesses_nm": [
+        59.8958,
+        98.6301
+      ],
+      "max_absolute_error": 3.885780586188048e-16,
+      "sample_mean": 0.3577967834253695,
+      "wavelength_integral_mean": 0.35829436682922566,
+      "target_below_0_03_met_sample_mean": false,
+      "metrics": [
+        {
+          "metric_id": "min_mean_reflectance",
+          "reduction": "sample_mean",
+          "reported": 0.3577967834253695,
+          "independent": 0.3577967834253695
+        },
+        {
+          "metric_id": "soft_target_below_0_03",
+          "reduction": "sample_mean",
+          "reported": 0.3577967834253695,
+          "independent": 0.3577967834253695
+        },
+        {
+          "metric_id": "fixedscore.mean_reflectance_450_700nm",
+          "reduction": "sample_mean",
+          "reported": 0.3577967834253695,
+          "independent": 0.3577967834253695
+        }
+      ],
+      "simulation_result": "iterations\\iteration_02\\tmm_run\\experiments\\ar_coating_tio2_sio2_opt\\baseline\\SIMULATION_RESULT.json"
+    },
+    {
+      "iteration_id": "iteration_02",
+      "candidate_id": "ar_coating_tio2_sio2_opt__gradient_thickness__01",
+      "layer_indices": [
+        2.4,
+        1.46
+      ],
+      "thicknesses_nm": [
+        46.0,
+        111.0
+      ],
+      "max_absolute_error": 3.885780586188048e-16,
+      "sample_mean": 0.33652561596179126,
+      "wavelength_integral_mean": 0.33674076852107493,
+      "target_below_0_03_met_sample_mean": false,
+      "metrics": [
+        {
+          "metric_id": "min_mean_reflectance",
+          "reduction": "sample_mean",
+          "reported": 0.33652561596179126,
+          "independent": 0.33652561596179126
+        },
+        {
+          "metric_id": "soft_target_below_0_03",
+          "reduction": "sample_mean",
+          "reported": 0.33652561596179126,
+          "independent": 0.33652561596179126
+        },
+        {
+          "metric_id": "fixedscore.mean_reflectance_450_700nm",
+          "reduction": "sample_mean",
+          "reported": 0.33652561596179126,
+          "independent": 0.33652561596179126
+        }
+      ],
+      "simulation_result": "iterations\\iteration_02\\tmm_run\\experiments\\ar_coating_tio2_sio2_opt\\candidates\\ar_coating_tio2_sio2_opt__gradient_thickness__01\\SIMULATION_RESULT.json"
+    },
+    {
+      "iteration_id": "iteration_02",
+      "candidate_id": "ar_coating_tio2_sio2_opt__gradient_thickness__03",
+      "layer_indices": [
+        2.4,
+        1.46
+      ],
+      "thicknesses_nm": [
+        64.8810769863313,
+        113.78541099758986
+      ],
+      "max_absolute_error": 2.7755575615628914e-16,
+      "sample_mean": 0.34748123357287547,
+      "wavelength_integral_mean": 0.34811127190634567,
+      "target_below_0_03_met_sample_mean": false,
+      "metrics": [
+        {
+          "metric_id": "min_mean_reflectance",
+          "reduction": "sample_mean",
+          "reported": 0.3474812335728755,
+          "independent": 0.34748123357287547
+        },
+        {
+          "metric_id": "soft_target_below_0_03",
+          "reduction": "sample_mean",
+          "reported": 0.3474812335728755,
+          "independent": 0.34748123357287547
+        },
+        {
+          "metric_id": "fixedscore.mean_reflectance_450_700nm",
+          "reduction": "sample_mean",
+          "reported": 0.3474812335728755,
+          "independent": 0.34748123357287547
+        }
+      ],
+      "simulation_result": "iterations\\iteration_02\\tmm_run\\experiments\\ar_coating_tio2_sio2_opt\\candidates\\ar_coating_tio2_sio2_opt__gradient_thickness__03\\SIMULATION_RESULT.json"
+    },
+    {
+      "iteration_id": "iteration_02",
+      "candidate_id": "ar_coating_tio2_sio2_opt__gradient_thickness__04",
+      "layer_indices": [
+        2.4,
+        1.46
+      ],
+      "thicknesses_nm": [
+        64.35548458195589,
+        106.07386712003643
+      ],
+      "max_absolute_error": 3.885780586188048e-16,
+      "sample_mean": 0.3504794504737924,
+      "wavelength_integral_mean": 0.35110139342362,
+      "target_below_0_03_met_sample_mean": false,
+      "metrics": [
+        {
+          "metric_id": "min_mean_reflectance",
+          "reduction": "sample_mean",
+          "reported": 0.3504794504737924,
+          "independent": 0.3504794504737924
+        },
+        {
+          "metric_id": "soft_target_below_0_03",
+          "reduction": "sample_mean",
+          "reported": 0.3504794504737924,
+          "independent": 0.3504794504737924
+        },
+        {
+          "metric_id": "fixedscore.mean_reflectance_450_700nm",
+          "reduction": "sample_mean",
+          "reported": 0.3504794504737924,
+          "independent": 0.3504794504737924
+        }
+      ],
+      "simulation_result": "iterations\\iteration_02\\tmm_run\\experiments\\ar_coating_tio2_sio2_opt\\candidates\\ar_coating_tio2_sio2_opt__gradient_thickness__04\\SIMULATION_RESULT.json"
+    }
+  ],
+  "recommended_candidates": [
+    {
+      "candidate_id": "ar_coating_sio2_tio2_opt__gradient_thickness__01",
+      "experiment_id": "ar_coating_sio2_tio2_opt",
+      "target_score": 0.9646375913435794,
+      "robustness_score": 0.5887842007325347,
+      "simplicity_score": 0.9756097560975611,
+      "distinctiveness_score": 0.0,
+      "thicknesses_nm": [
+        86.55957088989845,
+        94.47810205108865
+      ],
+      "optimizer_id": "gradient_thickness",
+      "objective_report": {
+        "schema_version": "tmm-objective-report.v1",
+        "aggregate_soft_score": 0.5857379236010957,
+        "weighted_directional_loss": 0.0014186638444209912,
+        "target_attainment": {
+          "min_mean_reflectance": {
+            "metric": "mean_reflectance",
+            "observed": 0.0353624086564206,
+            "target": 0.0,
+            "sense": "minimize",
+            "weight": 1.0,
+            "soft_score": 0.9646375913435794,
+            "loss_semantics": "squared_reduced_directional_error",
+            "role": "soft_scoring_objective",
+            "region": {
+              "wavelength_nm": [
+                450.0,
+                700.0
+              ],
+              "angle_deg": 0.0,
+              "polarization": "s"
+            },
+            "channel_observations": {
+              "angle=0|pol=s": 0.0353624086564206
+            },
+            "mean_reduction": "sample_mean",
+            "channel_reduction": "sample_mean",
+            "aggregation": "mean"
+          },
+          "fixedscore.mean_reflectance_450_700nm": {
+            "metric": "mean_reflectance",
+            "observed": 0.0353624086564206,
+            "target": null,
+            "sense": "report",
+            "weight": 1.0,
+            "soft_score": null,
+            "loss_semantics": null,
+            "role": "report_only",
+            "region": {
+              "wavelength_nm": [
+                450.0,
+                700.0
+              ],
+              "angle_deg": 0,
+              "polarization": "s"
+            },
+            "channel_observations": {
+              "angle=0|pol=s": 0.0353624086564206
+            },
+            "mean_reduction": "sample_mean",
+            "channel_reduction": "sample_mean",
+            "aggregation": "mean"
+          }
+        },
+        "admission_role": "ranking_only"
+      },
+      "robustness_report": {
+        "schema_version": "tmm-robustness-report.v1",
+        "candidate_id": "ar_coating_sio2_tio2_opt__gradient_thickness__01",
+        "perturbation_model": {
+          "distribution": "absolute_normal",
+          "sigma_nm": 1.0,
+          "relative_fraction": 0.0,
+          "angle_distribution": "uniform_common_incidence_offset",
+          "angle_perturbation_deg": 0.0,
+          "samples": 16,
+          "random_seed": 17,
+          "bounds_policy": "clip_to_declared_layer_bounds"
+        },
+        "nominal_soft_score": 0.5857379236010957,
+        "sample_soft_scores": [
+          0.5852204575900047,
+          0.5715130917380912,
+          0.5930394441667164,
+          0.5775849709082287,
+          0.5859811083775298,
+          0.606137755686922,
+          0.6175194372061278,
+          0.5770581235144994,
+          0.579952614698754,
+          0.5841188136815838,
+          0.5946306355827049,
+          0.5813341041343058,
+          0.5815402726350979,
+          0.6204757228068002,
+          0.566349441778991,
+          0.5980912172141977
+        ],
+        "sample_angle_offsets_deg": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "nominal_spectral_metrics": {
+          "target_domain_mean_R": 0.0353624086564206,
+          "target_domain_max_R": 0.07346791976220837,
+          "target_domain_min_R": 0.022844603834202695
+        },
+        "sample_spectral_metrics": [
+          {
+            "target_domain_mean_R": 0.035437888152278385,
+            "target_domain_max_R": 0.07026590167895727,
+            "target_domain_min_R": 0.024020286305866494
+          },
+          {
+            "target_domain_mean_R": 0.03748705974160541,
+            "target_domain_max_R": 0.07895386593741988,
+            "target_domain_min_R": 0.02376691091451834
+          },
+          {
+            "target_domain_mean_R": 0.0343114239563868,
+            "target_domain_max_R": 0.07719159350234572,
+            "target_domain_min_R": 0.020031988124769754
+          },
+          {
+            "target_domain_mean_R": 0.03656734942631393,
+            "target_domain_max_R": 0.07814182943834679,
+            "target_domain_min_R": 0.022821973123984027
+          },
+          {
+            "target_domain_mean_R": 0.03532698287567748,
+            "target_domain_max_R": 0.07407691351853046,
+            "target_domain_min_R": 0.02257320363869926
+          },
+          {
+            "target_domain_mean_R": 0.03248949934381856,
+            "target_domain_max_R": 0.0746753369391734,
+            "target_domain_min_R": 0.018368282724583143
+          },
+          {
+            "target_domain_mean_R": 0.03096911123351412,
+            "target_domain_max_R": 0.07076943259567164,
+            "target_domain_min_R": 0.01757154446126104
+          },
+          {
+            "target_domain_mean_R": 0.03664638441528443,
+            "target_domain_max_R": 0.07397089701106159,
+            "target_domain_min_R": 0.024375122662896025
+          },
+          {
+            "target_domain_mean_R": 0.03621394012676638,
+            "target_domain_max_R": 0.07090652301687325,
+            "target_domain_min_R": 0.024826630595610848
+          },
+          {
+            "target_domain_mean_R": 0.03559902339878428,
+            "target_domain_max_R": 0.07179840458366776,
+            "target_domain_min_R": 0.023708356464455554
+          },
+          {
+            "target_domain_mean_R": 0.03408581228076616,
+            "target_domain_max_R": 0.06782658919845048,
+            "target_domain_min_R": 0.02300891315097433
+          },
+          {
+            "target_domain_mean_R": 0.036009060270870495,
+            "target_domain_max_R": 0.0774195292410503,
+            "target_domain_min_R": 0.022329364715682445
+          },
+          {
+            "target_domain_mean_R": 0.03597856821409472,
+            "target_domain_max_R": 0.07354022669600034,
+            "target_domain_min_R": 0.023639545377829314
+          },
+          {
+            "target_domain_mean_R": 0.03058333011615458,
+            "target_domain_max_R": 0.07066668142044999,
+            "target_domain_min_R": 0.017025367701986167
+          },
+          {
+            "target_domain_mean_R": 0.03828471666351835,
+            "target_domain_max_R": 0.08543562080752298,
+            "target_domain_min_R": 0.022424373226920025
+          },
+          {
+            "target_domain_mean_R": 0.03359928813683486,
+            "target_domain_max_R": 0.0739638593530263,
+            "target_domain_min_R": 0.02021316436692592
+          }
+        ],
+        "spectral_metric_summary": {
+          "target_domain_max_R": {
+            "mean": 0.07435020030865926,
+            "standard_deviation": 0.0041913631397529055,
+            "minimum": 0.06782658919845048,
+            "maximum": 0.08543562080752298,
+            "p05": 0.06965607355883058,
+            "p95": 0.08057430465494565
+          },
+          "target_domain_mean_R": {
+            "mean": 0.03497433989704181,
+            "standard_deviation": 0.002114945669249759,
+            "minimum": 0.03058333011615458,
+            "maximum": 0.03828471666351835,
+            "p05": 0.030872665954174233,
+            "p95": 0.03768647397208365
+          },
+          "target_domain_min_R": {
+            "mean": 0.02191906422231017,
+            "standard_deviation": 0.002414286252618332,
+            "minimum": 0.017025367701986167,
+            "maximum": 0.024826630595610848,
+            "p05": 0.017435000271442323,
+            "p95": 0.024487999646074732
+          }
+        },
+        "mean_soft_score": 0.5887842007325347,
+        "worst_soft_score": 0.566349441778991,
+        "p10_soft_score": 0.5742856076262952,
+        "robustness_score": 0.5887842007325347,
+        "failed_simulations": 0,
+        "sample_failure_reasons": [],
+        "admission_role": "ranking_only"
+      },
+      "certificate_id": "a24cb1219438df8c4b3a29fd58c7b2ddb4a94a606d85663d83c14014e8dab732",
+      "artifact_ids": [
+        "experiments/ar_coating_sio2_tio2_opt/candidates/ar_coating_sio2_tio2_opt__gradient_thickness__01/PHYSICS_ACCEPTANCE_CERTIFICATE.json",
+        "experiments/ar_coating_sio2_tio2_opt/candidates/ar_coating_sio2_tio2_opt__gradient_thickness__01/OBJECTIVE_REPORT.json",
+        "experiments/ar_coating_sio2_tio2_opt/candidates/ar_coating_sio2_tio2_opt__gradient_thickness__01/ROBUSTNESS.json"
+      ],
+      "layer_materials": [
+        "n=1.46",
+        "n=2.4"
+      ],
+      "layer_labels": [
+        "layer_1",
+        "layer_2"
+      ],
+      "incident_medium": {
+        "constant_n": 1.0,
+        "constant_k": 0.0
+      },
+      "exit_medium": {
+        "constant_n": 1.52,
+        "constant_k": 0.0
+      },
+      "route_id": "route_01",
+      "route_title": "Optimization of SiO2/TiO2 Bilayer Order and Thickness for Broadband AR",
+      "iteration_id": "iteration_01",
+      "reported_metrics": [
+        {
+          "name": "min_mean_reflectance",
+          "observable": "mean_reflectance",
+          "observed": 0.0353624086564206,
+          "target": 0.0,
+          "constraint": null,
+          "aggregation": "mean",
+          "weight": 1.0,
+          "role": "soft_scoring_objective"
+        },
+        {
+          "name": "fixedscore.mean_reflectance_450_700nm",
+          "observable": "mean_reflectance",
+          "observed": 0.0353624086564206,
+          "target": null,
+          "constraint": null,
+          "aggregation": "mean",
+          "weight": 1.0,
+          "role": "report_only"
+        }
+      ],
+      "reported_robustness": {
+        "perturbation_model": {
+          "distribution": "absolute_normal",
+          "sigma_nm": 1.0,
+          "relative_fraction": 0.0,
+          "angle_distribution": "uniform_common_incidence_offset",
+          "angle_perturbation_deg": 0.0,
+          "samples": 16,
+          "random_seed": 17,
+          "bounds_policy": "clip_to_declared_layer_bounds"
+        },
+        "nominal_spectral_metrics": {
+          "target_domain_mean_R": 0.0353624086564206,
+          "target_domain_max_R": 0.07346791976220837,
+          "target_domain_min_R": 0.022844603834202695
+        },
+        "spectral_metric_summary": {
+          "target_domain_max_R": {
+            "mean": 0.07435020030865926,
+            "standard_deviation": 0.0041913631397529055,
+            "minimum": 0.06782658919845048,
+            "maximum": 0.08543562080752298,
+            "p05": 0.06965607355883058,
+            "p95": 0.08057430465494565
+          },
+          "target_domain_mean_R": {
+            "mean": 0.03497433989704181,
+            "standard_deviation": 0.002114945669249759,
+            "minimum": 0.03058333011615458,
+            "maximum": 0.03828471666351835,
+            "p05": 0.030872665954174233,
+            "p95": 0.03768647397208365
+          },
+          "target_domain_min_R": {
+            "mean": 0.02191906422231017,
+            "standard_deviation": 0.002414286252618332,
+            "minimum": 0.017025367701986167,
+            "maximum": 0.024826630595610848,
+            "p05": 0.017435000271442323,
+            "p95": 0.024487999646074732
+          }
+        },
+        "failed_simulations": 0
+      },
+      "frozen_score": -0.0353624086564206,
+      "frozen_score_inputs": {
+        "mean_reflectance_450_700nm": 0.0353624086564206
+      },
+      "frozen_score_missing": [],
+      "candidate_key": "iteration_01::ar_coating_sio2_tio2_opt__gradient_thickness__01",
+      "ranking_scope": "frozen_scoring_standard",
+      "shared_contract_summary": {
+        "mean_reflectance_across_channels": null,
+        "worst_channel_mean_reflectance": null,
+        "worst_point_reflectance": null,
+        "target_clauses_met": 0,
+        "target_clauses_assessed": 1
+      },
+      "cross_route_rank": 1,
+      "recommendation_roles": [
+        "best_performance",
+        "most_robust"
+      ]
+    },
+    {
+      "candidate_id": "ar_coating_sio2_tio2_opt__gradient_thickness__02",
+      "experiment_id": "ar_coating_sio2_tio2_opt",
+      "target_score": 0.9634405634198674,
+      "robustness_score": null,
+      "simplicity_score": 1.0,
+      "distinctiveness_score": 0.003830430840831038,
+      "thicknesses_nm": [
+        87.0,
+        94.0
+      ],
+      "optimizer_id": "gradient_thickness",
+      "objective_report": {
+        "schema_version": "tmm-objective-report.v1",
+        "aggregate_soft_score": 0.5776377709403454,
+        "weighted_directional_loss": 0.0015012483679083758,
+        "target_attainment": {
+          "min_mean_reflectance": {
+            "metric": "mean_reflectance",
+            "observed": 0.036559436580132616,
+            "target": 0.0,
+            "sense": "minimize",
+            "weight": 1.0,
+            "soft_score": 0.9634405634198674,
+            "loss_semantics": "squared_reduced_directional_error",
+            "role": "soft_scoring_objective",
+            "region": {
+              "wavelength_nm": [
+                450.0,
+                700.0
+              ],
+              "angle_deg": 0.0,
+              "polarization": "s"
+            },
+            "channel_observations": {
+              "angle=0|pol=s": 0.036559436580132616
+            },
+            "mean_reduction": "sample_mean",
+            "channel_reduction": "sample_mean",
+            "aggregation": "mean"
+          },
+          "fixedscore.mean_reflectance_450_700nm": {
+            "metric": "mean_reflectance",
+            "observed": 0.036559436580132616,
+            "target": null,
+            "sense": "report",
+            "weight": 1.0,
+            "soft_score": null,
+            "loss_semantics": null,
+            "role": "report_only",
+            "region": {
+              "wavelength_nm": [
+                450.0,
+                700.0
+              ],
+              "angle_deg": 0,
+              "polarization": "s"
+            },
+            "channel_observations": {
+              "angle=0|pol=s": 0.036559436580132616
+            },
+            "mean_reduction": "sample_mean",
+            "channel_reduction": "sample_mean",
+            "aggregation": "mean"
+          }
+        },
+        "admission_role": "ranking_only"
+      },
+      "robustness_report": {
+        "status": "not_run_budget_exhausted"
+      },
+      "certificate_id": "fcaf9c98367afa82a566a27ba29faa28c344302c350535c15d9bc2fb0f3dbcb2",
+      "artifact_ids": [
+        "experiments/ar_coating_sio2_tio2_opt/candidates/ar_coating_sio2_tio2_opt__gradient_thickness__02/PHYSICS_ACCEPTANCE_CERTIFICATE.json",
+        "experiments/ar_coating_sio2_tio2_opt/candidates/ar_coating_sio2_tio2_opt__gradient_thickness__02/OBJECTIVE_REPORT.json"
+      ],
+      "layer_materials": [
+        "n=1.46",
+        "n=2.4"
+      ],
+      "layer_labels": [
+        "layer_1",
+        "layer_2"
+      ],
+      "incident_medium": {
+        "constant_n": 1.0,
+        "constant_k": 0.0
+      },
+      "exit_medium": {
+        "constant_n": 1.52,
+        "constant_k": 0.0
+      },
+      "route_id": "route_01",
+      "route_title": "Optimization of SiO2/TiO2 Bilayer Order and Thickness for Broadband AR",
+      "iteration_id": "iteration_01",
+      "reported_metrics": [
+        {
+          "name": "min_mean_reflectance",
+          "observable": "mean_reflectance",
+          "observed": 0.036559436580132616,
+          "target": 0.0,
+          "constraint": null,
+          "aggregation": "mean",
+          "weight": 1.0,
+          "role": "soft_scoring_objective"
+        },
+        {
+          "name": "fixedscore.mean_reflectance_450_700nm",
+          "observable": "mean_reflectance",
+          "observed": 0.036559436580132616,
+          "target": null,
+          "constraint": null,
+          "aggregation": "mean",
+          "weight": 1.0,
+          "role": "report_only"
+        }
+      ],
+      "reported_robustness": {
+        "perturbation_model": {},
+        "nominal_spectral_metrics": {},
+        "spectral_metric_summary": {},
+        "failed_simulations": 0
+      },
+      "frozen_score": -0.036559436580132616,
+      "frozen_score_inputs": {
+        "mean_reflectance_450_700nm": 0.036559436580132616
+      },
+      "frozen_score_missing": [],
+      "candidate_key": "iteration_01::ar_coating_sio2_tio2_opt__gradient_thickness__02",
+      "ranking_scope": "frozen_scoring_standard",
+      "shared_contract_summary": {
+        "mean_reflectance_across_channels": null,
+        "worst_channel_mean_reflectance": null,
+        "worst_point_reflectance": null,
+        "target_clauses_met": 0,
+        "target_clauses_assessed": 1
+      },
+      "cross_route_rank": 2,
+      "recommendation_roles": [
+        "simplest"
+      ]
+    },
+    {
+      "candidate_id": "ar_coating_sio2_tio2_opt__gradient_thickness__04",
+      "experiment_id": "ar_coating_sio2_tio2_opt",
+      "target_score": 0.9486753988853301,
+      "robustness_score": null,
+      "simplicity_score": 0.9756097560975611,
+      "distinctiveness_score": 0.1467541360735578,
+      "thicknesses_nm": [
+        61.785138870242974,
+        91.93120590112031
+      ],
+      "optimizer_id": "gradient_thickness",
+      "objective_report": {
+        "schema_version": "tmm-objective-report.v1",
+        "aggregate_soft_score": 0.4934635759721827,
+        "weighted_directional_loss": 0.005067593492244373,
+        "target_attainment": {
+          "min_mean_reflectance": {
+            "metric": "mean_reflectance",
+            "observed": 0.05132460111466987,
+            "target": 0.0,
+            "sense": "minimize",
+            "weight": 1.0,
+            "soft_score": 0.9486753988853301,
+            "loss_semantics": "squared_reduced_directional_error",
+            "role": "soft_scoring_objective",
+            "region": {
+              "wavelength_nm": [
+                450.0,
+                700.0
+              ],
+              "angle_deg": 0.0,
+              "polarization": "s"
+            },
+            "channel_observations": {
+              "angle=0|pol=s": 0.05132460111466987
+            },
+            "mean_reduction": "sample_mean",
+            "channel_reduction": "sample_mean",
+            "aggregation": "mean"
+          },
+          "fixedscore.mean_reflectance_450_700nm": {
+            "metric": "mean_reflectance",
+            "observed": 0.05132460111466987,
+            "target": null,
+            "sense": "report",
+            "weight": 1.0,
+            "soft_score": null,
+            "loss_semantics": null,
+            "role": "report_only",
+            "region": {
+              "wavelength_nm": [
+                450.0,
+                700.0
+              ],
+              "angle_deg": 0,
+              "polarization": "s"
+            },
+            "channel_observations": {
+              "angle=0|pol=s": 0.05132460111466987
+            },
+            "mean_reduction": "sample_mean",
+            "channel_reduction": "sample_mean",
+            "aggregation": "mean"
+          }
+        },
+        "admission_role": "ranking_only"
+      },
+      "robustness_report": {
+        "status": "not_run_budget_exhausted"
+      },
+      "certificate_id": "572d6905a4561f8b30b9d56debabd3ea60fc27b25fff9e521694d51711e958a0",
+      "artifact_ids": [
+        "experiments/ar_coating_sio2_tio2_opt/candidates/ar_coating_sio2_tio2_opt__gradient_thickness__04/PHYSICS_ACCEPTANCE_CERTIFICATE.json",
+        "experiments/ar_coating_sio2_tio2_opt/candidates/ar_coating_sio2_tio2_opt__gradient_thickness__04/OBJECTIVE_REPORT.json"
+      ],
+      "layer_materials": [
+        "n=1.46",
+        "n=2.4"
+      ],
+      "layer_labels": [
+        "layer_1",
+        "layer_2"
+      ],
+      "incident_medium": {
+        "constant_n": 1.0,
+        "constant_k": 0.0
+      },
+      "exit_medium": {
+        "constant_n": 1.52,
+        "constant_k": 0.0
+      },
+      "route_id": "route_01",
+      "route_title": "Optimization of SiO2/TiO2 Bilayer Order and Thickness for Broadband AR",
+      "iteration_id": "iteration_01",
+      "reported_metrics": [
+        {
+          "name": "min_mean_reflectance",
+          "observable": "mean_reflectance",
+          "observed": 0.05132460111466987,
+          "target": 0.0,
+          "constraint": null,
+          "aggregation": "mean",
+          "weight": 1.0,
+          "role": "soft_scoring_objective"
+        },
+        {
+          "name": "fixedscore.mean_reflectance_450_700nm",
+          "observable": "mean_reflectance",
+          "observed": 0.05132460111466987,
+          "target": null,
+          "constraint": null,
+          "aggregation": "mean",
+          "weight": 1.0,
+          "role": "report_only"
+        }
+      ],
+      "reported_robustness": {
+        "perturbation_model": {},
+        "nominal_spectral_metrics": {},
+        "spectral_metric_summary": {},
+        "failed_simulations": 0
+      },
+      "frozen_score": -0.05132460111466987,
+      "frozen_score_inputs": {
+        "mean_reflectance_450_700nm": 0.05132460111466987
+      },
+      "frozen_score_missing": [],
+      "candidate_key": "iteration_01::ar_coating_sio2_tio2_opt__gradient_thickness__04",
+      "ranking_scope": "frozen_scoring_standard",
+      "shared_contract_summary": {
+        "mean_reflectance_across_channels": null,
+        "worst_channel_mean_reflectance": null,
+        "worst_point_reflectance": null,
+        "target_clauses_met": 0,
+        "target_clauses_assessed": 1
+      },
+      "cross_route_rank": 3
+    },
+    {
+      "candidate_id": "ar_coating_tio2_sio2_opt__gradient_thickness__01",
+      "experiment_id": "ar_coating_tio2_sio2_opt",
+      "target_score": 0.529945171199669,
+      "robustness_score": 0.1301872889606422,
+      "simplicity_score": 1.0,
+      "distinctiveness_score": 0.0,
+      "thicknesses_nm": [
+        46.0,
+        111.0
+      ],
+      "optimizer_id": "gradient_thickness",
+      "objective_report": {
+        "schema_version": "tmm-objective-report.v1",
+        "aggregate_soft_score": 0.1293575326840501,
+        "weighted_directional_loss": 0.11371413078822888,
+        "target_attainment": {
+          "min_mean_reflectance": {
+            "metric": "mean_reflectance",
+            "observed": 0.33652561596179126,
+            "target": 0.0,
+            "sense": "minimize",
+            "weight": 1.0,
+            "soft_score": 0.6634743840382087,
+            "loss_semantics": "squared_reduced_directional_error",
+            "role": "soft_scoring_objective",
+            "region": {
+              "wavelength_nm": [
+                450.0,
+                700.0
+              ],
+              "angle_deg": 0.0,
+              "polarization": "s"
+            },
+            "channel_observations": {
+              "angle=0|pol=s": 0.33652561596179126
+            },
+            "mean_reduction": "sample_mean",
+            "channel_reduction": "sample_mean",
+            "aggregation": "mean"
+          },
+          "soft_target_below_0.03": {
+            "observable": "R",
+            "observed": 0.33652561596179126,
+            "target": 0.03,
+            "constraint": "at_most",
+            "aggregation": "mean",
+            "mean_reduction": "sample_mean",
+            "loss_semantics": "sample_mean_squared_directional_error_surrogate",
+            "weight": 0.5,
+            "tolerance": null,
+            "soft_score": 0.1293575326840501,
+            "role": "soft_scoring_objective"
+          },
+          "soft_target_below_0_03": {
+            "metric": "mean_reflectance",
+            "observed": 0.33652561596179126,
+            "target": 0.03,
+            "sense": "minimize",
+            "weight": 0.5,
+            "soft_score": 0.6634743840382087,
+            "loss_semantics": "squared_reduced_directional_error",
+            "role": "soft_scoring_objective",
+            "region": {
+              "wavelength_nm": [
+                450.0,
+                700.0
+              ],
+              "angle_deg": 0.0,
+              "polarization": "s"
+            },
+            "channel_observations": {
+              "angle=0|pol=s": 0.33652561596179126
+            },
+            "mean_reduction": "sample_mean",
+            "channel_reduction": "sample_mean",
+            "aggregation": "mean"
+          },
+          "fixedscore.mean_reflectance_450_700nm": {
+            "metric": "mean_reflectance",
+            "observed": 0.33652561596179126,
+            "target": null,
+            "sense": "report",
+            "weight": 1.0,
+            "soft_score": null,
+            "loss_semantics": null,
+            "role": "report_only",
+            "region": {
+              "wavelength_nm": [
+                450.0,
+                700.0
+              ],
+              "angle_deg": 0,
+              "polarization": "s"
+            },
+            "channel_observations": {
+              "angle=0|pol=s": 0.33652561596179126
+            },
+            "mean_reduction": "sample_mean",
+            "channel_reduction": "sample_mean",
+            "aggregation": "mean"
+          }
+        },
+        "admission_role": "ranking_only"
+      },
+      "robustness_report": {
+        "schema_version": "tmm-robustness-report.v1",
+        "candidate_id": "ar_coating_tio2_sio2_opt__gradient_thickness__01",
+        "perturbation_model": {
+          "distribution": "absolute_normal",
+          "sigma_nm": 1.0,
+          "relative_fraction": 0.0,
+          "angle_distribution": "uniform_common_incidence_offset",
+          "angle_perturbation_deg": 0.0,
+          "samples": 16,
+          "random_seed": 17,
+          "bounds_policy": "clip_to_declared_layer_bounds"
+        },
+        "nominal_soft_score": 0.1293575326840501,
+        "sample_soft_scores": [
+          0.12811238257871863,
+          0.1300081676476829,
+          0.131881573282558,
+          0.13036490416757973,
+          0.12962766962449215,
+          0.13246303054014905,
+          0.13210765533605368,
+          0.12865631518795081,
+          0.12784919262117397,
+          0.12855592253660494,
+          0.12813709672108625,
+          0.1304965363533376,
+          0.12894611874680761,
+          0.1324958299862745,
+          0.13228019750837386,
+          0.13101403053143162
+        ],
+        "sample_angle_offsets_deg": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "nominal_spectral_metrics": {
+          "target_domain_mean_R": 0.33652561596179115,
+          "target_domain_max_R": 0.36036275670583884,
+          "target_domain_min_R": 0.29333178508055535
+        },
+        "sample_spectral_metrics": [
+          {
+            "target_domain_mean_R": 0.3402823364422054,
+            "target_domain_max_R": 0.3614442132818062,
+            "target_domain_min_R": 0.29941778835708244
+          },
+          {
+            "target_domain_mean_R": 0.33459122149539144,
+            "target_domain_max_R": 0.3603421662365084,
+            "target_domain_min_R": 0.2899206806426375
+          },
+          {
+            "target_domain_mean_R": 0.3291280218721257,
+            "target_domain_max_R": 0.3579537513563794,
+            "target_domain_min_R": 0.28251422409001287
+          },
+          {
+            "target_domain_mean_R": 0.3335388083876216,
+            "target_domain_max_R": 0.3598357327756722,
+            "target_domain_min_R": 0.28850892444145443
+          },
+          {
+            "target_domain_mean_R": 0.335720117817754,
+            "target_domain_max_R": 0.36013704154008824,
+            "target_domain_min_R": 0.29208192847354353
+          },
+          {
+            "target_domain_mean_R": 0.3274638085518147,
+            "target_domain_max_R": 0.35693694442932655,
+            "target_domain_min_R": 0.28053865047566007
+          },
+          {
+            "target_domain_mean_R": 0.3284792022295049,
+            "target_domain_max_R": 0.35676242278946074,
+            "target_domain_min_R": 0.28230748912514847
+          },
+          {
+            "target_domain_mean_R": 0.33863230247933224,
+            "target_domain_max_R": 0.36125947241814327,
+            "target_domain_min_R": 0.29642748182071604
+          },
+          {
+            "target_domain_mean_R": 0.341085770468285,
+            "target_domain_max_R": 0.3618472698246621,
+            "target_domain_min_R": 0.30060696941150616
+          },
+          {
+            "target_domain_mean_R": 0.33893579551547315,
+            "target_domain_max_R": 0.3611051323559749,
+            "target_domain_min_R": 0.29714602492065306
+          },
+          {
+            "target_domain_mean_R": 0.34020706165080455,
+            "target_domain_max_R": 0.3611020634315663,
+            "target_domain_min_R": 0.2996039828469998
+          },
+          {
+            "target_domain_mean_R": 0.33315193182306385,
+            "target_domain_max_R": 0.35958563590248166,
+            "target_domain_min_R": 0.2880389314947312
+          },
+          {
+            "target_domain_mean_R": 0.3377588599481431,
+            "target_domain_max_R": 0.3608712837940172,
+            "target_domain_min_R": 0.2951581543734356
+          },
+          {
+            "target_domain_mean_R": 0.32737036709139916,
+            "target_domain_max_R": 0.3563039767808868,
+            "target_domain_min_R": 0.2808308425903478
+          },
+          {
+            "target_domain_mean_R": 0.3279855257385355,
+            "target_domain_max_R": 0.3587131078085039,
+            "target_domain_min_R": 0.280176331969246
+          },
+          {
+            "target_domain_mean_R": 0.33163851457118915,
+            "target_domain_max_R": 0.3584945950300683,
+            "target_domain_min_R": 0.28628913111348664
+          }
+        ],
+        "spectral_metric_summary": {
+          "target_domain_max_R": {
+            "mean": 0.35954342560972163,
+            "standard_deviation": 0.0017484434940531301,
+            "minimum": 0.3563039767808868,
+            "maximum": 0.3618472698246621,
+            "p05": 0.35664781128731726,
+            "p95": 0.3615449774175202
+          },
+          "target_domain_mean_R": {
+            "mean": 0.3341231028801652,
+            "standard_deviation": 0.004839875778991475,
+            "minimum": 0.32737036709139916,
+            "maximum": 0.341085770468285,
+            "p05": 0.3274404481867108,
+            "p95": 0.3404831949487253
+          },
+          "target_domain_min_R": {
+            "mean": 0.28997297100916636,
+            "standard_deviation": 0.007167195444022848,
+            "minimum": 0.280176331969246,
+            "maximum": 0.30060696941150616,
+            "p05": 0.28044807084905654,
+            "p95": 0.2998547294881264
+          }
+        },
+        "mean_soft_score": 0.1301872889606422,
+        "worst_soft_score": 0.12784919262117397,
+        "p10_soft_score": 0.12812473964990245,
+        "robustness_score": 0.1301872889606422,
+        "failed_simulations": 0,
+        "sample_failure_reasons": [],
+        "admission_role": "ranking_only"
+      },
+      "certificate_id": "a371e213f1f7f623bbe584dcac7042f7fad6f3a422eab9693da2613a5c392c41",
+      "artifact_ids": [
+        "experiments/ar_coating_tio2_sio2_opt/candidates/ar_coating_tio2_sio2_opt__gradient_thickness__01/PHYSICS_ACCEPTANCE_CERTIFICATE.json",
+        "experiments/ar_coating_tio2_sio2_opt/candidates/ar_coating_tio2_sio2_opt__gradient_thickness__01/OBJECTIVE_REPORT.json",
+        "experiments/ar_coating_tio2_sio2_opt/candidates/ar_coating_tio2_sio2_opt__gradient_thickness__01/ROBUSTNESS.json"
+      ],
+      "layer_materials": [
+        "n=2.4",
+        "n=1.46"
+      ],
+      "layer_labels": [
+        "layer_1",
+        "layer_2"
+      ],
+      "incident_medium": {
+        "constant_n": 1.0,
+        "constant_k": 0.0
+      },
+      "exit_medium": {
+        "constant_n": 1.52,
+        "constant_k": 0.0
+      },
+      "route_id": "route_01",
+      "route_title": "Optimization of TiO2/SiO2 Bilayer with Analytical Quarter-Wave Initialization",
+      "iteration_id": "iteration_02",
+      "reported_metrics": [
+        {
+          "name": "min_mean_reflectance",
+          "observable": "mean_reflectance",
+          "observed": 0.33652561596179126,
+          "target": 0.0,
+          "constraint": null,
+          "aggregation": "mean",
+          "weight": 1.0,
+          "role": "soft_scoring_objective"
+        },
+        {
+          "name": "soft_target_below_0.03",
+          "observable": "R",
+          "observed": 0.33652561596179126,
+          "target": 0.03,
+          "constraint": "at_most",
+          "aggregation": "mean",
+          "weight": 0.5,
+          "role": "soft_scoring_objective"
+        },
+        {
+          "name": "soft_target_below_0_03",
+          "observable": "mean_reflectance",
+          "observed": 0.33652561596179126,
+          "target": 0.03,
+          "constraint": null,
+          "aggregation": "mean",
+          "weight": 0.5,
+          "role": "soft_scoring_objective"
+        },
+        {
+          "name": "fixedscore.mean_reflectance_450_700nm",
+          "observable": "mean_reflectance",
+          "observed": 0.33652561596179126,
+          "target": null,
+          "constraint": null,
+          "aggregation": "mean",
+          "weight": 1.0,
+          "role": "report_only"
+        }
+      ],
+      "reported_robustness": {
+        "perturbation_model": {
+          "distribution": "absolute_normal",
+          "sigma_nm": 1.0,
+          "relative_fraction": 0.0,
+          "angle_distribution": "uniform_common_incidence_offset",
+          "angle_perturbation_deg": 0.0,
+          "samples": 16,
+          "random_seed": 17,
+          "bounds_policy": "clip_to_declared_layer_bounds"
+        },
+        "nominal_spectral_metrics": {
+          "target_domain_mean_R": 0.33652561596179115,
+          "target_domain_max_R": 0.36036275670583884,
+          "target_domain_min_R": 0.29333178508055535
+        },
+        "spectral_metric_summary": {
+          "target_domain_max_R": {
+            "mean": 0.35954342560972163,
+            "standard_deviation": 0.0017484434940531301,
+            "minimum": 0.3563039767808868,
+            "maximum": 0.3618472698246621,
+            "p05": 0.35664781128731726,
+            "p95": 0.3615449774175202
+          },
+          "target_domain_mean_R": {
+            "mean": 0.3341231028801652,
+            "standard_deviation": 0.004839875778991475,
+            "minimum": 0.32737036709139916,
+            "maximum": 0.341085770468285,
+            "p05": 0.3274404481867108,
+            "p95": 0.3404831949487253
+          },
+          "target_domain_min_R": {
+            "mean": 0.28997297100916636,
+            "standard_deviation": 0.007167195444022848,
+            "minimum": 0.280176331969246,
+            "maximum": 0.30060696941150616,
+            "p05": 0.28044807084905654,
+            "p95": 0.2998547294881264
+          }
+        },
+        "failed_simulations": 0
+      },
+      "frozen_score": -0.33652561596179126,
+      "frozen_score_inputs": {
+        "mean_reflectance_450_700nm": 0.33652561596179126
+      },
+      "frozen_score_missing": [],
+      "candidate_key": "iteration_02::ar_coating_tio2_sio2_opt__gradient_thickness__01",
+      "ranking_scope": "frozen_scoring_standard",
+      "shared_contract_summary": {
+        "mean_reflectance_across_channels": 0.33652561596179126,
+        "worst_channel_mean_reflectance": 0.33652561596179126,
+        "worst_point_reflectance": null,
+        "target_clauses_met": 0,
+        "target_clauses_assessed": 3
+      },
+      "cross_route_rank": 4
+    },
+    {
+      "candidate_id": "ar_coating_tio2_sio2_opt__gradient_thickness__03",
+      "experiment_id": "ar_coating_tio2_sio2_opt",
+      "target_score": 0.5208371003979037,
+      "robustness_score": null,
+      "simplicity_score": 0.9756097560975611,
+      "distinctiveness_score": 0.11246196619259773,
+      "thicknesses_nm": [
+        64.8810769863313,
+        113.78541099758986
+      ],
+      "optimizer_id": "gradient_thickness",
+      "objective_report": {
+        "schema_version": "tmm-objective-report.v1",
+        "aggregate_soft_score": 0.12579210231024113,
+        "weighted_directional_loss": 0.12154941358421036,
+        "target_attainment": {
+          "min_mean_reflectance": {
+            "metric": "mean_reflectance",
+            "observed": 0.3474812335728755,
+            "target": 0.0,
+            "sense": "minimize",
+            "weight": 1.0,
+            "soft_score": 0.6525187664271245,
+            "loss_semantics": "squared_reduced_directional_error",
+            "role": "soft_scoring_objective",
+            "region": {
+              "wavelength_nm": [
+                450.0,
+                700.0
+              ],
+              "angle_deg": 0.0,
+              "polarization": "s"
+            },
+            "channel_observations": {
+              "angle=0|pol=s": 0.3474812335728755
+            },
+            "mean_reduction": "sample_mean",
+            "channel_reduction": "sample_mean",
+            "aggregation": "mean"
+          },
+          "soft_target_below_0.03": {
+            "observable": "R",
+            "observed": 0.3474812335728755,
+            "target": 0.03,
+            "constraint": "at_most",
+            "aggregation": "mean",
+            "mean_reduction": "sample_mean",
+            "loss_semantics": "sample_mean_squared_directional_error_surrogate",
+            "weight": 0.5,
+            "tolerance": null,
+            "soft_score": 0.12579210231024113,
+            "role": "soft_scoring_objective"
+          },
+          "soft_target_below_0_03": {
+            "metric": "mean_reflectance",
+            "observed": 0.3474812335728755,
+            "target": 0.03,
+            "sense": "minimize",
+            "weight": 0.5,
+            "soft_score": 0.6525187664271245,
+            "loss_semantics": "squared_reduced_directional_error",
+            "role": "soft_scoring_objective",
+            "region": {
+              "wavelength_nm": [
+                450.0,
+                700.0
+              ],
+              "angle_deg": 0.0,
+              "polarization": "s"
+            },
+            "channel_observations": {
+              "angle=0|pol=s": 0.3474812335728755
+            },
+            "mean_reduction": "sample_mean",
+            "channel_reduction": "sample_mean",
+            "aggregation": "mean"
+          },
+          "fixedscore.mean_reflectance_450_700nm": {
+            "metric": "mean_reflectance",
+            "observed": 0.3474812335728755,
+            "target": null,
+            "sense": "report",
+            "weight": 1.0,
+            "soft_score": null,
+            "loss_semantics": null,
+            "role": "report_only",
+            "region": {
+              "wavelength_nm": [
+                450.0,
+                700.0
+              ],
+              "angle_deg": 0,
+              "polarization": "s"
+            },
+            "channel_observations": {
+              "angle=0|pol=s": 0.3474812335728755
+            },
+            "mean_reduction": "sample_mean",
+            "channel_reduction": "sample_mean",
+            "aggregation": "mean"
+          }
+        },
+        "admission_role": "ranking_only"
+      },
+      "robustness_report": {
+        "status": "not_run_budget_exhausted"
+      },
+      "certificate_id": "4f01f3d38d77845e036be5b2b4db04697ffa85fbe13392bd0b9cba79b0c08110",
+      "artifact_ids": [
+        "experiments/ar_coating_tio2_sio2_opt/candidates/ar_coating_tio2_sio2_opt__gradient_thickness__03/PHYSICS_ACCEPTANCE_CERTIFICATE.json",
+        "experiments/ar_coating_tio2_sio2_opt/candidates/ar_coating_tio2_sio2_opt__gradient_thickness__03/OBJECTIVE_REPORT.json"
+      ],
+      "layer_materials": [
+        "n=2.4",
+        "n=1.46"
+      ],
+      "layer_labels": [
+        "layer_1",
+        "layer_2"
+      ],
+      "incident_medium": {
+        "constant_n": 1.0,
+        "constant_k": 0.0
+      },
+      "exit_medium": {
+        "constant_n": 1.52,
+        "constant_k": 0.0
+      },
+      "route_id": "route_01",
+      "route_title": "Optimization of TiO2/SiO2 Bilayer with Analytical Quarter-Wave Initialization",
+      "iteration_id": "iteration_02",
+      "reported_metrics": [
+        {
+          "name": "min_mean_reflectance",
+          "observable": "mean_reflectance",
+          "observed": 0.3474812335728755,
+          "target": 0.0,
+          "constraint": null,
+          "aggregation": "mean",
+          "weight": 1.0,
+          "role": "soft_scoring_objective"
+        },
+        {
+          "name": "soft_target_below_0.03",
+          "observable": "R",
+          "observed": 0.3474812335728755,
+          "target": 0.03,
+          "constraint": "at_most",
+          "aggregation": "mean",
+          "weight": 0.5,
+          "role": "soft_scoring_objective"
+        },
+        {
+          "name": "soft_target_below_0_03",
+          "observable": "mean_reflectance",
+          "observed": 0.3474812335728755,
+          "target": 0.03,
+          "constraint": null,
+          "aggregation": "mean",
+          "weight": 0.5,
+          "role": "soft_scoring_objective"
+        },
+        {
+          "name": "fixedscore.mean_reflectance_450_700nm",
+          "observable": "mean_reflectance",
+          "observed": 0.3474812335728755,
+          "target": null,
+          "constraint": null,
+          "aggregation": "mean",
+          "weight": 1.0,
+          "role": "report_only"
+        }
+      ],
+      "reported_robustness": {
+        "perturbation_model": {},
+        "nominal_spectral_metrics": {},
+        "spectral_metric_summary": {},
+        "failed_simulations": 0
+      },
+      "frozen_score": -0.3474812335728755,
+      "frozen_score_inputs": {
+        "mean_reflectance_450_700nm": 0.3474812335728755
+      },
+      "frozen_score_missing": [],
+      "candidate_key": "iteration_02::ar_coating_tio2_sio2_opt__gradient_thickness__03",
+      "ranking_scope": "frozen_scoring_standard",
+      "shared_contract_summary": {
+        "mean_reflectance_across_channels": 0.3474812335728755,
+        "worst_channel_mean_reflectance": 0.3474812335728755,
+        "worst_point_reflectance": null,
+        "target_clauses_met": 0,
+        "target_clauses_assessed": 3
+      },
+      "cross_route_rank": 5
+    }
+  ],
+  "numeric_tolerance": 1e-08,
+  "metric_tolerance": 1e-12,
+  "audit_solver_work_excluded_from_production_budget": true,
+  "scope": "same frozen two-layer constant-index case; no manufactured or experimental validation"
+}

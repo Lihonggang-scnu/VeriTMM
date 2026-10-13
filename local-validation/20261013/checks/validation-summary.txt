@@ -1,0 +1,43 @@
+Validation summary (2026-10-13; read-only source validation)
+
+Imports/Torch
+- independent cwd: D:\OptoMind-Article-3\repos\VeriTMM
+- independent tmm_engine: D:\OptoMind-Article-3\repos\VeriTMM\tmm_engine\__init__.py
+- embedded cwd: D:\OptoMind-Article-3\repos\OptoMind-Article\veritmm
+- embedded tmm_engine: D:\OptoMind-Article-3\repos\OptoMind-Article\veritmm\tmm_engine\__init__.py
+- Torch: 2.14.1+cpu in both probes; tensor square sum: 5.0 in both probes; exit code 0 in both.
+
+Focused Windows tests (tensor Python 3.12.13; no network; no pytest cache provider)
+- tests/test_optimizer_evaluation_budget.py: 10 passed, exit 0
+- tests/test_spectral_mean_reduction.py: 9 passed, exit 0
+- tests/test_gradient_channel_contract.py: 2 passed, exit 0
+
+Engine comparison record
+- independent tracked tmm_engine files: 113
+- embedded tracked veritmm/tmm_engine files: 113
+- existing read-only SHA-256 evidence: all 113 match
+- no engine files copied or synchronized in this validation
+- source repo statuses remained clean after validation
+
+Read handoff/manifest
+- LOCAL_HANDOFF.md and IMPLEMENTATION_MANIFEST.json consumed completely.
+- Manifest records Article head 491d7ddddfbdddbdbd11edffafc3299f242ab8d2, VeriTMM head 86de13615d98a3adfc0d7a026e28915570b8111d, matching_engine_files 113, historical_files_unchanged 810, pushed false.
+- Handoff explicitly says embedded engine is synchronized and must not be overwritten with an old VeriTMM tree.
+
+Read verification/budget logs completely
+- BENCHMARK_RESULT.json: 85 cases, 85 passed, 0 failed, release gate passed; valid 53/53, invalid rejection 32/32, artifact 25/25, certificate 18/18, reproducibility 85/85, unsupported false accepts 0.
+- challenge_result.json: 50 candidates, accepted true, certificate physically_valid, failure_count 9 in candidate search, worst disagreement 5.27355936696949e-15, high precision referee not evaluated.
+- final-build.log: sdist and wheel build completed successfully.
+- final-describe.json: package 2.0.0, veritmm-agent-v1, offline deterministic capabilities and explicit spectral metric definitions.
+- final-wheel-install.log: wheel installed successfully.
+- fit_result.json: converged true after 16 iterations; fit quality poor and physics not certified.
+- harness-final.log: 24 passed, 1 preexisting Linux deep-path length failure (245 < 240 assertion); retained as logged baseline caveat.
+- python-dependencies.txt: fully consumed; includes torch==2.14.1+cpu and pytest==9.1.1.
+- standalone-final-lint.log: All checks passed.
+- standalone-final.log: 522 passed, 1 optional referee skip.
+- torch-marker.log: 25 passed, 495 deselected.
+
+Read verification/metrics logs completely
+- article_metric_regressions.txt: 288 passed.
+- bundled_engine_metric_regressions.txt: 38 passed.
+- standalone_engine_metric_regressions.txt: 38 passed.
