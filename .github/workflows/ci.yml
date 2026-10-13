@@ -214,9 +214,11 @@ jobs:
           from pathlib import Path
 
           payload = json.loads(Path(os.environ["RUNNER_TEMP"], "describe.json").read_text())
-          assert payload["package_version"] == "1.0.0"
+          from tmm_engine._version import __version__
+
+          assert payload["package_version"] == __version__
           assert payload["engine_id"] == "veritmm"
-          assert payload["research_interface"]["version"] == "1.0.0"
+          assert payload["research_interface"]["version"] == __version__
 
           from tmm_engine.research import (
               DatasetFactory,

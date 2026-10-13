@@ -12,6 +12,7 @@ abstract: >-
   uncertainty budget that keeps model applicability limits separate from
   numerical uncertainty, and versioned provenance suitable for archival.
 type: software
+version: "2.0.0"
 authors:
   - name: "VeriTMM contributors"
 repository-code: "https://github.com/Lihonggang-scnu/VeriTMM"
