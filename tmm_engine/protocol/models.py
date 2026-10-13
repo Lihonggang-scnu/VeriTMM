@@ -165,6 +165,13 @@ class SpectralTargetContract(ProtocolModel):
     name: str | None = None
     constraint: Literal["match", "at_least", "at_most"] = "match"
     aggregation: Literal["mean", "worst_case"] = "mean"
+    mean_reduction: Literal["sample_mean", "wavelength_integral_mean"] | None = None
+
+    @model_validator(mode="after")
+    def _validate_mean_reduction(self) -> "SpectralTargetContract":
+        if self.mean_reduction is not None and self.aggregation != "mean":
+            raise ValueError("mean_reduction is only valid for mean aggregation")
+        return self
 
 
 class OptimizerContract(ProtocolModel):

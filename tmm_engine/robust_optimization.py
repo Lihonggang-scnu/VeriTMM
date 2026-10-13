@@ -15,6 +15,7 @@ from .protocol.uncertainty_budget import (
     UncertaintyType,
 )
 from .schemas import OptimizationTask
+from .spectral_reduction import reduce_spectral_mean
 from .uncertainty import (
     apply_thickness_boundary_policy,
     classify_sample_failure,
@@ -74,7 +75,8 @@ def _objective_and_attainment(task: OptimizationTask, forward: Any) -> tuple[flo
         total_weight += float(target.weight)
         observed_min = float(np.min(values))
         observed_max = float(np.max(values))
-        observed_mean = float(np.mean(values))
+        mean_reduction = target.mean_reduction or "sample_mean"
+        observed_mean = reduce_spectral_mean(wavelengths[mask], values, mean_reduction)
         observed = (
             observed_min
             if target.constraint == "at_least" and target.aggregation == "worst_case"
@@ -93,7 +95,9 @@ def _objective_and_attainment(task: OptimizationTask, forward: Any) -> tuple[flo
             deviation = (
                 float(np.max(np.abs(values - float(target.target))))
                 if target.aggregation == "worst_case"
-                else float(np.mean(np.abs(values - float(target.target))))
+                else reduce_spectral_mean(
+                    wavelengths[mask], np.abs(values - float(target.target)), mean_reduction
+                )
             )
             passed = deviation <= tolerance
         else:

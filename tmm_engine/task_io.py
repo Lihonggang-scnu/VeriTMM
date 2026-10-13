@@ -112,6 +112,7 @@ def optimization_task_from_dict(data: Mapping[str, Any]) -> OptimizationTask:
             name=item.get("name"),
             constraint=str(item.get("constraint", "match")),
             aggregation=str(item.get("aggregation", "mean")),
+            mean_reduction=item.get("mean_reduction"),
         )
         for item in data["targets"]
     )

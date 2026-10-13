@@ -239,6 +239,7 @@ class SpectralTarget:
     name: Optional[str] = None
     constraint: Literal["match", "at_least", "at_most"] = "match"
     aggregation: Literal["mean", "worst_case"] = "mean"
+    mean_reduction: Optional[Literal["sample_mean", "wavelength_integral_mean"]] = None
 
     def validate(self) -> None:
         if self.observable not in ("R", "T", "A"):
@@ -255,6 +256,10 @@ class SpectralTarget:
             raise ValueError("constraint must be match, at_least, or at_most")
         if self.aggregation not in ("mean", "worst_case"):
             raise ValueError("aggregation must be mean or worst_case")
+        if self.mean_reduction not in (None, "sample_mean", "wavelength_integral_mean"):
+            raise ValueError("unsupported mean_reduction")
+        if self.mean_reduction is not None and self.aggregation != "mean":
+            raise ValueError("mean_reduction is only valid for mean aggregation")
         if self.tolerance is not None and _finite_float(self.tolerance, "tolerance") < 0:
             raise ValueError("tolerance must be non-negative")
 
