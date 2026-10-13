@@ -1031,7 +1031,7 @@ class RiiSqliteProvider:
                 "available": False,
                 "page_count": 0,
             }
-        connection = sqlite3.connect(str(self.db_path))
+        connection = self._connect()
         try:
             page_count = int(connection.execute("SELECT COUNT(*) FROM pages").fetchone()[0])
             nk_points = int(
