@@ -6,7 +6,19 @@ import pytest
 pytest.importorskip("torch")
 pytestmark = pytest.mark.requires_torch
 
-from tmm_engine import IlluminationSpec, LayerSpec, MaterialRegistry, MediumSpec, OptimizationTask, OptimizerSpec, SimulationTask, SpectralGrid, SpectralTarget, StackSpec, TMMWorkbench
+from tmm_engine import (
+    IlluminationSpec,
+    LayerSpec,
+    MaterialRegistry,
+    MediumSpec,
+    OptimizationTask,
+    OptimizerSpec,
+    SimulationTask,
+    SpectralGrid,
+    SpectralTarget,
+    StackSpec,
+    TMMWorkbench,
+)
 from tmm_engine.optimization import DifferentiableThicknessOptimizer
 from tmm_engine.spectral_reduction import reduce_spectral_mean
 
